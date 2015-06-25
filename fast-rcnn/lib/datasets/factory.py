@@ -10,6 +10,7 @@
 __sets = {}
 
 import datasets.pascal_voc
+import datasets.kitti
 import numpy as np
 
 def _selective_search_IJCV_top_k(split, year, top_k):
@@ -36,6 +37,13 @@ for top_k in np.arange(1000, 11000, 1000):
             name = 'voc_{}_{}_top_{:d}'.format(year, split, top_k)
             __sets[name] = (lambda split=split, year=year, top_k=top_k:
                     _selective_search_IJCV_top_k(split, year, top_k))
+
+# KITTI dataset
+for split in ['train', 'val', 'trainval', 'test']:
+    name = 'kitti_{}'.format(split)
+    __sets[name] = (lambda split=split:
+            datasets.kitti(split))
+
 
 def get_imdb(name):
     """Get an imdb (image database) by name."""
