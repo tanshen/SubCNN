@@ -21,7 +21,7 @@ def _selective_search_IJCV_top_k(split, year, top_k):
     imdb.roidb_handler = imdb.selective_search_IJCV_roidb
     imdb.config['top_k'] = top_k
     return imdb
-
+"""
 # Set up voc_<year>_<split> using selective search "fast" mode
 for year in ['2007', '2012']:
     for split in ['train', 'val', 'trainval', 'test']:
@@ -37,10 +37,11 @@ for top_k in np.arange(1000, 11000, 1000):
             name = 'voc_{}_{}_top_{:d}'.format(year, split, top_k)
             __sets[name] = (lambda split=split, year=year, top_k=top_k:
                     _selective_search_IJCV_top_k(split, year, top_k))
-
+"""
 # KITTI dataset
 for split in ['train', 'val', 'trainval', 'test']:
     name = 'kitti_{}'.format(split)
+    print name
     __sets[name] = (lambda split=split:
             datasets.kitti(split))
 

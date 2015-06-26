@@ -1,5 +1,7 @@
 __author__ = 'yuxiang' # derived from honda.py by fyang
 
+import datasets
+import datasets.kitti
 import os
 import datasets.imdb
 import numpy as np
@@ -38,12 +40,12 @@ class kitti(datasets.imdb):
         Construct an image path from the image's "index" identifier.
         """
         # set the prefix
-        if self._image_set == 'test'
+        if self._image_set == 'test':
             prefix = 'testing/image_2'
-        else
+        else:
             prefix = 'training/image_2'
 
-        image_path = os.path.join(self._data_path, predix, index + self._image_ext)
+        image_path = os.path.join(self._data_path, prefix, index + self._image_ext)
         assert os.path.exists(image_path), \
                 'Path does not exist: {}'.format(image_path)
         return image_path
@@ -100,7 +102,7 @@ class kitti(datasets.imdb):
             for line in f:
                 words = line.split()
                 cls = words[0]
-                if cls in slef._class_to_ind:
+                if cls in self._class_to_ind:
                     lines.append(line)
             
 
@@ -110,10 +112,10 @@ class kitti(datasets.imdb):
         gt_classes = np.zeros((num_objs), dtype=np.int32)
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
 
-        for ix, line in lines:
+        for ix, line in enumerate(lines):
             words = line.split()
-            cls = slef._class_to_ind[words[0]]
-            boxes[ix, :] = [float(n) for n in words[4:7]]
+            cls = self._class_to_ind[words[0]]
+            boxes[ix, :] = [float(n) for n in words[4:8]]
             gt_classes[ix] = cls
             overlaps[ix, cls] = 1.0
 
@@ -160,14 +162,14 @@ class kitti(datasets.imdb):
     def _load_voxel_pattern_roidb(self, gt_roidb):
         # set the prefix
         model = '3DVP_125/'
-        if self._image_set == 'test'
+        if self._image_set == 'test':
             prefix = model + 'testing'
-        else
+        else:
             prefix = model + 'training'
 
         box_list = []
         for index in self.image_index:
-            filename = os.path.join(self._kitti_path, predix, index + '.txt')
+            filename = os.path.join(self._kitti_path, prefix, index + '.txt')
             assert os.path.exists(filename), \
                 'Voxel pattern data not found at: {}'.format(filename)
             raw_data = np.loadtxt(filename, dtype=float)

@@ -41,7 +41,7 @@ def parse_args():
                         default=None, type=str)
     parser.add_argument('--imdb', dest='imdb_name',
                         help='dataset to train on',
-                        default='voc_2007_trainval', type=str)
+                        default='kitti_train', type=str)
     parser.add_argument('--rand', dest='randomize',
                         help='randomize (do not use a fixed seed)',
                         action='store_true')
@@ -75,6 +75,7 @@ if __name__ == '__main__':
     if args.gpu_id is not None:
         caffe.set_device(args.gpu_id)
 
+    print args.imdb_name
     imdb = get_imdb(args.imdb_name)
     print 'Loaded dataset `{:s}` for training'.format(imdb.name)
     roidb = get_training_roidb(imdb)

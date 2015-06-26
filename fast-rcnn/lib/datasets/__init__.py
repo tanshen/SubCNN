@@ -7,6 +7,7 @@
 
 from .imdb import imdb
 from .pascal_voc import pascal_voc
+from .kitti import kitti
 from . import factory
 
 import os.path as osp
@@ -35,8 +36,9 @@ def _which(program):
                 return exe_file
 
     return None
-
+"""
 if _which(MATLAB) is None:
     msg = ("MATLAB command '{}' not found. "
            "Please add '{}' to your PATH.").format(MATLAB, MATLAB)
     raise EnvironmentError(msg)
+"""

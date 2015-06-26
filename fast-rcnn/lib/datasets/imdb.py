@@ -161,13 +161,14 @@ class imdb(object):
 
             if gt_roidb is not None:
                 gt_boxes = gt_roidb[i]['boxes']
-                gt_classes = gt_roidb[i]['gt_classes']
-                gt_overlaps = bbox_overlaps(boxes.astype(np.float),
+                if gt_boxes.shape[0] != 0:
+                    gt_classes = gt_roidb[i]['gt_classes']
+                    gt_overlaps = bbox_overlaps(boxes.astype(np.float),
                                             gt_boxes.astype(np.float))
-                argmaxes = gt_overlaps.argmax(axis=1)
-                maxes = gt_overlaps.max(axis=1)
-                I = np.where(maxes > 0)[0]
-                overlaps[I, gt_classes[argmaxes[I]]] = maxes[I]
+                    argmaxes = gt_overlaps.argmax(axis=1)
+                    maxes = gt_overlaps.max(axis=1)
+                    I = np.where(maxes > 0)[0]
+                    overlaps[I, gt_classes[argmaxes[I]]] = maxes[I]
 
             overlaps = scipy.sparse.csr_matrix(overlaps)
             roidb.append({'boxes' : boxes,
