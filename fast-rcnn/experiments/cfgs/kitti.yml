@@ -1,0 +1,6 @@
+EXP_DIR: kitti
+TRAIN:
+  FG_THRESH: 0.7
+  BG_THRESH_HI: 0.6
+  BBOX_THRESH: 0.7
+  SNAPSHOT_INFIX: kitti
