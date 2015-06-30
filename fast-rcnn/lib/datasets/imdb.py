@@ -161,7 +161,7 @@ class imdb(object):
 
             if gt_roidb is not None:
                 gt_boxes = gt_roidb[i]['boxes']
-                if gt_boxes.shape[0] != 0:
+                if gt_boxes.shape[0] != 0 and num_boxes != 0:
                     gt_classes = gt_roidb[i]['gt_classes']
                     gt_overlaps = bbox_overlaps(boxes.astype(np.float),
                                             gt_boxes.astype(np.float))

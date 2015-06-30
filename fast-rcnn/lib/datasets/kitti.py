@@ -173,6 +173,11 @@ class kitti(datasets.imdb):
             assert os.path.exists(filename), \
                 'Voxel pattern data not found at: {}'.format(filename)
             raw_data = np.loadtxt(filename, dtype=float)
+            if len(raw_data.shape) == 1:
+                if raw_data.size == 0:
+                    raw_data = raw_data.reshape((0, 4))
+                else:
+                    raw_data = raw_data.reshape((1, 4))
             box_list.append(raw_data)
 
         return self.create_roidb_from_box_list(box_list, gt_roidb)

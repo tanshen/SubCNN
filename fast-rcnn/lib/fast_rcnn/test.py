@@ -151,7 +151,7 @@ def _clip_boxes(boxes, im_shape):
     boxes[:, 3::4] = np.minimum(boxes[:, 3::4], im_shape[0] - 1)
     return boxes
 
-def im_detect(net, im, boxes):
+def im_detect(net, im, boxes, num_classes):
     """Detect object classes in an image given object proposals.
 
     Arguments:
@@ -164,6 +164,12 @@ def im_detect(net, im, boxes):
             background as object category 0)
         boxes (ndarray): R x (4*K) array of predicted bounding boxes
     """
+
+    if boxes.shape[0] == 0:
+        scores = np.zeros((0, num_classes))
+        pred_boxes = np.zeros((0, 4*num_classes))
+        return scores, pred_boxes
+
     blobs, unused_im_scale_factors = _get_blobs(im, boxes)
 
     # When mapping from image ROIs to feature map ROIs, there's some aliasing
@@ -276,7 +282,7 @@ def test_net(net, imdb):
     for i in xrange(num_images):
         im = cv2.imread(imdb.image_path_at(i))
         _t['im_detect'].tic()
-        scores, boxes = im_detect(net, im, roidb[i]['boxes'])
+        scores, boxes = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes)
         _t['im_detect'].toc()
 
         _t['misc'].tic()
