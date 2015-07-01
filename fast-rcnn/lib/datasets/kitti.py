@@ -100,9 +100,13 @@ class kitti(datasets.imdb):
         lines = []
         with open(filename) as f:
             for line in f:
+                line = line.replace('Van', 'Car')
                 words = line.split()
                 cls = words[0]
-                if cls in self._class_to_ind:
+                truncation = float(words[1])
+                occlusion = int(words[2])
+                height = float(words[7]) - float(words[5])
+                if cls in self._class_to_ind and truncation < 0.5 and occlusion < 3 and height > 25:
                     lines.append(line)
             
 
@@ -196,7 +200,7 @@ class kitti(datasets.imdb):
                     if dets == []:
                         continue
                     for k in xrange(dets.shape[0]):
-                        f.write('{:s} -1 -1 -1 {:f} {:f} {:f} {:f} -1 -1 -1 -1 -1 -1 -1 {:f}\n'.format(\
+                        f.write('{:s} -1 -1 -1 {:f} {:f} {:f} {:f} -1 -1 -1 -1 -1 -1 -1 {:.32f}\n'.format(\
                                  cls, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, -1]))
 
 if __name__ == '__main__':

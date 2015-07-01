@@ -256,9 +256,9 @@ def test_net(net, imdb):
     num_images = len(imdb.image_index)
     # heuristic: keep an average of 40 detections per class per images prior
     # to NMS
-    max_per_set = 40 * num_images
+    max_per_set = np.inf
     # heuristic: keep at most 100 detection per class per image prior to NMS
-    max_per_image = 100
+    max_per_image = 10000
     # detection thresold for each class (this is adaptively set based on the
     # max_per_set constraint)
     thresh = -np.inf * np.ones(imdb.num_classes)
@@ -286,6 +286,7 @@ def test_net(net, imdb):
         _t['im_detect'].toc()
 
         _t['misc'].tic()
+        count = 0
         for j in xrange(1, imdb.num_classes):
             inds = np.where((scores[:, j] > thresh[j]) &
                             (roidb[i]['gt_classes'] == 0))[0]
@@ -307,14 +308,15 @@ def test_net(net, imdb):
             all_boxes[j][i] = \
                     np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
                     .astype(np.float32, copy=False)
+            count = count + len(cls_scores)
 
             if 0:
                 keep = nms(all_boxes[j][i], 0.3)
                 vis_detections(im, imdb.classes[j], all_boxes[j][i][keep, :])
         _t['misc'].toc()
 
-        print 'im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
-              .format(i + 1, num_images, _t['im_detect'].average_time,
+        print 'im_detect: {:d}/{:d} {:d} object detected {:.3f}s {:.3f}s' \
+              .format(i + 1, num_images, count, _t['im_detect'].average_time,
                       _t['misc'].average_time)
 
     for j in xrange(1, imdb.num_classes):

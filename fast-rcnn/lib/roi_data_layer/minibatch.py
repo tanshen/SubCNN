@@ -102,6 +102,7 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
 
     # The indices that we're selecting (both fg and bg)
     keep_inds = np.append(fg_inds, bg_inds)
+    # print '{} foregrounds and {} backgrounds'.format(fg_inds.size, bg_inds.size)
     # Select sampled values from various arrays:
     labels = labels[keep_inds]
     # Clamp labels for the background RoIs to 0
