@@ -30,19 +30,30 @@ end
 fprintf('load ground truth done\n');
 
 % read detection results
-object = load('KITTI_training');
-boxes = object.boxes;
-detections = cell(1, M);
-for i = 1:M
-    ind = ids(i) + 1;
-    det = [boxes{ind}(:,2) boxes{ind}(:,1) boxes{ind}(:,4) boxes{ind}(:,3)];
-    detections{i} = det;
-end
+% object = load('KITTI_training');
+% boxes = object.boxes;
+% detections = cell(1, M);
+% for i = 1:M
+%     ind = ids(i) + 1;
+%     det = [boxes{ind}(:,2) boxes{ind}(:,1) boxes{ind}(:,4) boxes{ind}(:,3)];
+%     detections{i} = det;
+% end
 
 % result_dir = 'kitti_train_ap_125';
 % filename = sprintf('../SLM/ACF/%s/car_3d_aps_125_combined_test.mat', result_dir);
 % object = load(filename);
 % detections = object.dets;
+
+detections = cell(1, M);
+for i = 1:M
+    filename = sprintf('/net/acadia3/data/RegionletSetup/KITTI/CandBB/ss/train/%06d.txt', ids(i));
+    disp(filename);
+    fid = fopen(filename, 'r');
+    C = textscan(fid, '%d %d %d %d %d');
+    fclose(fid);
+    det = double([C{2} C{3} C{4} C{5}]);
+    detections{i} = det;
+end
 
 fprintf('load detection done\n');
 
@@ -103,7 +114,6 @@ for difficulty = 1:3
     
     % for each image
     for i = 1:M
-        disp(i);
         gt = groundtruths{i};
         num = numel(gt);
         ignored_gt = ignored_gt_all{i};
@@ -116,34 +126,19 @@ for difficulty = 1:3
         assigned_detection = zeros(1, num_det);
         % for each ground truth
         for j = 1:num
-            if ignored_gt(j) == -1
+            if ignored_gt(j) == -1 || ignored_gt(j) == 1
                 continue;
             end
 
             box_gt = [gt(j).x1 gt(j).y1 gt(j).x2 gt(j).y2];
-            valid_detection = -inf;
-            max_overlap = 0;
-            % for computing pr curve values, the candidate with the greatest overlap is considered
-            for k = 1:num_det
-                if assigned_detection(k) == 1
-                    continue;
-                end
-                overlap = boxoverlap(det(k,:), box_gt);
-                if overlap > MIN_OVERLAP && overlap > max_overlap
-                    max_overlap = overlap;
-                    det_idx = k;
-                    valid_detection = 1;
-                end
+            overlap = boxoverlap(det, box_gt);
+            disp(max(overlap));
+            if max(overlap) >= MIN_OVERLAP
+                tp = tp + 1;
+            else
+                fn = fn + 1;
             end
 
-            if isinf(valid_detection) == 1 && ignored_gt(j) == 0
-                fn = fn + 1;
-            elseif isinf(valid_detection) == 0 && ignored_gt(j) == 1
-                assigned_detection(det_idx) = 1;
-            elseif isinf(valid_detection) == 0
-                tp = tp + 1;
-                assigned_detection(det_idx) = 1;
-            end
         end
     end
     
@@ -151,7 +146,7 @@ for difficulty = 1:3
     recall = tp / (tp + fn);
     
     recall_all{difficulty} = recall;
-    fprintf('difficulty %d, recall %f\n', difficulty, recall);
+    fprintf('difficulty %d, tp %d, fn %d, recall %f\n', difficulty, tp, fn, recall);
 end
 
 

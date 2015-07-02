@@ -1,7 +1,7 @@
 function opt = globals()
 
 % KITTI paths
-path_kitti = '/net/acadia/workplace/yuxiang/Projects/KITTI';
+path_kitti = '/net/acadia0a/data/yxiang/KITTI_Dataset';
 if exist(path_kitti, 'dir') == 0
     path_kitti = '/home/yuxiang/Projects/KITTI_Dataset';
 end
