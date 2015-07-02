@@ -22,7 +22,9 @@ class kitti(datasets.imdb):
         self._image_ext = '.png'
         self._image_index = self._load_image_set_index()
         # Default to roidb handler
-        self._roidb_handler = self.voxel_pattern_roidb
+        self._roidb_handler = self.region_proposal_roidb
+
+        self.config = {'top_k': 100000}
 
         assert os.path.exists(self._kitti_path), \
                 'KITTI path does not exist: {}'.format(self._kitti_path)
@@ -130,32 +132,54 @@ class kitti(datasets.imdb):
                 'gt_overlaps' : overlaps,
                 'flipped' : False}
 
-    def voxel_pattern_roidb(self):
+    def region_proposal_roidb(self):
         """
-        Return the database of 3D voxel pattern regions of interest.
+        Return the database of regions of interest.
         Ground-truth ROIs are also included.
 
         This function loads/saves from/to a cache file to speed up future calls.
         """
         cache_file = os.path.join(self.cache_path,
-                                  self.name + '_voxel_pattern_roidb.pkl')
+                                  self.name + '_region_proposal_roidb.pkl')
 
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
                 roidb = cPickle.load(fid)
-            print '{} vp roidb loaded from {}'.format(self.name, cache_file)
+            print '{} roidb loaded from {}'.format(self.name, cache_file)
             return roidb
 
         if self._image_set != 'test':
             gt_roidb = self.gt_roidb()
-            print 'Loading voxel pattern boxes...'
-            vp_roidb = self._load_voxel_pattern_roidb(gt_roidb)
-            print 'Voxel pattern boxes loaded'
-            roidb = datasets.imdb.merge_roidbs(vp_roidb, gt_roidb)
+
+            # print 'Loading voxel pattern boxes...'
+            # vp_roidb = self._load_voxel_pattern_roidb(gt_roidb)
+            # print 'Voxel pattern boxes loaded'
+            # roidb = datasets.imdb.merge_roidbs(vp_roidb, gt_roidb)
+
+            print 'Loading selective search boxes...'
+            ss_roidb = self._load_selective_search_roidb(gt_roidb)
+            print 'Voxel selective search boxes loaded'
+
+            print 'Loading ACF boxes...'
+            acf_roidb = self._load_acf_roidb(gt_roidb)
+            print 'ACF boxes loaded'
+
+            roidb = datasets.imdb.merge_roidbs(ss_roidb, gt_roidb)
+            roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
         else:
-            print 'Loading voxel pattern boxes...'
-            roidb = self._load_voxel_pattern_roidb(None)
-            print 'Voxel pattern boxes loaded'
+            # print 'Loading voxel pattern boxes...'
+            # roidb = self._load_voxel_pattern_roidb(None)
+            # print 'Voxel pattern boxes loaded'
+
+            print 'Loading selective search boxes...'
+            roidb = self._load_selective_search_roidb(None)
+            print 'Selective search boxes loaded'
+
+            print 'Loading ACF boxes...'
+            acf_roidb = self._load_acf_roidb(None)
+            print 'ACF boxes loaded'
+
+            roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
 
         with open(cache_file, 'wb') as fid:
             cPickle.dump(roidb, fid, cPickle.HIGHEST_PROTOCOL)
@@ -183,6 +207,42 @@ class kitti(datasets.imdb):
                 else:
                     raw_data = raw_data.reshape((1, 4))
             box_list.append(raw_data)
+
+        return self.create_roidb_from_box_list(box_list, gt_roidb)
+
+    def _load_selective_search_roidb(self, gt_roidb):
+        # set the prefix
+        model = 'selective_search/'
+        if self._image_set == 'test':
+            prefix = model + 'testing'
+        else:
+            prefix = model + 'training'
+
+        box_list = []
+        for index in self.image_index:
+            filename = os.path.join(self._kitti_path, prefix, index + '.txt')
+            assert os.path.exists(filename), \
+                'Selective search data not found at: {}'.format(filename)
+            raw_data = np.loadtxt(filename, dtype=float)
+            box_list.append(raw_data[:min(self.config['top_k'], raw_data.shape[0]), 1:])
+
+        return self.create_roidb_from_box_list(box_list, gt_roidb)
+
+    def _load_acf_roidb(self, gt_roidb):
+        # set the prefix
+        model = 'ACF/'
+        if self._image_set == 'test':
+            prefix = model + 'testing'
+        else:
+            prefix = model + 'training'
+
+        box_list = []
+        for index in self.image_index:
+            filename = os.path.join(self._kitti_path, prefix, index + '.txt')
+            assert os.path.exists(filename), \
+                'ACF data not found at: {}'.format(filename)
+            raw_data = np.loadtxt(filename, usecols=(2,3,4,5), dtype=float)
+            box_list.append(raw_data[:min(self.config['top_k'], raw_data.shape[0]), :])
 
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
