@@ -183,7 +183,7 @@ class kitti(datasets.imdb):
 
         with open(cache_file, 'wb') as fid:
             cPickle.dump(roidb, fid, cPickle.HIGHEST_PROTOCOL)
-        print 'wrote vp roidb to {}'.format(cache_file)
+        print 'wrote roidb to {}'.format(cache_file)
 
         return roidb
 
