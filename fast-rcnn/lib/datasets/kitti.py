@@ -160,12 +160,12 @@ class kitti(datasets.imdb):
             ss_roidb = self._load_selective_search_roidb(gt_roidb)
             print 'Voxel selective search boxes loaded'
 
-            # print 'Loading ACF boxes...'
-            # acf_roidb = self._load_acf_roidb(gt_roidb)
-            # print 'ACF boxes loaded'
+            print 'Loading ACF boxes...'
+            acf_roidb = self._load_acf_roidb(gt_roidb)
+            print 'ACF boxes loaded'
 
             roidb = datasets.imdb.merge_roidbs(ss_roidb, gt_roidb)
-            # roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
+            roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
         else:
             # print 'Loading voxel pattern boxes...'
             # roidb = self._load_voxel_pattern_roidb(None)
@@ -175,11 +175,11 @@ class kitti(datasets.imdb):
             roidb = self._load_selective_search_roidb(None)
             print 'Selective search boxes loaded'
 
-            # print 'Loading ACF boxes...'
-            # acf_roidb = self._load_acf_roidb(None)
-            # print 'ACF boxes loaded'
+            print 'Loading ACF boxes...'
+            acf_roidb = self._load_acf_roidb(None)
+            print 'ACF boxes loaded'
 
-            # roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
+            roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
 
         with open(cache_file, 'wb') as fid:
             cPickle.dump(roidb, fid, cPickle.HIGHEST_PROTOCOL)
