@@ -86,7 +86,7 @@ def demo(net, image_name, classes):
     # Detect all object classes and regress object bounds
     timer = Timer()
     timer.tic()
-    scores, boxes = im_detect(net, im, obj_proposals)
+    scores, boxes = im_detect(net, im, obj_proposals, len(classes))
     timer.toc()
     print ('Detection took {:.3f}s for '
            '{:d} object proposals').format(timer.total_time, boxes.shape[0])
