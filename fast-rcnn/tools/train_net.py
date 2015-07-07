@@ -75,7 +75,6 @@ if __name__ == '__main__':
     if args.gpu_id is not None:
         caffe.set_device(args.gpu_id)
 
-    print args.imdb_name
     imdb = get_imdb(args.imdb_name)
     print 'Loaded dataset `{:s}` for training'.format(imdb.name)
     roidb = get_training_roidb(imdb)
