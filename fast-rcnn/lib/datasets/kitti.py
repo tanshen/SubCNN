@@ -197,7 +197,7 @@ class kitti(datasets.imdb):
 
         box_list = []
         for index in self.image_index:
-            filename = os.path.join(self._kitti_path, prefix, index + '.txt')
+            filename = os.path.join(self._kitti_path, 'region_proposals',  prefix, index + '.txt')
             assert os.path.exists(filename), \
                 'Voxel pattern data not found at: {}'.format(filename)
             raw_data = np.loadtxt(filename, dtype=float)
@@ -211,38 +211,62 @@ class kitti(datasets.imdb):
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
     def _load_selective_search_roidb(self, gt_roidb):
-        # set the prefix
-        model = 'selective_search/'
-        if self._image_set == 'test':
-            prefix = model + 'testing'
-        else:
-            prefix = model + 'training'
+        cache_file = os.path.join(self.cache_path,
+                                  self.name + '_selective_search_box_list.pkl')
 
-        box_list = []
-        for index in self.image_index:
-            filename = os.path.join(self._kitti_path, prefix, index + '.txt')
-            assert os.path.exists(filename), \
-                'Selective search data not found at: {}'.format(filename)
-            raw_data = np.loadtxt(filename, dtype=float)
-            box_list.append(raw_data[:min(self.config['top_k'], raw_data.shape[0]), 1:])
+        if os.path.exists(cache_file):
+            with open(cache_file, 'rb') as fid:
+                box_list = cPickle.load(fid)
+            print '{} boxes loaded from {}'.format(self.name, cache_file)
+        else:
+            # set the prefix
+            model = 'selective_search/'
+            if self._image_set == 'test':
+                prefix = model + 'testing'
+            else:
+                prefix = model + 'training'
+
+            box_list = []
+            for index in self.image_index:
+                filename = os.path.join(self._kitti_path, 'region_proposals', prefix, index + '.txt')
+                assert os.path.exists(filename), \
+                    'Selective search data not found at: {}'.format(filename)
+                raw_data = np.loadtxt(filename, dtype=float)
+                box_list.append(raw_data[:min(self.config['top_k'], raw_data.shape[0]), 1:])
+
+            with open(cache_file, 'wb') as fid:
+                cPickle.dump(box_list, fid, cPickle.HIGHEST_PROTOCOL)
+            print 'wrote selective search boxes to {}'.format(cache_file)
 
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
     def _load_acf_roidb(self, gt_roidb):
-        # set the prefix
-        model = 'ACF/'
-        if self._image_set == 'test':
-            prefix = model + 'testing'
-        else:
-            prefix = model + 'training'
+        cache_file = os.path.join(self.cache_path,
+                                  self.name + '_acf_box_list.pkl')
 
-        box_list = []
-        for index in self.image_index:
-            filename = os.path.join(self._kitti_path, prefix, index + '.txt')
-            assert os.path.exists(filename), \
-                'ACF data not found at: {}'.format(filename)
-            raw_data = np.loadtxt(filename, usecols=(2,3,4,5), dtype=float)
-            box_list.append(raw_data[:min(self.config['top_k'], raw_data.shape[0]), :])
+        if os.path.exists(cache_file):
+            with open(cache_file, 'rb') as fid:
+                box_list = cPickle.load(fid)
+            print '{} boxes loaded from {}'.format(self.name, cache_file)
+        else:
+            # set the prefix
+            model = 'ACF/'
+            if self._image_set == 'test':
+                prefix = model + 'testing'
+            else:
+                prefix = model + 'training'
+
+            box_list = []
+            for index in self.image_index:
+                filename = os.path.join(self._kitti_path, 'region_proposals', prefix, index + '.txt')
+                assert os.path.exists(filename), \
+                    'ACF data not found at: {}'.format(filename)
+                raw_data = np.loadtxt(filename, usecols=(2,3,4,5), dtype=float)
+                box_list.append(raw_data[:min(self.config['top_k'], raw_data.shape[0]), :])
+
+            with open(cache_file, 'wb') as fid:
+                cPickle.dump(box_list, fid, cPickle.HIGHEST_PROTOCOL)
+            print 'wrote ACF boxes to {}'.format(cache_file)
 
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
