@@ -17,7 +17,14 @@ class kitti(datasets.imdb):
         self._kitti_path = self._get_default_path() if kitti_path is None \
                             else kitti_path
         self._data_path = os.path.join(self._kitti_path, 'data_object_image_2')
-        self._classes = ('__background__', 'Car')
+
+        classes = ['__background__']
+        for i in range(125):
+            classes.append(str(i+1))
+        print classes
+
+        # self._classes = ('__background__', 'Car')
+        self._classes = tuple(classes)
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
         self._image_ext = '.png'
         self._image_index = self._load_image_set_index()
@@ -84,7 +91,7 @@ class kitti(datasets.imdb):
             print '{} gt roidb loaded from {}'.format(self.name, cache_file)
             return roidb
 
-        gt_roidb = [self._load_kitti_annotation(index)
+        gt_roidb = [self._load_kitti_voxel_exemplar_annotation(index)
                     for index in self.image_index]
         with open(cache_file, 'wb') as fid:
             cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
@@ -126,9 +133,70 @@ class kitti(datasets.imdb):
             overlaps[ix, cls] = 1.0
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
+        gt_classes_flipped = gt_classes.copy()
 
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
+                'gt_classes_flipped': gt_classes_flipped,
+                'gt_overlaps' : overlaps,
+                'flipped' : False}
+
+    def _load_kitti_voxel_exemplar_annotation(self, index):
+        """
+        Load image and bounding boxes info from txt file in the KITTI voxel exemplar format.
+        """
+        if self._image_set == 'train':
+            prefix = 'validation'
+        elif self._image_set == 'trainval':
+            prefix = 'test'
+        else:
+            return self._load_kitti_annotation(index)
+
+        filename = os.path.join(self._kitti_path, 'voxel_exemplars', prefix, index + '.txt')
+        assert os.path.exists(filename), \
+                'Path does not exist: {}'.format(filename)
+
+        # the annotation file contains flipped objects    
+        lines = []
+        lines_flipped = []
+        with open(filename) as f:
+            for line in f:
+                words = line.split()
+                cls = int(words[0])
+                is_flip = int(words[1])
+                if cls != -1:
+                    if is_flip == 0:
+                        lines.append(line)
+                    else:
+                        lines_flipped.append(line)
+        
+        num_objs = len(lines)
+
+        boxes = np.zeros((num_objs, 4), dtype=np.float32)
+        gt_classes = np.zeros((num_objs), dtype=np.int32)
+        overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
+
+        for ix, line in enumerate(lines):
+            words = line.split()
+            cls = int(words[0])
+            boxes[ix, :] = [float(n) for n in words[2:6]]
+            gt_classes[ix] = cls
+            overlaps[ix, cls] = 1.0    
+
+        overlaps = scipy.sparse.csr_matrix(overlaps)
+
+        # store information of flipped objects
+        assert (num_objs == len(lines_flipped)), 'The number of flipped objects is not the same!'
+        gt_classes_flipped = np.zeros((num_objs), dtype=np.int32)
+        
+        for ix, line in enumerate(lines_flipped):
+            words = line.split()
+            cls = int(words[0])
+            gt_classes_flipped[ix] = cls
+
+        return {'boxes' : boxes,
+                'gt_classes': gt_classes,
+                'gt_classes_flipped': gt_classes_flipped,
                 'gt_overlaps' : overlaps,
                 'flipped' : False}
 

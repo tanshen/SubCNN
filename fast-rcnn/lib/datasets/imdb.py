@@ -104,10 +104,12 @@ class imdb(object):
             assert (boxes[:, 2] >= boxes[:, 0]).all()
             entry = {'boxes' : boxes,
                      'gt_overlaps' : self.roidb[i]['gt_overlaps'],
-                     'gt_classes' : self.roidb[i]['gt_classes'],
+                     'gt_classes' : self.roidb[i]['gt_classes_flipped'],
+                     'gt_classes_flipped' : self.roidb[i]['gt_classes'],
                      'flipped' : True}
             self.roidb.append(entry)
         self._image_index = self._image_index * 2
+        print 'finish appending flipped images'
 
     def evaluate_recall(self, candidate_boxes, ar_thresh=0.5):
         # Record max overlap value for each gt box
@@ -174,6 +176,8 @@ class imdb(object):
             roidb.append({'boxes' : boxes,
                           'gt_classes' : np.zeros((num_boxes,),
                                                   dtype=np.int32),
+                          'gt_classes_flipped' : np.zeros((num_boxes,),
+                                                  dtype=np.int32),
                           'gt_overlaps' : overlaps,
                           'flipped' : False})
         return roidb
@@ -185,6 +189,8 @@ class imdb(object):
             a[i]['boxes'] = np.vstack((a[i]['boxes'], b[i]['boxes']))
             a[i]['gt_classes'] = np.hstack((a[i]['gt_classes'],
                                             b[i]['gt_classes']))
+            a[i]['gt_classes_flipped'] = np.hstack((a[i]['gt_classes_flipped'],
+                                            b[i]['gt_classes_flipped']))
             a[i]['gt_overlaps'] = scipy.sparse.vstack([a[i]['gt_overlaps'],
                                                        b[i]['gt_overlaps']])
         return a
