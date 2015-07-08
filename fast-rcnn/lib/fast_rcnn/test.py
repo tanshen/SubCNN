@@ -288,8 +288,7 @@ def test_net(net, imdb):
         _t['misc'].tic()
         count = 0
         for j in xrange(1, imdb.num_classes):
-            inds = np.where((scores[:, j] > thresh[j]) &
-                            (roidb[i]['gt_classes'] == 0))[0]
+            inds = np.where((scores[:, j] > thresh[j]) & (roidb[i]['gt_classes'] == 0))[0]
             cls_scores = scores[inds, j]
             cls_boxes = boxes[inds, j*4:(j+1)*4]
             top_inds = np.argsort(-cls_scores)[:max_per_image]
@@ -328,7 +327,7 @@ def test_net(net, imdb):
     with open(det_file, 'wb') as f:
         cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
 
-    print 'Applying NMS to all detections'
+    # print 'Applying NMS to all detections'
     nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
 
     print 'Evaluating detections'

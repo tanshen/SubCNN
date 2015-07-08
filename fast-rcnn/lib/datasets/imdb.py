@@ -104,8 +104,9 @@ class imdb(object):
             assert (boxes[:, 2] >= boxes[:, 0]).all()
             entry = {'boxes' : boxes,
                      'gt_overlaps' : self.roidb[i]['gt_overlaps'],
-                     'gt_classes' : self.roidb[i]['gt_classes_flipped'],
-                     'gt_classes_flipped' : self.roidb[i]['gt_classes'],
+                     'gt_classes' : self.roidb[i]['gt_classes'],
+                     'gt_subclasses' : self.roidb[i]['gt_subclasses_flipped'],
+                     'gt_subclasses_flipped' : self.roidb[i]['gt_subclasses'],
                      'flipped' : True}
             self.roidb.append(entry)
         self._image_index = self._image_index * 2
@@ -174,10 +175,9 @@ class imdb(object):
 
             overlaps = scipy.sparse.csr_matrix(overlaps)
             roidb.append({'boxes' : boxes,
-                          'gt_classes' : np.zeros((num_boxes,),
-                                                  dtype=np.int32),
-                          'gt_classes_flipped' : np.zeros((num_boxes,),
-                                                  dtype=np.int32),
+                          'gt_classes' : np.zeros((num_boxes,), dtype=np.int32),
+                          'gt_subclasses' : np.zeros((num_boxes,), dtype=np.int32),
+                          'gt_subclasses_flipped' : np.zeros((num_boxes,), dtype=np.int32),
                           'gt_overlaps' : overlaps,
                           'flipped' : False})
         return roidb
@@ -189,8 +189,10 @@ class imdb(object):
             a[i]['boxes'] = np.vstack((a[i]['boxes'], b[i]['boxes']))
             a[i]['gt_classes'] = np.hstack((a[i]['gt_classes'],
                                             b[i]['gt_classes']))
-            a[i]['gt_classes_flipped'] = np.hstack((a[i]['gt_classes_flipped'],
-                                            b[i]['gt_classes_flipped']))
+            a[i]['gt_subclasses'] = np.hstack((a[i]['gt_subclasses'],
+                                            b[i]['gt_subclasses']))
+            a[i]['gt_subclasses_flipped'] = np.hstack((a[i]['gt_subclasses_flipped'],
+                                            b[i]['gt_subclasses_flipped']))
             a[i]['gt_overlaps'] = scipy.sparse.vstack([a[i]['gt_overlaps'],
                                                        b[i]['gt_overlaps']])
         return a

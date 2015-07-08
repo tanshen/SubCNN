@@ -17,14 +17,7 @@ class kitti(datasets.imdb):
         self._kitti_path = self._get_default_path() if kitti_path is None \
                             else kitti_path
         self._data_path = os.path.join(self._kitti_path, 'data_object_image_2')
-
-        classes = ['__background__']
-        for i in range(125):
-            classes.append(str(i+1))
-        print classes
-
-        # self._classes = ('__background__', 'Car')
-        self._classes = tuple(classes)
+        self._classes = ('__background__', 'Car')
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
         self._image_ext = '.png'
         self._image_index = self._load_image_set_index()
@@ -117,7 +110,6 @@ class kitti(datasets.imdb):
                 height = float(words[7]) - float(words[5])
                 if cls in self._class_to_ind and truncation < 0.5 and occlusion < 3 and height > 25:
                     lines.append(line)
-            
 
         num_objs = len(lines)
 
@@ -133,11 +125,13 @@ class kitti(datasets.imdb):
             overlaps[ix, cls] = 1.0
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
-        gt_classes_flipped = gt_classes.copy()
+        gt_subclasses = np.zeros((num_objs), dtype=np.int32)
+        gt_subclasses_flipped = np.zeros((num_objs), dtype=np.int32)
 
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
-                'gt_classes_flipped': gt_classes_flipped,
+                'gt_subclasses': gt_subclasses,
+                'gt_subclasses_flipped': gt_subclasses_flipped,
                 'gt_overlaps' : overlaps,
                 'flipped' : False}
 
@@ -162,9 +156,9 @@ class kitti(datasets.imdb):
         with open(filename) as f:
             for line in f:
                 words = line.split()
-                cls = int(words[0])
+                subcls = int(words[0])
                 is_flip = int(words[1])
-                if cls != -1:
+                if subcls != -1:
                     if is_flip == 0:
                         lines.append(line)
                     else:
@@ -174,29 +168,33 @@ class kitti(datasets.imdb):
 
         boxes = np.zeros((num_objs, 4), dtype=np.float32)
         gt_classes = np.zeros((num_objs), dtype=np.int32)
+        gt_subclasses = np.zeros((num_objs), dtype=np.int32)
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
 
         for ix, line in enumerate(lines):
             words = line.split()
-            cls = int(words[0])
+            cls = self._class_to_ind['Car']
+            subcls = int(words[0])
             boxes[ix, :] = [float(n) for n in words[2:6]]
             gt_classes[ix] = cls
+            gt_subclasses[ix] = subcls
             overlaps[ix, cls] = 1.0    
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
 
         # store information of flipped objects
         assert (num_objs == len(lines_flipped)), 'The number of flipped objects is not the same!'
-        gt_classes_flipped = np.zeros((num_objs), dtype=np.int32)
+        gt_subclasses_flipped = np.zeros((num_objs), dtype=np.int32)
         
         for ix, line in enumerate(lines_flipped):
             words = line.split()
-            cls = int(words[0])
-            gt_classes_flipped[ix] = cls
+            subcls = int(words[0])
+            gt_subclasses_flipped[ix] = subcls
 
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
-                'gt_classes_flipped': gt_classes_flipped,
+                'gt_subclasses': gt_subclasses,
+                'gt_subclasses_flipped': gt_subclasses_flipped,
                 'gt_overlaps' : overlaps,
                 'flipped' : False}
 
