@@ -102,11 +102,16 @@ class imdb(object):
             boxes[:, 0] = widths[i] - oldx2 - 1
             boxes[:, 2] = widths[i] - oldx1 - 1
             assert (boxes[:, 2] >= boxes[:, 0]).all()
+            assert (self.roidb[i]['gt_subindexes'].shape == self.roidb[i]['gt_subindexes_flipped'].shape), \
+                'gt_subindexes {}, gt_subindexes_flip {}'.format(self.roidb[i]['gt_subindexes'].shape, 
+                                                                 self.roidb[i]['gt_subindexes_flipped'].shape)
             entry = {'boxes' : boxes,
                      'gt_overlaps' : self.roidb[i]['gt_overlaps'],
                      'gt_classes' : self.roidb[i]['gt_classes'],
                      'gt_subclasses' : self.roidb[i]['gt_subclasses_flipped'],
                      'gt_subclasses_flipped' : self.roidb[i]['gt_subclasses'],
+                     'gt_subindexes' : self.roidb[i]['gt_subindexes_flipped'],
+                     'gt_subindexes_flipped' : self.roidb[i]['gt_subindexes'],
                      'flipped' : True}
             self.roidb.append(entry)
         self._image_index = self._image_index * 2
@@ -161,17 +166,23 @@ class imdb(object):
             boxes = box_list[i]
             num_boxes = boxes.shape[0]
             overlaps = np.zeros((num_boxes, self.num_classes), dtype=np.float32)
+            subindexes = np.zeros((num_boxes, self.num_classes), dtype=np.int32)
+            subindexes_flipped = np.zeros((num_boxes, self.num_classes), dtype=np.int32)
 
             if gt_roidb is not None:
                 gt_boxes = gt_roidb[i]['boxes']
                 if gt_boxes.shape[0] != 0 and num_boxes != 0:
                     gt_classes = gt_roidb[i]['gt_classes']
+                    gt_subclasses = gt_roidb[i]['gt_subclasses']
+                    gt_subclasses_flipped = gt_roidb[i]['gt_subclasses_flipped']
                     gt_overlaps = bbox_overlaps(boxes.astype(np.float),
                                             gt_boxes.astype(np.float))
                     argmaxes = gt_overlaps.argmax(axis=1)
                     maxes = gt_overlaps.max(axis=1)
                     I = np.where(maxes > 0)[0]
                     overlaps[I, gt_classes[argmaxes[I]]] = maxes[I]
+                    subindexes[I, gt_classes[argmaxes[I]]] = gt_subclasses[argmaxes[I]]
+                    subindexes_flipped[I, gt_classes[argmaxes[I]]] = gt_subclasses_flipped[argmaxes[I]]
 
             overlaps = scipy.sparse.csr_matrix(overlaps)
             roidb.append({'boxes' : boxes,
@@ -179,6 +190,8 @@ class imdb(object):
                           'gt_subclasses' : np.zeros((num_boxes,), dtype=np.int32),
                           'gt_subclasses_flipped' : np.zeros((num_boxes,), dtype=np.int32),
                           'gt_overlaps' : overlaps,
+                          'gt_subindexes': subindexes,
+                          'gt_subindexes_flipped': subindexes_flipped,
                           'flipped' : False})
         return roidb
 
@@ -195,6 +208,10 @@ class imdb(object):
                                             b[i]['gt_subclasses_flipped']))
             a[i]['gt_overlaps'] = scipy.sparse.vstack([a[i]['gt_overlaps'],
                                                        b[i]['gt_overlaps']])
+            a[i]['gt_subindexes'] = np.vstack((a[i]['gt_subindexes'],
+                                            b[i]['gt_subindexes']))
+            a[i]['gt_subindexes_flipped'] = np.vstack((a[i]['gt_subindexes_flipped'],
+                                            b[i]['gt_subindexes_flipped']))
         return a
 
     def competition_mode(self, on):

@@ -31,11 +31,12 @@ def get_minibatch(roidb, num_classes):
     # Now, build the region of interest and label blobs
     rois_blob = np.zeros((0, 5), dtype=np.float32)
     labels_blob = np.zeros((0), dtype=np.float32)
+    sublabels_blob = np.zeros((0), dtype=np.float32)
     bbox_targets_blob = np.zeros((0, 4 * num_classes), dtype=np.float32)
     bbox_loss_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
     # all_overlaps = []
     for im_i in xrange(num_images):
-        labels, overlaps, im_rois, bbox_targets, bbox_loss \
+        labels, overlaps, im_rois, bbox_targets, bbox_loss, sublabels \
             = _sample_rois(roidb[im_i], fg_rois_per_image, rois_per_image,
                            num_classes)
 
@@ -47,12 +48,13 @@ def get_minibatch(roidb, num_classes):
 
         # Add to labels, bbox targets, and bbox loss blobs
         labels_blob = np.hstack((labels_blob, labels))
+        sublabels_blob = np.hstack((sublabels_blob, sublabels))
         bbox_targets_blob = np.vstack((bbox_targets_blob, bbox_targets))
         bbox_loss_blob = np.vstack((bbox_loss_blob, bbox_loss))
         # all_overlaps = np.hstack((all_overlaps, overlaps))
 
     # For debug visualizations
-    # _vis_minibatch(im_blob, rois_blob, labels_blob, all_overlaps)
+    # _vis_minibatch(im_blob, rois_blob, labels_blob, all_overlaps, sublabels_blob)
 
     blobs = {'data': im_blob,
              'rois': rois_blob,
@@ -61,6 +63,8 @@ def get_minibatch(roidb, num_classes):
     if cfg.TRAIN.BBOX_REG:
         blobs['bbox_targets'] = bbox_targets_blob
         blobs['bbox_loss_weights'] = bbox_loss_blob
+
+    blobs['sublabels'] = sublabels_blob
 
     return blobs
 
@@ -72,6 +76,7 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     labels = roidb['max_classes']
     overlaps = roidb['max_overlaps']
     rois = roidb['boxes']
+    sublabels = roidb['max_subclasses']
 
     # Select foreground RoIs as those with >= FG_THRESH overlap
     fg_inds = np.where(overlaps >= cfg.TRAIN.FG_THRESH)[0]
@@ -109,12 +114,14 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     labels[fg_rois_per_this_image:] = 0
     overlaps = overlaps[keep_inds]
     rois = rois[keep_inds]
+    sublabels = sublabels[keep_inds]
+    sublabels[fg_rois_per_this_image:] = 0
 
     bbox_targets, bbox_loss_weights = \
             _get_bbox_regression_labels(roidb['bbox_targets'][keep_inds, :],
                                         num_classes)
 
-    return labels, overlaps, rois, bbox_targets, bbox_loss_weights
+    return labels, overlaps, rois, bbox_targets, bbox_loss_weights, sublabels
 
 def _get_image_blob(roidb, scale_inds):
     """Builds an input blob from the images in the roidb at the specified
@@ -167,7 +174,7 @@ def _get_bbox_regression_labels(bbox_target_data, num_classes):
         bbox_loss_weights[ind, start:end] = [1., 1., 1., 1.]
     return bbox_targets, bbox_loss_weights
 
-def _vis_minibatch(im_blob, rois_blob, labels_blob, overlaps):
+def _vis_minibatch(im_blob, rois_blob, labels_blob, overlaps, sublabels_blob):
     """Visualize a mini-batch for debugging."""
     import matplotlib.pyplot as plt
     for i in xrange(rois_blob.shape[0]):
@@ -179,8 +186,9 @@ def _vis_minibatch(im_blob, rois_blob, labels_blob, overlaps):
         im = im[:, :, (2, 1, 0)]
         im = im.astype(np.uint8)
         cls = labels_blob[i]
+        subcls = sublabels_blob[i]
         plt.imshow(im)
-        print 'class: ', cls, ' overlap: ', overlaps[i]
+        print 'class: ', cls, ' subclass: ', subcls, ' overlap: ', overlaps[i]
         plt.gca().add_patch(
             plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
                           roi[3] - roi[1], fill=False,

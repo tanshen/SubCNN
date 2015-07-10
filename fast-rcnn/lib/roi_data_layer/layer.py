@@ -103,6 +103,10 @@ class RoIDataLayer(caffe.Layer):
             # thisbinary vector sepcifies the subset of active targets
             top[4].reshape(1, self._num_classes * 4)
 
+        # add subclass labels
+        self._name_to_top_map['sublabels'] = 5
+        top[5].reshape(1)
+
     def forward(self, bottom, top):
         """Get blobs and copy them into this layer's top blob vector."""
         blobs = self._get_next_minibatch()

@@ -7,6 +7,7 @@ layer {
   top: 'labels'
   top: 'bbox_targets'
   top: 'bbox_loss_weights'
+  top: 'sublabels'
   python_param {
     module: 'roi_data_layer.layer'
     layer: 'RoIDataLayer'
@@ -290,6 +291,31 @@ layer {
   }
 }
 layer {
+  name: "subcls_score"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "subcls_score"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 126
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
   name: "bbox_pred"
   type: "InnerProduct"
   bottom: "fc7"
@@ -321,6 +347,14 @@ layer {
   bottom: "labels"
   top: "loss_cls"
   loss_weight: 1
+}
+layer {
+  name: "loss_subcls"
+  type: "SoftmaxWithLoss"
+  bottom: "subcls_score"
+  bottom: "sublabels"
+  top: "loss_subcls"
+  loss_weight: 0.2
 }
 layer {
   name: "loss_bbox"

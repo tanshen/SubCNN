@@ -19,6 +19,7 @@ class kitti(datasets.imdb):
         self._data_path = os.path.join(self._kitti_path, 'data_object_image_2')
         self._classes = ('__background__', 'Car')
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
+        self._num_subclasses = (1, 125) 
         self._image_ext = '.png'
         self._image_index = self._load_image_set_index()
         # Default to roidb handler
@@ -127,12 +128,16 @@ class kitti(datasets.imdb):
         overlaps = scipy.sparse.csr_matrix(overlaps)
         gt_subclasses = np.zeros((num_objs), dtype=np.int32)
         gt_subclasses_flipped = np.zeros((num_objs), dtype=np.int32)
+        subindexes = np.zeros((num_objs, self.num_classes), dtype=np.int32)
+        subindexes_flipped = np.zeros((num_objs, self.num_classes), dtype=np.int32)
 
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
                 'gt_subclasses': gt_subclasses,
                 'gt_subclasses_flipped': gt_subclasses_flipped,
                 'gt_overlaps' : overlaps,
+                'gt_subindexes': gt_subindexes,
+                'gt_subindexes_flipped': gt_subindexes_flipped,
                 'flipped' : False}
 
     def _load_kitti_voxel_exemplar_annotation(self, index):
@@ -166,22 +171,6 @@ class kitti(datasets.imdb):
         
         num_objs = len(lines)
 
-        boxes = np.zeros((num_objs, 4), dtype=np.float32)
-        gt_classes = np.zeros((num_objs), dtype=np.int32)
-        gt_subclasses = np.zeros((num_objs), dtype=np.int32)
-        overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
-
-        for ix, line in enumerate(lines):
-            words = line.split()
-            cls = self._class_to_ind['Car']
-            subcls = int(words[0])
-            boxes[ix, :] = [float(n) for n in words[2:6]]
-            gt_classes[ix] = cls
-            gt_subclasses[ix] = subcls
-            overlaps[ix, cls] = 1.0    
-
-        overlaps = scipy.sparse.csr_matrix(overlaps)
-
         # store information of flipped objects
         assert (num_objs == len(lines_flipped)), 'The number of flipped objects is not the same!'
         gt_subclasses_flipped = np.zeros((num_objs), dtype=np.int32)
@@ -191,11 +180,33 @@ class kitti(datasets.imdb):
             subcls = int(words[0])
             gt_subclasses_flipped[ix] = subcls
 
+        boxes = np.zeros((num_objs, 4), dtype=np.float32)
+        gt_classes = np.zeros((num_objs), dtype=np.int32)
+        gt_subclasses = np.zeros((num_objs), dtype=np.int32)
+        overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
+        subindexes = np.zeros((num_objs, self.num_classes), dtype=np.int32)
+        subindexes_flipped = np.zeros((num_objs, self.num_classes), dtype=np.int32)
+
+        for ix, line in enumerate(lines):
+            words = line.split()
+            cls = self._class_to_ind['Car']
+            subcls = int(words[0])
+            boxes[ix, :] = [float(n) for n in words[2:6]]
+            gt_classes[ix] = cls
+            gt_subclasses[ix] = subcls
+            overlaps[ix, cls] = 1.0
+            subindexes[ix, cls] = subcls
+            subindexes_flipped[ix, cls] = gt_subclasses_flipped[ix]
+
+        overlaps = scipy.sparse.csr_matrix(overlaps)
+
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
                 'gt_subclasses': gt_subclasses,
                 'gt_subclasses_flipped': gt_subclasses_flipped,
-                'gt_overlaps' : overlaps,
+                'gt_overlaps': overlaps,
+                'gt_subindexes': subindexes, 
+                'gt_subindexes_flipped': subindexes_flipped, 
                 'flipped' : False}
 
     def region_proposal_roidb(self):
@@ -337,6 +348,20 @@ class kitti(datasets.imdb):
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
     def evaluate_detections(self, all_boxes, output_dir):
+        # load the mapping for subcalss the alpha (viewpoint)
+        if self._image_set == 'val':
+            prefix = 'validation'
+        elif self._image_set == 'test':
+            prefix = 'test'
+        else:
+            prefix = ''
+
+        filename = os.path.join(self._kitti_path, 'voxel_exemplars', prefix, 'mapping.txt')
+        assert os.path.exists(filename), \
+                'Path does not exist: {}'.format(filename)
+
+        mapping = np.loadtxt(filename)
+
         # for each image
         for im_ind, index in enumerate(self.image_index):
             filename = os.path.join(output_dir, index + '.txt')
@@ -350,8 +375,10 @@ class kitti(datasets.imdb):
                     if dets == []:
                         continue
                     for k in xrange(dets.shape[0]):
-                        f.write('{:s} -1 -1 -1 {:f} {:f} {:f} {:f} -1 -1 -1 -1 -1 -1 -1 {:.32f}\n'.format(\
-                                 cls, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, -1]))
+                        subcls = int(dets[k, 5])
+                        alpha = mapping(subcls, 3)
+                        f.write('{:s} -1 -1 {:f} {:f} {:f} {:f} {:f} -1 -1 -1 -1 -1 -1 -1 {:.32f}\n'.format(\
+                                 cls, alpha, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4]))
 
 if __name__ == '__main__':
     d = datasets.kitti('train')

@@ -196,6 +196,7 @@ def im_detect(net, im, boxes, num_classes):
     else:
         # use softmax estimated probabilities
         scores = blobs_out['cls_prob']
+        scores_subcls = blobs_out['subcls_prob']
 
     if cfg.TEST.BBOX_REG:
         # Apply bounding-box regression deltas
@@ -211,7 +212,7 @@ def im_detect(net, im, boxes, num_classes):
         scores = scores[inv_index, :]
         pred_boxes = pred_boxes[inv_index, :]
 
-    return scores, pred_boxes
+    return scores, pred_boxes, scores_subcls
 
 def vis_detections(im, class_name, dets, thresh=0.3):
     """Visual debugging of detections."""
@@ -282,7 +283,7 @@ def test_net(net, imdb):
     for i in xrange(num_images):
         im = cv2.imread(imdb.image_path_at(i))
         _t['im_detect'].tic()
-        scores, boxes = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes)
+        scores, boxes, scores_subcls = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes)
         _t['im_detect'].toc()
 
         _t['misc'].tic()
@@ -290,9 +291,12 @@ def test_net(net, imdb):
         for j in xrange(1, imdb.num_classes):
             inds = np.where((scores[:, j] > thresh[j]) & (roidb[i]['gt_classes'] == 0))[0]
             cls_scores = scores[inds, j]
+            subcls_scores = scores_subcls[inds, 1:]
             cls_boxes = boxes[inds, j*4:(j+1)*4]
+
             top_inds = np.argsort(-cls_scores)[:max_per_image]
             cls_scores = cls_scores[top_inds]
+            subcls_scores = subcls_scores[top_inds, :]
             cls_boxes = cls_boxes[top_inds, :]
             # push new scores onto the minheap
             for val in cls_scores:
@@ -304,13 +308,15 @@ def test_net(net, imdb):
                     heapq.heappop(top_scores[j])
                 thresh[j] = top_scores[j][0]
 
+            sub_classes = subcls_scores.argmax(axis=1)
+
             all_boxes[j][i] = \
-                    np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
+                    np.hstack((cls_boxes, cls_scores[:, np.newaxis], sub_classes[:, np.newaxis])) \
                     .astype(np.float32, copy=False)
             count = count + len(cls_scores)
 
             if 0:
-                keep = nms(all_boxes[j][i], 0.3)
+                keep = nms(all_boxes[j][i], cfg.TEST.NMS)
                 vis_detections(im, imdb.classes[j], all_boxes[j][i][keep, :])
         _t['misc'].toc()
 
@@ -320,7 +326,7 @@ def test_net(net, imdb):
 
     for j in xrange(1, imdb.num_classes):
         for i in xrange(num_images):
-            inds = np.where(all_boxes[j][i][:, -1] > thresh[j])[0]
+            inds = np.where(all_boxes[j][i][:, 4] > thresh[j])[0]
             all_boxes[j][i] = all_boxes[j][i][inds, :]
 
     det_file = os.path.join(output_dir, 'detections.pkl')
