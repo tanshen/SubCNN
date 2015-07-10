@@ -136,8 +136,8 @@ class kitti(datasets.imdb):
                 'gt_subclasses': gt_subclasses,
                 'gt_subclasses_flipped': gt_subclasses_flipped,
                 'gt_overlaps' : overlaps,
-                'gt_subindexes': gt_subindexes,
-                'gt_subindexes_flipped': gt_subindexes_flipped,
+                'gt_subindexes': subindexes,
+                'gt_subindexes_flipped': subindexes_flipped,
                 'flipped' : False}
 
     def _load_kitti_voxel_exemplar_annotation(self, index):
@@ -376,7 +376,7 @@ class kitti(datasets.imdb):
                         continue
                     for k in xrange(dets.shape[0]):
                         subcls = int(dets[k, 5])
-                        alpha = mapping(subcls, 3)
+                        alpha = mapping[subcls, 2]
                         f.write('{:s} -1 -1 {:f} {:f} {:f} {:f} {:f} -1 -1 -1 -1 -1 -1 -1 {:.32f}\n'.format(\
                                  cls, alpha, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4]))
 

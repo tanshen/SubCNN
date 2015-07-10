@@ -168,7 +168,8 @@ def im_detect(net, im, boxes, num_classes):
     if boxes.shape[0] == 0:
         scores = np.zeros((0, num_classes))
         pred_boxes = np.zeros((0, 4*num_classes))
-        return scores, pred_boxes
+        scores_subcls = np.zeros((0, 126))
+        return scores, pred_boxes, scores_subcls
 
     blobs, unused_im_scale_factors = _get_blobs(im, boxes)
 
@@ -210,6 +211,7 @@ def im_detect(net, im, boxes, num_classes):
     if cfg.DEDUP_BOXES > 0:
         # Map scores and predictions back to the original set of boxes
         scores = scores[inv_index, :]
+        scores_subcls = scores_subcls[inv_index, :]
         pred_boxes = pred_boxes[inv_index, :]
 
     return scores, pred_boxes, scores_subcls
@@ -253,6 +255,23 @@ def apply_nms(all_boxes, thresh):
     return nms_boxes
 
 def test_net(net, imdb):
+
+    output_dir = get_output_dir(imdb, net)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    det_file = os.path.join(output_dir, 'detections.pkl')
+    if os.path.exists(det_file):
+        with open(det_file, 'rb') as fid:
+            all_boxes = cPickle.load(fid)
+        print 'Detections loaded from {}'.format(det_file)
+        # print 'Applying NMS to all detections'
+        nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
+
+        print 'Evaluating detections'
+        imdb.evaluate_detections(nms_dets, output_dir)
+        return
+
     """Test a Fast R-CNN network on an image database."""
     num_images = len(imdb.image_index)
     # heuristic: keep an average of 40 detections per class per images prior
@@ -271,10 +290,6 @@ def test_net(net, imdb):
     #    (x1, y1, x2, y2, score)
     all_boxes = [[[] for _ in xrange(num_images)]
                  for _ in xrange(imdb.num_classes)]
-
-    output_dir = get_output_dir(imdb, net)
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
 
     # timers
     _t = {'im_detect' : Timer(), 'misc' : Timer()}
