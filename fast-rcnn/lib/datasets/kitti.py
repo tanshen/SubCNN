@@ -19,7 +19,6 @@ class kitti(datasets.imdb):
         self._data_path = os.path.join(self._kitti_path, 'data_object_image_2')
         self._classes = ('__background__', 'Car')
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
-        self._num_subclasses = (1, 125) 
         self._image_ext = '.png'
         self._image_index = self._load_image_set_index()
         # Default to roidb handler
@@ -229,7 +228,8 @@ class kitti(datasets.imdb):
             gt_roidb = self.gt_roidb()
 
             print 'Loading voxel pattern boxes...'
-            vp_roidb = self._load_voxel_pattern_roidb(gt_roidb)
+            model = '3DVP_227/'
+            vp_roidb = self._load_voxel_pattern_roidb(gt_roidb, model)
             print 'Voxel pattern boxes loaded'
             roidb = datasets.imdb.merge_roidbs(vp_roidb, gt_roidb)
 
@@ -245,7 +245,8 @@ class kitti(datasets.imdb):
             # roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
         else:
             print 'Loading voxel pattern boxes...'
-            roidb = self._load_voxel_pattern_roidb(None)
+            model = '3DVP_227/'
+            roidb = self._load_voxel_pattern_roidb(None, model)
             print 'Voxel pattern boxes loaded'
 
             # print 'Loading selective search boxes...'
@@ -256,7 +257,7 @@ class kitti(datasets.imdb):
             # acf_roidb = self._load_acf_roidb(None)
             # print 'ACF boxes loaded'
 
-            #roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
+            # roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
 
         with open(cache_file, 'wb') as fid:
             cPickle.dump(roidb, fid, cPickle.HIGHEST_PROTOCOL)
@@ -264,9 +265,8 @@ class kitti(datasets.imdb):
 
         return roidb
 
-    def _load_voxel_pattern_roidb(self, gt_roidb):
+    def _load_voxel_pattern_roidb(self, gt_roidb, model):
         # set the prefix
-        model = '3DVP_125/'
         if self._image_set == 'test':
             prefix = model + 'testing'
         else:

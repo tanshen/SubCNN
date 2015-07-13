@@ -1,4 +1,4 @@
-train_net: "models/CaffeNet/kitti/train.prototxt"
+train_net: "models/CaffeNet/kitti_test/train.prototxt"
 base_lr: 0.001
 lr_policy: "step"
 gamma: 0.1
