@@ -263,31 +263,6 @@ layer {
   }
 }
 layer {
-  name: "cls_score"
-  type: "InnerProduct"
-  bottom: "fc7"
-  top: "cls_score"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  inner_product_param {
-    num_output: 2 
-    weight_filler {
-      type: "gaussian"
-      std: 0.01
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
-    }
-  }
-}
-layer {
   name: "subcls_score"
   type: "InnerProduct"
   bottom: "fc7"
@@ -313,9 +288,40 @@ layer {
   }
 }
 layer {
+  name: "subcls_prob"
+  type: "Softmax"
+  bottom: "subcls_score"
+  top: "subcls_prob"
+}
+layer {
+  name: "cls_score"
+  type: "InnerProduct"
+  bottom: "subcls_score"
+  top: "cls_score"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 2 
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
   name: "bbox_pred"
   type: "InnerProduct"
-  bottom: "fc7"
+  bottom: "subcls_score"
   top: "bbox_pred"
   param {
     lr_mult: 1
@@ -342,10 +348,4 @@ layer {
   type: "Softmax"
   bottom: "cls_score"
   top: "cls_prob"
-}
-layer {
-  name: "subcls_prob"
-  type: "Softmax"
-  bottom: "subcls_score"
-  top: "subcls_prob"
 }
