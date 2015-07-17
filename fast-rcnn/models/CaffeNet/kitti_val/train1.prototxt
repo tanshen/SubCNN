@@ -296,7 +296,7 @@ layer {
   bottom: "subcls_score"
   bottom: "sublabels"
   top: "loss_subcls"
-  loss_weight: 0.4
+  loss_weight: 1.2
 }
 layer {
   name: "cls_score"
