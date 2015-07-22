@@ -78,6 +78,9 @@ __C.TRAIN.SNAPSHOT_INFIX = ''
 # So far I haven't found this useful; likely more engineering work is required
 __C.TRAIN.USE_PREFETCH = False
 
+# Train using subclasses
+__C.TRAIN.SUBCLS = True
+
 #
 # Testing options
 #
@@ -101,6 +104,9 @@ __C.TEST.SVM = False
 
 # Test using bounding-box regressors
 __C.TEST.BBOX_REG = True
+
+# Test using subclass
+__C.TEST.SUBCLS = True
 
 #
 # MISC

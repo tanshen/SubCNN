@@ -151,7 +151,7 @@ def _clip_boxes(boxes, im_shape):
     boxes[:, 3::4] = np.minimum(boxes[:, 3::4], im_shape[0] - 1)
     return boxes
 
-def im_detect(net, im, boxes, num_classes):
+def im_detect(net, im, boxes, num_classes, num_subclasses):
     """Detect object classes in an image given object proposals.
 
     Arguments:
@@ -168,7 +168,7 @@ def im_detect(net, im, boxes, num_classes):
     if boxes.shape[0] == 0:
         scores = np.zeros((0, num_classes))
         pred_boxes = np.zeros((0, 4*num_classes))
-        scores_subcls = np.zeros((0, 126))
+        scores_subcls = np.zeros((0, num_subclasses))
         return scores, pred_boxes, scores_subcls
 
     blobs, unused_im_scale_factors = _get_blobs(im, boxes)
@@ -197,7 +197,12 @@ def im_detect(net, im, boxes, num_classes):
     else:
         # use softmax estimated probabilities
         scores = blobs_out['cls_prob']
+
+    if cfg.TEST.SUBCLS:
         scores_subcls = blobs_out['subcls_prob']
+    else:
+        # just use class scores
+        scores_subcls = scores
 
     if cfg.TEST.BBOX_REG:
         # Apply bounding-box regression deltas
@@ -298,7 +303,7 @@ def test_net(net, imdb):
     for i in xrange(num_images):
         im = cv2.imread(imdb.image_path_at(i))
         _t['im_detect'].tic()
-        scores, boxes, scores_subcls = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes)
+        scores, boxes, scores_subcls = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes, imdb.num_subclasses)
         _t['im_detect'].toc()
 
         _t['misc'].tic()

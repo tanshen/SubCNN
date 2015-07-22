@@ -7,7 +7,6 @@ layer {
   top: 'labels'
   top: 'bbox_targets'
   top: 'bbox_loss_weights'
-  top: 'sublabels'
   python_param {
     module: 'roi_data_layer.layer'
     layer: 'RoIDataLayer'
@@ -202,10 +201,10 @@ layer {
   }
 }
 layer {
-  name: "subcls_score"
+  name: "fc6_scratch"
   type: "InnerProduct"
   bottom: "pool5"
-  top: "subcls_score"
+  top: "fc6_scratch"
   param {
     lr_mult: 1
     decay_mult: 1
@@ -215,7 +214,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 126
+    num_output: 4096
     weight_filler {
       type: "gaussian"
       std: 0.01
@@ -227,17 +226,64 @@ layer {
   }
 }
 layer {
-  name: "loss_subcls"
-  type: "SoftmaxWithLoss"
-  bottom: "subcls_score"
-  bottom: "sublabels"
-  top: "loss_subcls"
-  loss_weight: 0.6
+  name: "relu6_scratch"
+  type: "ReLU"
+  bottom: "fc6_scratch"
+  top: "fc6_scratch"
+}
+layer {
+  name: "drop6_scratch"
+  type: "Dropout"
+  bottom: "fc6_scratch"
+  top: "fc6_scratch"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+layer {
+  name: "fc7_scratch"
+  type: "InnerProduct"
+  bottom: "fc6_scratch"
+  top: "fc7_scratch"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 512 
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "relu7_scratch"
+  type: "ReLU"
+  bottom: "fc7_scratch"
+  top: "fc7_scratch"
+}
+layer {
+  name: "drop7_scratch"
+  type: "Dropout"
+  bottom: "fc7_scratch"
+  top: "fc7_scratch"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
 }
 layer {
   name: "cls_score"
   type: "InnerProduct"
-  bottom: "subcls_score"
+  bottom: "fc7_scratch"
   top: "cls_score"
   param {
     lr_mult: 1
@@ -262,7 +308,7 @@ layer {
 layer {
   name: "bbox_pred"
   type: "InnerProduct"
-  bottom: "subcls_score"
+  bottom: "fc7_scratch"
   top: "bbox_pred"
   param {
     lr_mult: 1

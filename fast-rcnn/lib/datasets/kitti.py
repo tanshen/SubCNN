@@ -24,6 +24,12 @@ class kitti(datasets.imdb):
         # Default to roidb handler
         self._roidb_handler = self.region_proposal_roidb
 
+        # num of subclasses
+        if image_set == 'train' or image_set == 'val':
+            self._num_subclasses = 125 + 1
+        else:
+            self._num_subclasses = 227 + 1
+
         self.config = {'top_k': 100000}
 
         assert os.path.exists(self._kitti_path), \
@@ -228,7 +234,10 @@ class kitti(datasets.imdb):
             gt_roidb = self.gt_roidb()
 
             print 'Loading voxel pattern boxes...'
-            model = '3DVP_125/'
+            if self._image_set == 'trainval':
+                model = '3DVP_227'
+            else:
+                model = '3DVP_125/'
             vp_roidb = self._load_voxel_pattern_roidb(gt_roidb, model)
             print 'Voxel pattern boxes loaded'
             roidb = datasets.imdb.merge_roidbs(vp_roidb, gt_roidb)
@@ -245,7 +254,7 @@ class kitti(datasets.imdb):
             # roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
         else:
             print 'Loading voxel pattern boxes...'
-            model = '3DVP_125/'
+            model = '3DVP_227/'
             roidb = self._load_voxel_pattern_roidb(None, model)
             print 'Voxel pattern boxes loaded'
 

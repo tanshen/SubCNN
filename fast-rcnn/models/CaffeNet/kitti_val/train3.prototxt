@@ -202,9 +202,89 @@ layer {
   }
 }
 layer {
-  name: "subcls_score"
+  name: "fc6_scratch"
   type: "InnerProduct"
   bottom: "pool5"
+  top: "fc6_scratch"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 4096
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "relu6_scratch"
+  type: "ReLU"
+  bottom: "fc6_scratch"
+  top: "fc6_scratch"
+}
+layer {
+  name: "drop6_scratch"
+  type: "Dropout"
+  bottom: "fc6_scratch"
+  top: "fc6_scratch"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+layer {
+  name: "fc7_scratch"
+  type: "InnerProduct"
+  bottom: "fc6_scratch"
+  top: "fc7_scratch"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 512 
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "relu7_scratch"
+  type: "ReLU"
+  bottom: "fc7_scratch"
+  top: "fc7_scratch"
+}
+layer {
+  name: "drop7_scratch"
+  type: "Dropout"
+  bottom: "fc7_scratch"
+  top: "fc7_scratch"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+layer {
+  name: "subcls_score"
+  type: "InnerProduct"
+  bottom: "fc7_scratch"
   top: "subcls_score"
   param {
     lr_mult: 1
@@ -232,7 +312,7 @@ layer {
   bottom: "subcls_score"
   bottom: "sublabels"
   top: "loss_subcls"
-  loss_weight: 0.6
+  loss_weight: 1.2
 }
 layer {
   name: "cls_score"

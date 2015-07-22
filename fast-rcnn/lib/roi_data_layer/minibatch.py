@@ -64,7 +64,8 @@ def get_minibatch(roidb, num_classes):
         blobs['bbox_targets'] = bbox_targets_blob
         blobs['bbox_loss_weights'] = bbox_loss_blob
 
-    blobs['sublabels'] = sublabels_blob
+    if cfg.TRAIN.SUBCLS:
+        blobs['sublabels'] = sublabels_blob
 
     return blobs
 
