@@ -81,6 +81,9 @@ __C.TRAIN.USE_PREFETCH = False
 # Train using subclasses
 __C.TRAIN.SUBCLS = True
 
+# Train using grids
+__C.TRAIN.GRID = False 
+
 #
 # Testing options
 #
@@ -107,6 +110,9 @@ __C.TEST.BBOX_REG = True
 
 # Test using subclass
 __C.TEST.SUBCLS = True
+
+# Test using grids
+__C.TEST.GRID = False
 
 #
 # MISC

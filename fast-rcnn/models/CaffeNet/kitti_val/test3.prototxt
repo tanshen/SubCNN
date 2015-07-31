@@ -200,7 +200,7 @@ layer {
 }
 layer {
   name: "fc6_scratch"
-  type: "InnerProduct"
+  type: "Convolution"
   bottom: "pool5"
   top: "fc6_scratch"
   param {
@@ -211,16 +211,10 @@ layer {
     lr_mult: 2
     decay_mult: 0
   }
-  inner_product_param {
+  convolution_param {
     num_output: 4096
-    weight_filler {
-      type: "gaussian"
-      std: 0.01
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
-    }
+    kernel_size: 6
+    engine: CAFFE
   }
 }
 layer {
@@ -240,7 +234,7 @@ layer {
 }
 layer {
   name: "fc7_scratch"
-  type: "InnerProduct"
+  type: "Convolution"
   bottom: "fc6_scratch"
   top: "fc7_scratch"
   param {
@@ -251,16 +245,10 @@ layer {
     lr_mult: 2
     decay_mult: 0
   }
-  inner_product_param {
-    num_output: 4096
-    weight_filler {
-      type: "gaussian"
-      std: 0.01
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
-    }
+  convolution_param {
+    num_output: 5085
+    kernel_size: 1
+    engine: CAFFE
   }
 }
 layer {
@@ -279,40 +267,43 @@ layer {
   }
 }
 layer {
-  name: "subcls_score"
-  type: "InnerProduct"
+  name: "score_grid"
+  type: "Deconvolution"
   bottom: "fc7_scratch"
-  top: "subcls_score"
+  top: "score_grid"
   param {
-    lr_mult: 1
-    decay_mult: 1
+    lr_mult: 0
   }
-  param {
-    lr_mult: 2
-    decay_mult: 0
+  convolution_param {
+    num_output: 5085
+    bias_term: false
+    kernel_size: 2
   }
-  inner_product_param {
-    num_output: 126 
-    weight_filler {
-      type: "gaussian"
-      std: 0.01
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
+}
+layer {
+  name: "reshape"
+  type: "Reshape"
+  bottom: "score_grid"
+  top: "score_grid"
+  reshape_param {
+    shape {
+      dim: 0  # copy the dimension from below
+      dim: 4
+      dim: 5085
+      dim: -1 # infer it from the other dimensions
     }
   }
 }
 layer {
-  name: "subcls_prob"
+  name: "grid_prob"
   type: "Softmax"
-  bottom: "subcls_score"
-  top: "subcls_prob"
+  bottom: "score_grid"
+  top: "grid_prob"
 }
 layer {
   name: "cls_score"
   type: "InnerProduct"
-  bottom: "subcls_score"
+  bottom: "fc7_scratch"
   top: "cls_score"
   param {
     lr_mult: 1
@@ -337,7 +328,7 @@ layer {
 layer {
   name: "bbox_pred"
   type: "InnerProduct"
-  bottom: "subcls_score"
+  bottom: "fc7_scratch"
   top: "bbox_pred"
   param {
     lr_mult: 1

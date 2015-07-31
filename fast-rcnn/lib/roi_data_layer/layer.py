@@ -107,6 +107,11 @@ class RoIDataLayer(caffe.Layer):
         if cfg.TRAIN.SUBCLS:
             self._name_to_top_map['sublabels'] = 5
             top[5].reshape(1)
+            
+        # add grid labels
+        if cfg.TRAIN.GRID:
+            self._name_to_top_map['grids'] = 5
+            top[5].reshape(1, 5085)
 
     def forward(self, bottom, top):
         """Get blobs and copy them into this layer's top blob vector."""
