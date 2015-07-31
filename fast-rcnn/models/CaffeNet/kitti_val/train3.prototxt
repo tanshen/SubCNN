@@ -275,11 +275,15 @@ layer {
   bottom: "fc7_scratch"
   top: "score_grid"
   param {
-    lr_mult: 0
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
   }
   convolution_param {
     num_output: 5085
-    bias_term: false
     kernel_size: 2
   }
 }
