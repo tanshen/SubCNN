@@ -204,12 +204,6 @@ def im_detect(net, im, boxes, num_classes, num_subclasses):
         # just use class scores
         scores_subcls = scores
 
-    if cfg.TEST.GRID:
-        scores_grids = blobs_out['grid_prob']
-    else:
-        # just use class scores
-        scores_grids = scores
-
     if cfg.TEST.BBOX_REG:
         # Apply bounding-box regression deltas
         box_deltas = blobs_out['bbox_pred']
@@ -223,10 +217,9 @@ def im_detect(net, im, boxes, num_classes, num_subclasses):
         # Map scores and predictions back to the original set of boxes
         scores = scores[inv_index, :]
         scores_subcls = scores_subcls[inv_index, :]
-        scores_grids = scores_grids[inv_index, :]
         pred_boxes = pred_boxes[inv_index, :]
 
-    return scores, pred_boxes, scores_subcls, score_grids
+    return scores, pred_boxes, scores_subcls
 
 def vis_detections(im, class_name, dets, thresh=0.3):
     """Visual debugging of detections."""
@@ -310,7 +303,7 @@ def test_net(net, imdb):
     for i in xrange(num_images):
         im = cv2.imread(imdb.image_path_at(i))
         _t['im_detect'].tic()
-        scores, boxes, scores_subcls, scores_grid = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes, imdb.num_subclasses)
+        scores, boxes, scores_subcls = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes, imdb.num_subclasses)
         _t['im_detect'].toc()
 
         _t['misc'].tic()

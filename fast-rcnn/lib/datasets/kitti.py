@@ -30,7 +30,6 @@ class kitti(datasets.imdb):
         else:
             self._num_subclasses = 227 + 1
 
-        self._grid_size = 5085
         self.config = {'top_k': 100000}
 
         assert os.path.exists(self._kitti_path), \
@@ -136,11 +135,6 @@ class kitti(datasets.imdb):
         gt_subclasses_flipped = np.zeros((num_objs), dtype=np.int32)
         subindexes = np.zeros((num_objs, self.num_classes), dtype=np.int32)
         subindexes_flipped = np.zeros((num_objs, self.num_classes), dtype=np.int32)
-        gt_grids = np.zeros((num_objs, self._grid_size), dtype=np.int32)
-        gt_grids_flipped = np.zeros((num_objs, self._grid_size), dtype=np.int32)
-
-        gt_grids = scipy.sparse.csr_matrix(gt_grids)
-        gt_grids_flipped = scipy.sparse.csr_matrix(gt_grids_flipped)
 
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
@@ -149,8 +143,6 @@ class kitti(datasets.imdb):
                 'gt_overlaps' : overlaps,
                 'gt_subindexes': subindexes,
                 'gt_subindexes_flipped': subindexes_flipped,
-                'gt_grids': gt_grids, 
-                'gt_grids_flipped': gt_grids_flipped, 
                 'flipped' : False}
 
     def _load_kitti_voxel_exemplar_annotation(self, index):
@@ -187,14 +179,11 @@ class kitti(datasets.imdb):
         # store information of flipped objects
         assert (num_objs == len(lines_flipped)), 'The number of flipped objects is not the same!'
         gt_subclasses_flipped = np.zeros((num_objs), dtype=np.int32)
-        gt_grids_flipped = np.zeros((num_objs, self._grid_size), dtype=np.int32)
         
         for ix, line in enumerate(lines_flipped):
             words = line.split()
             subcls = int(words[0])
             gt_subclasses_flipped[ix] = subcls
-            for i in range(self._grid_size):
-                gt_grids_flipped[ix, i] = int(words[6+i])
 
         boxes = np.zeros((num_objs, 4), dtype=np.float32)
         gt_classes = np.zeros((num_objs), dtype=np.int32)
@@ -202,7 +191,6 @@ class kitti(datasets.imdb):
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
         subindexes = np.zeros((num_objs, self.num_classes), dtype=np.int32)
         subindexes_flipped = np.zeros((num_objs, self.num_classes), dtype=np.int32)
-        gt_grids = np.zeros((num_objs, self._grid_size), dtype=np.int32)
 
         for ix, line in enumerate(lines):
             words = line.split()
@@ -214,12 +202,8 @@ class kitti(datasets.imdb):
             overlaps[ix, cls] = 1.0
             subindexes[ix, cls] = subcls
             subindexes_flipped[ix, cls] = gt_subclasses_flipped[ix]
-            for i in range(self._grid_size):
-                gt_grids[ix, i] = int(words[6+i])
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
-        gt_grids = scipy.sparse.csr_matrix(gt_grids)
-        gt_grids_flipped = scipy.sparse.csr_matrix(gt_grids_flipped)
 
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
@@ -228,8 +212,6 @@ class kitti(datasets.imdb):
                 'gt_overlaps': overlaps,
                 'gt_subindexes': subindexes, 
                 'gt_subindexes_flipped': subindexes_flipped, 
-                'gt_grids': gt_grids, 
-                'gt_grids_flipped': gt_grids_flipped, 
                 'flipped' : False}
 
     def region_proposal_roidb(self):

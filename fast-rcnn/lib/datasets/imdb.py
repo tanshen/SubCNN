@@ -25,7 +25,6 @@ class imdb(object):
         self._obj_proposer = 'selective_search'
         self._roidb = None
         self._roidb_handler = self.default_roidb
-        self._grid_size = 0
         # Use this dict for storing dataset specific config options
         self.config = {}
 
@@ -118,8 +117,6 @@ class imdb(object):
                      'gt_subclasses_flipped' : self.roidb[i]['gt_subclasses'],
                      'gt_subindexes' : self.roidb[i]['gt_subindexes_flipped'],
                      'gt_subindexes_flipped' : self.roidb[i]['gt_subindexes'],
-                     'gt_grids' : self.roidb[i]['gt_grids_flipped'],
-                     'gt_grids_flipped' : self.roidb[i]['gt_grids'],
                      'flipped' : True}
             self.roidb.append(entry)
         self._image_index = self._image_index * 2
@@ -176,8 +173,6 @@ class imdb(object):
             overlaps = np.zeros((num_boxes, self.num_classes), dtype=np.float32)
             subindexes = np.zeros((num_boxes, self.num_classes), dtype=np.int32)
             subindexes_flipped = np.zeros((num_boxes, self.num_classes), dtype=np.int32)
-            grids = np.zeros((num_boxes, self._grid_size), dtype=np.int32)
-            grids_flipped = np.zeros((num_boxes, self._grid_size), dtype=np.int32)
 
             if gt_roidb is not None:
                 gt_boxes = gt_roidb[i]['boxes']
@@ -194,20 +189,11 @@ class imdb(object):
                     subindexes[I, gt_classes[argmaxes[I]]] = gt_subclasses[argmaxes[I]]
                     subindexes_flipped[I, gt_classes[argmaxes[I]]] = gt_subclasses_flipped[argmaxes[I]]
 
-                    gt_grids = gt_roidb[i]['gt_grids'].toarray()
-                    gt_grids_flipped = gt_roidb[i]['gt_grids_flipped'].toarray()
-                    grids[I,:] = gt_grids[argmaxes[I], :]
-                    grids_flipped[I,:] = gt_grids_flipped[argmaxes[I], :]
-                    
             overlaps = scipy.sparse.csr_matrix(overlaps)
-            grids = scipy.sparse.csr_matrix(grids)
-            grids_flipped = scipy.sparse.csr_matrix(grids_flipped)
             roidb.append({'boxes' : boxes,
                           'gt_classes' : np.zeros((num_boxes,), dtype=np.int32),
                           'gt_subclasses' : np.zeros((num_boxes,), dtype=np.int32),
                           'gt_subclasses_flipped' : np.zeros((num_boxes,), dtype=np.int32),
-                          'gt_grids' : grids,
-                          'gt_grids_flipped' : grids_flipped,
                           'gt_overlaps' : overlaps,
                           'gt_subindexes': subindexes,
                           'gt_subindexes_flipped': subindexes_flipped,
@@ -225,10 +211,6 @@ class imdb(object):
                                             b[i]['gt_subclasses']))
             a[i]['gt_subclasses_flipped'] = np.hstack((a[i]['gt_subclasses_flipped'],
                                             b[i]['gt_subclasses_flipped']))
-            a[i]['gt_grids'] = scipy.sparse.vstack((a[i]['gt_grids'],
-                                            b[i]['gt_grids']))
-            a[i]['gt_grids_flipped'] = scipy.sparse.vstack((a[i]['gt_grids_flipped'],
-                                            b[i]['gt_grids_flipped']))
             a[i]['gt_overlaps'] = scipy.sparse.vstack([a[i]['gt_overlaps'],
                                                        b[i]['gt_overlaps']])
             a[i]['gt_subindexes'] = np.vstack((a[i]['gt_subindexes'],

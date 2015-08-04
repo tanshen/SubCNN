@@ -8,11 +8,9 @@ TRAIN:
   BBOX_THRESH: 0.7
   SNAPSHOT_INFIX: kitti
   SUBCLS: False
-  GRID: True
   SNAPSHOT_ITERS: 10000
 TEST:
   SCALES: !!python/tuple [375, 750, 1125, 1500]
   MAX_SIZE: 4968
   NMS: 0.5
   SUBCLS: False
-  GRID: True
