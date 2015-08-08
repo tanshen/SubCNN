@@ -69,16 +69,39 @@ if __name__ == '__main__':
     print conv_sub.shape
 
     # draw bounding boxes on the original image
-    width = 48
-    height = 48
+    kernel_size = 3
     scale = 16
     value = conv_sub.mean()
     print value
+
+    h = np.arange(conv_sub.shape[0])
+    w = np.arange(conv_sub.shape[1])
+    y, x = np.meshgrid(h, w, indexing='ij')
+    
+    scores = np.reshape(conv_sub[y, x], -1)
+    print scores.shape
+
+    tmp = np.dstack((y, x))
+    tmp = np.reshape(tmp, (-1, 2))
+    boxes = np.hstack((tmp, tmp + kernel_size * np.ones(tmp.shape)))
+    print boxes.shape
+    print boxes
+
+    for i in xrange(boxes.shape[0]):
+        if scores[i] > value:
+           cy = boxes[i,0]*scale
+           cx = boxes[i,1]*scale
+           width = (boxes[i,3] - boxes[i,1]) * scale
+           height = (boxes[i,2] - boxes[i,0]) * scale
+           plt.gca().add_patch(plt.Rectangle((cx, cy), width, height, fill=False, edgecolor='g', linewidth=3))
+
+    """
     for x in xrange(conv_sub.shape[1]):
         for y in xrange(conv_sub.shape[0]):
             if conv_sub[y,x] > value:
                 cx = x*scale
                 cy = y*scale
                 plt.gca().add_patch(plt.Rectangle((cx, cy), width, height, fill=False, edgecolor='g', linewidth=3))
-
+    """
+   
     plt.show()
