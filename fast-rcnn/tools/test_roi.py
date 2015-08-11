@@ -44,6 +44,8 @@ if __name__ == '__main__':
     g = np.exp(-((x**2 + y**2)/(2.0*sigma**2)))
     gaussian = (g / g.sum()).astype(np.float32)
     net.params['conv_sub'][0].data[0] = gaussian
+    net.params['conv_sub'][0].data[1] = gaussian
+    net.params['conv_sub'][0].data[2] = gaussian
 
     # read image
     im = cv2.imread(image_path)
@@ -65,8 +67,9 @@ if __name__ == '__main__':
     net.forward()
 
     # pick filter output
+    conv_sub_all = net.blobs['conv_sub'].data[0]
     conv_sub = net.blobs['conv_sub'].data[0, 0]
-    print conv_sub.shape
+    print conv_sub_all.shape, conv_sub.shape
 
     # draw bounding boxes on the original image
     kernel_size = 3
@@ -77,6 +80,10 @@ if __name__ == '__main__':
     h = np.arange(conv_sub.shape[0])
     w = np.arange(conv_sub.shape[1])
     y, x = np.meshgrid(h, w, indexing='ij')
+
+    scores_all = conv_sub_all[:,y,x]
+    scores_max = np.reshape(conv_sub_all.max(axis = 0), -1)
+    print scores_all.shape, scores_max.shape
     
     scores = np.reshape(conv_sub[y, x], -1)
     print scores.shape
