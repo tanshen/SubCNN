@@ -31,7 +31,7 @@ if __name__ == '__main__':
     image_path = 'data/demo/000004.jpg'
 
     caffe.set_mode_gpu()
-    caffe.set_device(1)
+    caffe.set_device(3)
 
     # initialize net
     net = caffe.Net(prototxt, caffe.TEST)
@@ -81,18 +81,18 @@ if __name__ == '__main__':
     scores = np.reshape(conv_sub[y, x], -1)
     print scores.shape
 
-    tmp = np.dstack((y, x))
+    tmp = np.dstack((x, y))
     tmp = np.reshape(tmp, (-1, 2))
-    boxes = np.hstack((tmp, tmp + kernel_size * np.ones(tmp.shape)))
+    boxes = np.hstack((tmp - (kernel_size-1) * np.ones(tmp.shape) / 2, tmp + (kernel_size-1) * np.ones(tmp.shape) / 2))
     print boxes.shape
     print boxes
 
     for i in xrange(boxes.shape[0]):
         if scores[i] > value:
-           cy = boxes[i,0]*scale
-           cx = boxes[i,1]*scale
-           width = (boxes[i,3] - boxes[i,1]) * scale
-           height = (boxes[i,2] - boxes[i,0]) * scale
+           cx = (boxes[i,0] + boxes[i,2]) / 2 * scale
+           cy = (boxes[i,1] + boxes[i,3]) / 2 * scale
+           height = (boxes[i,3] - boxes[i,1] + 1) * scale
+           width = (boxes[i,2] - boxes[i,0] + 1) * scale
            plt.gca().add_patch(plt.Rectangle((cx, cy), width, height, fill=False, edgecolor='g', linewidth=3))
 
     """
