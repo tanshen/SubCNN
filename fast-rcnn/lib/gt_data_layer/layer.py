@@ -38,7 +38,7 @@ class GtDataLayer(caffe.Layer):
         """Return the blobs to be used for the next minibatch."""
         db_inds = self._get_next_minibatch_inds()
         minibatch_db = [self._roidb[i] for i in db_inds]
-        return get_minibatch(minibatch_db, self._num_classes)
+        return get_minibatch(minibatch_db)
 
     # this function is called in training the net
     def set_roidb(self, roidb):
