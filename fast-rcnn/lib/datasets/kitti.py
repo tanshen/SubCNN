@@ -103,19 +103,22 @@ class kitti(datasets.imdb):
         """
         Load image and bounding boxes info from txt file in the KITTI format.
         """
-        filename = os.path.join(self._data_path, 'training', 'label_2', index + '.txt')
 
-        lines = []
-        with open(filename) as f:
-            for line in f:
-                line = line.replace('Van', 'Car')
-                words = line.split()
-                cls = words[0]
-                truncation = float(words[1])
-                occlusion = int(words[2])
-                height = float(words[7]) - float(words[5])
-                if cls in self._class_to_ind and truncation < 0.5 and occlusion < 3 and height > 25:
-                    lines.append(line)
+        if self._image_set == 'test':
+            lines = []
+        else:
+            filename = os.path.join(self._data_path, 'training', 'label_2', index + '.txt')
+            lines = []
+            with open(filename) as f:
+                for line in f:
+                    line = line.replace('Van', 'Car')
+                    words = line.split()
+                    cls = words[0]
+                    truncation = float(words[1])
+                    occlusion = int(words[2])
+                    height = float(words[7]) - float(words[5])
+                    if cls in self._class_to_ind and truncation < 0.5 and occlusion < 3 and height > 25:
+                        lines.append(line)
 
         num_objs = len(lines)
 

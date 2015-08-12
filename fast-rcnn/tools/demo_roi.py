@@ -31,7 +31,7 @@ if __name__ == '__main__':
     image_path = 'data/demo/000004.jpg'
 
     caffe.set_mode_gpu()
-    caffe.set_device(3)
+    caffe.set_device(0)
 
     # initialize net
     net = caffe.Net(prototxt, caffe.TEST)
