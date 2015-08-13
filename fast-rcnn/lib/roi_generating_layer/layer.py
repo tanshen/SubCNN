@@ -18,6 +18,62 @@ from multiprocessing import Process, Queue
 
 class RoIGeneratingLayer(caffe.Layer):
     """Fast R-CNN data layer used for training."""
+    def _compute_targets_roi(self, rois, gts, gt_inds, fg_rois_per_this_image, labels):
+        """Compute bounding-box regression targets for an image."""
+        # Ensure ROIs are floats
+        rois = rois.astype(np.float, copy=False)
+
+        # Indices of examples for which we try to make predictions
+        ex_inds = range(fg_rois_per_this_image)
+
+        gt_rois = gts[gt_inds, 1:]
+        ex_rois = rois[ex_inds, :]
+
+        ex_widths = ex_rois[:, 2] - ex_rois[:, 0] + cfg.EPS
+        ex_heights = ex_rois[:, 3] - ex_rois[:, 1] + cfg.EPS
+        ex_ctr_x = ex_rois[:, 0] + 0.5 * ex_widths
+        ex_ctr_y = ex_rois[:, 1] + 0.5 * ex_heights
+
+        gt_widths = gt_rois[:, 2] - gt_rois[:, 0] + cfg.EPS
+        gt_heights = gt_rois[:, 3] - gt_rois[:, 1] + cfg.EPS
+        gt_ctr_x = gt_rois[:, 0] + 0.5 * gt_widths
+        gt_ctr_y = gt_rois[:, 1] + 0.5 * gt_heights
+
+        targets_dx = (gt_ctr_x - ex_ctr_x) / ex_widths
+        targets_dy = (gt_ctr_y - ex_ctr_y) / ex_heights
+        targets_dw = np.log(gt_widths / ex_widths)
+        targets_dh = np.log(gt_heights / ex_heights)
+
+        targets = np.zeros((rois.shape[0], 5), dtype=np.float32)
+        targets[ex_inds, 0] = labels[ex_inds]
+        targets[ex_inds, 1] = targets_dx
+        targets[ex_inds, 2] = targets_dy
+        targets[ex_inds, 3] = targets_dw
+        targets[ex_inds, 4] = targets_dh
+        return targets
+
+    def _get_bbox_regression_labels_roi(self, bbox_target_data, num_classes):
+        """Bounding-box regression targets are stored in a compact form in the roidb.
+
+        This function expands those targets into the 4-of-4*K representation used
+        by the network (i.e. only one class has non-zero targets). The loss weights
+        are similarly expanded.
+
+        Returns:
+            bbox_target_data (ndarray): N x 4K blob of regression targets
+            bbox_loss_weights (ndarray): N x 4K blob of loss weights
+        """
+        clss = bbox_target_data[:, 0]
+        bbox_targets = np.zeros((clss.size, 4 * num_classes), dtype=np.float32)
+        bbox_loss_weights = np.zeros(bbox_targets.shape, dtype=np.float32)
+        inds = np.where(clss > 0)[0]
+        for ind in inds:
+            cls = clss[ind]
+            start = 4 * cls
+            end = start + 4
+            bbox_targets[ind, start:end] = bbox_target_data[ind, 1:]
+            bbox_loss_weights[ind, start:end] = [1., 1., 1., 1.]
+        return bbox_targets, bbox_loss_weights
 
     def setup(self, bottom, top):
         """Setup the RoIGeneratingLayer."""
@@ -61,13 +117,13 @@ class RoIGeneratingLayer(caffe.Layer):
 
     def forward(self, bottom, top):
         # parse input
-        heatmap = bottom[0]
+        heatmap = bottom[0].data
         # (n, x1, y1, x2, y2) specifying an image batch index n and a rectangle (x1, y1, x2, y2)
-        gts = bottom[1]
+        gts = bottom[1].data
         # class labels
-        gt_labels = bottom[2]
+        gt_labels = bottom[2].data
         # subclass labels
-        gt_sublabels = bottom[3]
+        gt_sublabels = bottom[3].data
 
         # heatmap dimensions
         num_image = heatmap.shape[0]
@@ -83,7 +139,9 @@ class RoIGeneratingLayer(caffe.Layer):
         boxes = np.hstack((tmp - (self._kernel_size-1)*np.ones(tmp.shape)/2, tmp + (self._kernel_size-1)*np.ones(tmp.shape)/2)) / self._spatial_scale
 
         # compute box overlap with gt
-        gt_boxes = gts[:,1:4]
+        gt_boxes = gts[:,1:]
+        print heatmap.shape
+        print gt_boxes
         gt_overlaps = bbox_overlaps(boxes.astype(np.float), gt_boxes.astype(np.float))
 
         # number of ROIs
@@ -144,8 +202,8 @@ class RoIGeneratingLayer(caffe.Layer):
             sublabels[0:fg_rois_per_this_image] = gt_sublabels[gt_inds]
 
             # first try without target normalization
-            bbox_targets_data = _compute_targets(rois, gts, gt_inds, fg_rois_per_this_image, labels)
-            bbox_targets, bbox_loss = _get_bbox_regression_labels(bbox_targets_data, self._num_classes)
+            bbox_targets_data = self._compute_targets_roi(rois, gts, gt_inds, fg_rois_per_this_image, labels)
+            bbox_targets, bbox_loss = self._get_bbox_regression_labels_roi(bbox_targets_data, self._num_classes)
 
             # Add to RoIs blob
             batch_ind = i * np.ones((rois.shape[0], 1))
@@ -183,59 +241,3 @@ class RoIGeneratingLayer(caffe.Layer):
         """Reshaping happens during the call to forward."""
         pass
 
-    def _compute_targets(rois, gts, gt_inds, fg_rois_per_this_image, labels):
-        """Compute bounding-box regression targets for an image."""
-        # Ensure ROIs are floats
-        rois = rois.astype(np.float, copy=False)
-
-        # Indices of examples for which we try to make predictions
-        ex_inds = range(fg_rois_per_this_image)
-
-        gt_rois = gts[gt_inds, 1:]
-        ex_rois = rois[ex_inds, :]
-
-        ex_widths = ex_rois[:, 2] - ex_rois[:, 0] + cfg.EPS
-        ex_heights = ex_rois[:, 3] - ex_rois[:, 1] + cfg.EPS
-        ex_ctr_x = ex_rois[:, 0] + 0.5 * ex_widths
-        ex_ctr_y = ex_rois[:, 1] + 0.5 * ex_heights
-
-        gt_widths = gt_rois[:, 2] - gt_rois[:, 0] + cfg.EPS
-        gt_heights = gt_rois[:, 3] - gt_rois[:, 1] + cfg.EPS
-        gt_ctr_x = gt_rois[:, 0] + 0.5 * gt_widths
-        gt_ctr_y = gt_rois[:, 1] + 0.5 * gt_heights
-
-        targets_dx = (gt_ctr_x - ex_ctr_x) / ex_widths
-        targets_dy = (gt_ctr_y - ex_ctr_y) / ex_heights
-        targets_dw = np.log(gt_widths / ex_widths)
-        targets_dh = np.log(gt_heights / ex_heights)
-
-        targets = np.zeros((rois.shape[0], 5), dtype=np.float32)
-        targets[ex_inds, 0] = labels[ex_inds]
-        targets[ex_inds, 1] = targets_dx
-        targets[ex_inds, 2] = targets_dy
-        targets[ex_inds, 3] = targets_dw
-        targets[ex_inds, 4] = targets_dh
-        return targets
-
-    def _get_bbox_regression_labels(bbox_target_data, num_classes):
-        """Bounding-box regression targets are stored in a compact form in the roidb.
-
-        This function expands those targets into the 4-of-4*K representation used
-        by the network (i.e. only one class has non-zero targets). The loss weights
-        are similarly expanded.
-
-        Returns:
-            bbox_target_data (ndarray): N x 4K blob of regression targets
-            bbox_loss_weights (ndarray): N x 4K blob of loss weights
-        """
-        clss = bbox_target_data[:, 0]
-        bbox_targets = np.zeros((clss.size, 4 * num_classes), dtype=np.float32)
-        bbox_loss_weights = np.zeros(bbox_targets.shape, dtype=np.float32)
-        inds = np.where(clss > 0)[0]
-        for ind in inds:
-            cls = clss[ind]
-            start = 4 * cls
-            end = start + 4
-            bbox_targets[ind, start:end] = bbox_target_data[ind, 1:]
-            bbox_loss_weights[ind, start:end] = [1., 1., 1., 1.]
-        return bbox_targets, bbox_loss_weights
