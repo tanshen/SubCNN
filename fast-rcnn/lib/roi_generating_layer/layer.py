@@ -107,7 +107,7 @@ class RoIGeneratingLayer(caffe.Layer):
             argmax_overlaps = overlaps.argmax(axis = 1)
             
             # extract max scores
-            max_scores = np.reshape(heatmap[i].max(axis = 0), -1)
+            max_scores = np.reshape(heatmap[i,1:].max(axis = 0), -1)
 
             # find hard positives
             fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]

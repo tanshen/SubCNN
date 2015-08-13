@@ -56,8 +56,8 @@ class GtDataLayer(caffe.Layer):
 
         self._name_to_top_map = {
             'data': 0,
-            'rois': 1,
-            'labels': 2}
+            'gt_rois': 1,
+            'gt_labels': 2}
 
         # data blob: holds a batch of N images, each with 3 channels
         # The height and width (100 x 100) are dummy values
@@ -74,7 +74,7 @@ class GtDataLayer(caffe.Layer):
 
         # add subclass labels
         if cfg.TRAIN.SUBCLS:
-            self._name_to_top_map['sublabels'] = 3
+            self._name_to_top_map['gt_sublabels'] = 3
             top[3].reshape(1)
             
     def forward(self, bottom, top):

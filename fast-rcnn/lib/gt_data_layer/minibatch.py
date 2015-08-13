@@ -51,11 +51,11 @@ def get_minibatch(roidb):
     # _vis_minibatch(im_blob, rois_blob, labels_blob, sublabels_blob)
 
     blobs = {'data': im_blob,
-             'rois': rois_blob,
-             'labels': labels_blob}
+             'gt_rois': rois_blob,
+             'gt_labels': labels_blob}
 
     if cfg.TRAIN.SUBCLS:
-        blobs['sublabels'] = sublabels_blob
+        blobs['gt_sublabels'] = sublabels_blob
 
     return blobs
 

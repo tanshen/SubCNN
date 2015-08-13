@@ -22,7 +22,8 @@ class kitti(datasets.imdb):
         self._image_ext = '.png'
         self._image_index = self._load_image_set_index()
         # Default to roidb handler
-        self._roidb_handler = self.region_proposal_roidb
+        # self._roidb_handler = self.region_proposal_roidb
+        self._roidb_handler = self.gt_roidb
 
         # num of subclasses
         if image_set == 'train' or image_set == 'val':
