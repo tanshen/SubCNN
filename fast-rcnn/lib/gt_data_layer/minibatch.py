@@ -28,7 +28,7 @@ def get_minibatch(roidb):
     labels_blob = np.zeros((0), dtype=np.float32)
     sublabels_blob = np.zeros((0), dtype=np.float32)
 
-    for i in xrange(im_indexes.size):
+    for i in xrange(len(im_indexes)):
 
         im_i = im_indexes[i]
         im_rois = roidb[im_i]['boxes']

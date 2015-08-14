@@ -140,7 +140,8 @@ class RoIGeneratingLayer(caffe.Layer):
         # compute box overlap with gt
         gt_boxes = gts[:,2:]
         print heatmap.shape
-        print gt_boxes
+        for i in xrange(gts.shape[0]):
+            print '{:f} {:f} {:f} {:f} {:f} {:f}'.format(gts[i,0], gts[i,1], gts[i,2], gts[i,3], gts[i,4], gts[i,5])
         gt_overlaps = bbox_overlaps(boxes.astype(np.float), gt_boxes.astype(np.float))
 
         # number of ROIs
@@ -175,15 +176,17 @@ class RoIGeneratingLayer(caffe.Layer):
                 index_batch = np.where(gts[:,0] == batch_id)[0]
                 overlaps = gt_overlaps[:,index_batch]
                 max_overlaps = overlaps.max(axis = 1)
+                print max_overlaps.max()
                 argmax_overlaps = overlaps.argmax(axis = 1)
             
                 # extract max scores
                 scores = heatmap[batch_id]
-                max_scores = np.reshape(scores[1:].max(axis = 0), -1)
+                max_scores = np.reshape(scores[1:].max(axis = 0), (-1,1))
 
                 # collect positives
                 fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
                 batch_ind = batch_id * np.ones((fg_inds.shape[0], 1))
+                print batch_ind.shape, boxes[fg_inds,:].shape, max_scores[fg_inds].shape 
                 boxes_fg = np.vstack((boxes_fg, np.hstack((batch_ind, boxes[fg_inds,:], max_scores[fg_inds]))))
                 gt_inds_fg = np.hstack((gt_inds_fg, index_batch[argmax_overlaps[fg_inds]]))
 
