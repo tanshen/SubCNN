@@ -64,9 +64,9 @@ class GtDataLayer(caffe.Layer):
         top[0].reshape(1, 3, 100, 100)
 
         # rois blob: holds R regions of interest, each is a 5-tuple
-        # (n, x1, y1, x2, y2) specifying an image batch index n and a
+        # (n, im, x1, y1, x2, y2) specifying an image batch index n, image index im, and a
         # rectangle (x1, y1, x2, y2)
-        top[1].reshape(1, 5)
+        top[1].reshape(1, 6)
 
         # labels blob: R categorical labels in [0, ..., K] for K foreground
         # classes plus background

@@ -118,7 +118,7 @@ class RoIGeneratingLayer(caffe.Layer):
     def forward(self, bottom, top):
         # parse input
         heatmap = bottom[0].data
-        # (n, x1, y1, x2, y2) specifying an image batch index n and a rectangle (x1, y1, x2, y2)
+        # (n, im, x1, y1, x2, y2) specifying an image batch index n, image index im and a rectangle (x1, y1, x2, y2)
         gts = bottom[1].data
         # class labels
         gt_labels = bottom[2].data
@@ -126,7 +126,6 @@ class RoIGeneratingLayer(caffe.Layer):
         gt_sublabels = bottom[3].data
 
         # heatmap dimensions
-        num_image = heatmap.shape[0]
         height = heatmap.shape[2]
         width = heatmap.shape[3]
 
@@ -139,12 +138,14 @@ class RoIGeneratingLayer(caffe.Layer):
         boxes = np.hstack((tmp - (self._kernel_size-1)*np.ones(tmp.shape)/2, tmp + (self._kernel_size-1)*np.ones(tmp.shape)/2)) / self._spatial_scale
 
         # compute box overlap with gt
-        gt_boxes = gts[:,1:]
+        gt_boxes = gts[:,2:]
         print heatmap.shape
         print gt_boxes
         gt_overlaps = bbox_overlaps(boxes.astype(np.float), gt_boxes.astype(np.float))
 
         # number of ROIs
+        image_indexes = np.unique(gts[:,1])
+        num_image = len(image_indexes)
         rois_per_image = cfg.TRAIN.BATCH_SIZE / num_image
         fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
@@ -156,16 +157,19 @@ class RoIGeneratingLayer(caffe.Layer):
         bbox_loss_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
 
         # for each image
-        for i in xrange(num_image):
+        for im in xrange(num_image):
+
+            index_image = image_indexes[im]
+            # batches of this image
+            index_batch = np.where(gts[:,1] == index_image)[0]
 
             # compute max overlap
-            index_gt = np.where(gts[:,0] == i)[0]
-            overlaps = gt_overlaps[:,index_gt]
+            overlaps = gt_overlaps[:,index_batch]
             max_overlaps = overlaps.max(axis = 1)
             argmax_overlaps = overlaps.argmax(axis = 1)
             
             # extract max scores
-            max_scores = np.reshape(heatmap[i,1:].max(axis = 0), -1)
+            max_scores = np.reshape(heatmap[index_batch,1:].max(axis = 0), -1)
 
             # find hard positives
             fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
