@@ -27,7 +27,7 @@ class RoIGeneratingLayer(caffe.Layer):
         ex_inds = range(fg_rois_per_this_image)
 
         gt_rois = gts[gt_inds, 1:]
-        ex_rois = rois[ex_inds, :]
+        ex_rois = rois[ex_inds, 1:]
 
         ex_widths = ex_rois[:, 2] - ex_rois[:, 0] + cfg.EPS
         ex_heights = ex_rois[:, 3] - ex_rois[:, 1] + cfg.EPS
@@ -144,8 +144,8 @@ class RoIGeneratingLayer(caffe.Layer):
         gt_overlaps = bbox_overlaps(boxes.astype(np.float), gt_boxes.astype(np.float))
 
         # number of ROIs
-        image_indexes = np.unique(gts[:,1])
-        num_image = len(image_indexes)
+        image_ids = np.unique(gts[:,1])
+        num_image = len(image_ids)
         rois_per_image = cfg.TRAIN.BATCH_SIZE / num_image
         fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
@@ -158,61 +158,76 @@ class RoIGeneratingLayer(caffe.Layer):
 
         # for each image
         for im in xrange(num_image):
+            image_id = image_ids[im]
 
-            index_image = image_indexes[im]
             # batches of this image
-            index_batch = np.where(gts[:,1] == index_image)[0]
+            index = np.where(gts[:,1] == image_id)[0]
+            batch_ids = np.unique(gts[index,0])
 
-            # compute max overlap
-            overlaps = gt_overlaps[:,index_batch]
-            max_overlaps = overlaps.max(axis = 1)
-            argmax_overlaps = overlaps.argmax(axis = 1)
+            # for each batch (one scale of an image)
+            boxes_fg = np.zeros((0, 6), dtype=np.float32)
+            boxes_bg = np.zeros((0, 6), dtype=np.float32)
+            gt_inds_fg = np.zeros((0), dtype=np.float32)
+            for i in xrange(len(batch_ids)):
+                batch_id = batch_ids[i]
+
+                # compute max overlap
+                index_batch = np.where(gts[:,0] == batch_id)[0]
+                overlaps = gt_overlaps[:,index_batch]
+                max_overlaps = overlaps.max(axis = 1)
+                argmax_overlaps = overlaps.argmax(axis = 1)
             
-            # extract max scores
-            max_scores = np.reshape(heatmap[index_batch,1:].max(axis = 0), -1)
+                # extract max scores
+                scores = heatmap[batch_id]
+                max_scores = np.reshape(scores[1:].max(axis = 0), -1)
+
+                # collect positives
+                fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
+                batch_ind = batch_id * np.ones((fg_inds.shape[0], 1))
+                boxes_fg = np.vstack((boxes_fg, np.hstack((batch_ind, boxes[fg_inds,:], max_scores[fg_inds]))))
+                gt_inds_fg = np.hstack((gt_inds_fg, index_batch[argmax_overlaps[fg_inds]]))
+
+                # collect negatives
+                bg_inds = np.where((max_overlaps < cfg.TRAIN.BG_THRESH_HI) & (max_overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
+                batch_ind = batch_id * np.ones((bg_inds.shape[0], 1))
+                boxes_bg = np.vstack((boxes_bg, np.hstack((batch_ind, boxes[bg_inds,:], max_scores[bg_inds]))))
 
             # find hard positives
-            fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
             # sort scores and indexes
-            I = np.argsort(max_scores[fg_inds])
-            fg_inds = fg_inds[I]
+            I = np.argsort(boxes_fg[:,5])
             # number of fg in the image
-            fg_rois_per_this_image = np.minimum(fg_rois_per_image, fg_inds.size)
-            fg_inds = fg_inds[0:fg_rois_per_this_image]
+            fg_rois_per_this_image = np.minimum(fg_rois_per_image, I.size)
+            I = I[0:fg_rois_per_this_image]
+            boxes_fg = boxes_fg[I,:]
+            gt_inds_fg = gt_inds_fg[I,:]
 
             # find hard negatives
-            bg_inds = np.where((max_overlaps < cfg.TRAIN.BG_THRESH_HI) & (max_overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
-            if bg_inds.size == 0:
-                bg_inds = np.where(max_overlaps < cfg.TRAIN.BG_THRESH_HI)[0]
             # sort scores and indexes descending
-            I = np.argsort(max_scores[bg_inds])[::-1]
-            bg_inds = bg_inds[I]
+            I = np.argsort(boxes_bg[:,5])[::-1]
             # number of bg in the image
             bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
-            bg_rois_per_this_image = np.minimum(bg_rois_per_this_image, bg_inds.size)
-            bg_inds = bg_inds[0:bg_rois_per_this_image]
+            bg_rois_per_this_image = np.minimum(bg_rois_per_this_image, I.size)
+            I = I[0:bg_rois_per_this_image]
+            boxes_bg = boxes_bg[I,:]
 
             # ROIs
-            keep_inds = np.append(fg_inds, bg_inds)
-            rois = boxes[keep_inds, :]
+            rois = np.vstack((boxes_fg[:,:5], boxes_bg[:,:5]))
 
             # compute information of the ROIs: labels, sublabels, bbox_targets, bbox_loss_weights
-            gt_inds = index_gt[argmax_overlaps[fg_inds]]
+            length = rois.shape[0]
 
-            labels = np.zeros(keep_inds.shape, dtype=np.float32)
-            labels[0:fg_rois_per_this_image] = gt_labels[gt_inds]
+            labels = np.zeros((length), dtype=np.float32)
+            labels[0:fg_rois_per_this_image] = gt_labels[gt_inds_fg]
 
-            sublabels = np.zeros(keep_inds.shape, dtype=np.float32)
-            sublabels[0:fg_rois_per_this_image] = gt_sublabels[gt_inds]
+            sublabels = np.zeros((length), dtype=np.float32)
+            sublabels[0:fg_rois_per_this_image] = gt_sublabels[gt_inds_fg]
 
             # first try without target normalization
-            bbox_targets_data = self._compute_targets_roi(rois, gts, gt_inds, fg_rois_per_this_image, labels)
+            bbox_targets_data = self._compute_targets_roi(rois, gts, gt_inds_fg, fg_rois_per_this_image, labels)
             bbox_targets, bbox_loss = self._get_bbox_regression_labels_roi(bbox_targets_data, self._num_classes)
 
             # Add to RoIs blob
-            batch_ind = i * np.ones((rois.shape[0], 1))
-            rois_blob_this_image = np.hstack((batch_ind, rois))
-            rois_blob = np.vstack((rois_blob, rois_blob_this_image))
+            rois_blob = np.vstack((rois_blob, rois))
 
             # Add to labels, bbox targets, and bbox loss blobs
             labels_blob = np.hstack((labels_blob, labels))
