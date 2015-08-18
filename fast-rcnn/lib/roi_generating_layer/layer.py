@@ -9,6 +9,7 @@
 RoIGeneratingLayer implements a Caffe Python layer.
 """
 
+import math
 import caffe
 from fast_rcnn.config import cfg
 from utils.cython_bbox import bbox_overlaps
@@ -135,7 +136,22 @@ class RoIGeneratingLayer(caffe.Layer):
         y, x = np.meshgrid(h, w, indexing='ij') 
         tmp = np.dstack((x, y))
         tmp = np.reshape(tmp, (-1, 2))
-        boxes = np.hstack((tmp - self._kernel_size*np.ones(tmp.shape)/2, tmp + self._kernel_size*np.ones(tmp.shape)/2)) / self._spatial_scale
+        num = tmp.shape[0]
+
+        area = self._kernel_size * self._kernel_size
+        aspect = [1, 0.75, 0.5]  # height / width
+        boxes = np.zeros((0, 4), dtype=np.float32)
+        for i in xrange(len(aspect)):
+            w = math.sqrt(area / aspect[i])
+            h = w * aspect[i]
+            print area, w, h
+            x1 = np.reshape(tmp[:,0], (num,1)) - w * np.ones((num,1)) / 2
+            x2 = np.reshape(tmp[:,0], (num,1)) + w * np.ones((num,1)) / 2
+            y1 = np.reshape(tmp[:,1], (num,1)) - h * np.ones((num,1)) / 2
+            y2 = np.reshape(tmp[:,1], (num,1)) + h * np.ones((num,1)) / 2
+            boxes = np.vstack((boxes, np.hstack((x1, y1, x2, y2)) / self._spatial_scale))
+
+        print boxes.shape
 
         # compute box overlap with gt
         gt_boxes = gts[:,2:]
@@ -186,7 +202,8 @@ class RoIGeneratingLayer(caffe.Layer):
             
                 # extract max scores
                 scores = heatmap[batch_id]
-                max_scores = np.reshape(scores[1:].max(axis = 0), (-1,1))
+                max_scores = np.reshape(scores[1:].max(axis = 0), (1,-1))
+                max_scores = np.tile(max_scores, len(aspect)).transpose()
 
                 # collect positives
                 fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]

@@ -223,7 +223,7 @@ layer {
   python_param {
     module: 'roi_generating_layer.layer'
     layer: 'RoIGeneratingLayer'
-    param_str: "'num_classes': 2\n'kernel_size': 3\n'spatial_scale': 0.0625"
+    param_str: "'num_classes': 2\n'kernel_size': 5\n'spatial_scale': 0.0625"
   }
 }
 layer {
