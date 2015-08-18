@@ -139,7 +139,7 @@ class RoIGeneratingLayer(caffe.Layer):
         num = tmp.shape[0]
 
         area = self._kernel_size * self._kernel_size
-        aspect = [1, 0.75, 0.5]  # height / width
+        aspect = [1, 0.5]  # height / width
         boxes = np.zeros((0, 4), dtype=np.float32)
         for i in xrange(len(aspect)):
             w = math.sqrt(area / aspect[i])
