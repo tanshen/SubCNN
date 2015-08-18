@@ -135,7 +135,7 @@ class RoIGeneratingLayer(caffe.Layer):
         y, x = np.meshgrid(h, w, indexing='ij') 
         tmp = np.dstack((x, y))
         tmp = np.reshape(tmp, (-1, 2))
-        boxes = np.hstack((tmp - (self._kernel_size-1)*np.ones(tmp.shape)/2, tmp + (self._kernel_size-1)*np.ones(tmp.shape)/2)) / self._spatial_scale
+        boxes = np.hstack((tmp - self._kernel_size*np.ones(tmp.shape)/2, tmp + self._kernel_size*np.ones(tmp.shape)/2)) / self._spatial_scale
 
         # compute box overlap with gt
         gt_boxes = gts[:,2:]
@@ -165,6 +165,11 @@ class RoIGeneratingLayer(caffe.Layer):
             index = np.where(gts[:,1] == image_id)[0]
             batch_ids = np.unique(gts[index,0])
 
+            # number of objects in the image
+            num_objs = index.size / batch_ids.size
+            flags = np.zeros((num_objs), dtype=np.int32) 
+            print 'image {:d}, {:d} objects'.format(int(image_id), int(num_objs))
+
             # for each batch (one scale of an image)
             boxes_fg = np.zeros((0, 6), dtype=np.float32)
             boxes_bg = np.zeros((0, 6), dtype=np.float32)
@@ -190,10 +195,14 @@ class RoIGeneratingLayer(caffe.Layer):
                 boxes_fg = np.vstack((boxes_fg, np.hstack((batch_ind, boxes[fg_inds,:], max_scores[fg_inds]))))
                 gt_inds_fg = np.hstack((gt_inds_fg, index_batch[argmax_overlaps[fg_inds]]))
 
+                flags[argmax_overlaps[fg_inds]] = 1
+
                 # collect negatives
                 bg_inds = np.where((max_overlaps < cfg.TRAIN.BG_THRESH_HI) & (max_overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
                 batch_ind = batch_id * np.ones((bg_inds.shape[0], 1))
                 boxes_bg = np.vstack((boxes_bg, np.hstack((batch_ind, boxes[bg_inds,:], max_scores[bg_inds]))))
+
+            print flags
 
             # find hard positives
             # sort scores and indexes

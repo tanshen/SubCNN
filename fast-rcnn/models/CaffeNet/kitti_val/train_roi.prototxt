@@ -204,8 +204,8 @@ layer {
   }
   convolution_param {
     num_output: 126
-    kernel_size: 3
-    pad: 1
+    kernel_size: 5
+    pad: 2
   }
 }
 layer {
@@ -233,8 +233,8 @@ layer {
   bottom: "rois"
   top: "pool5"
   roi_pooling_param {
-    pooled_w: 3
-    pooled_h: 3
+    pooled_w: 5
+    pooled_h: 5
     spatial_scale: 0.0625 # 1/16
   }
 }
@@ -255,7 +255,7 @@ layer {
   }
   convolution_param {
     num_output: 126
-    kernel_size: 3
+    kernel_size: 5 
   }
 }
 layer {
