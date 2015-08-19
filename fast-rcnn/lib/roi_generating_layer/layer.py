@@ -183,7 +183,8 @@ class RoIGeneratingLayer(caffe.Layer):
 
             # number of objects in the image
             num_objs = index.size / batch_ids.size
-            flags = np.zeros((num_objs), dtype=np.int32) 
+            max_gt_overlaps = np.zeros((num_objs, 1), dtype=np.float32) 
+            print max_gt_overlaps.shape
             print 'image {:d}, {:d} objects'.format(int(image_id), int(num_objs))
 
             # for each batch (one scale of an image)
@@ -199,6 +200,11 @@ class RoIGeneratingLayer(caffe.Layer):
                 max_overlaps = overlaps.max(axis = 1)
                 print max_overlaps.max()
                 argmax_overlaps = overlaps.argmax(axis = 1)
+
+                tmp = np.reshape(overlaps.max(axis = 0), (-1, 1))
+                print tmp.shape
+                max_gt_overlaps = np.reshape(np.hstack((max_gt_overlaps, tmp)).max(axis = 1), (num_objs,1))
+                print max_gt_overlaps
             
                 # extract max scores
                 scores = heatmap[batch_id]
@@ -212,14 +218,14 @@ class RoIGeneratingLayer(caffe.Layer):
                 boxes_fg = np.vstack((boxes_fg, np.hstack((batch_ind, boxes[fg_inds,:], max_scores[fg_inds]))))
                 gt_inds_fg = np.hstack((gt_inds_fg, index_batch[argmax_overlaps[fg_inds]]))
 
-                flags[argmax_overlaps[fg_inds]] = 1
+                # flags[argmax_overlaps[fg_inds]] = 1
 
                 # collect negatives
                 bg_inds = np.where((max_overlaps < cfg.TRAIN.BG_THRESH_HI) & (max_overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
                 batch_ind = batch_id * np.ones((bg_inds.shape[0], 1))
                 boxes_bg = np.vstack((boxes_bg, np.hstack((batch_ind, boxes[bg_inds,:], max_scores[bg_inds]))))
 
-            print flags
+            print max_gt_overlaps
 
             # find hard positives
             # sort scores and indexes

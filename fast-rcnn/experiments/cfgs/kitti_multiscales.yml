@@ -1,6 +1,6 @@
 EXP_DIR: kitti
 TRAIN:
-  SCALES: !!python/tuple [187.5, 375, 500, 562.5, 750, 937.5, 1125]
+  SCALES: !!python/tuple [187.5, 375, 562.5, 750, 937.5, 1125]
   MAX_SIZE: 3726
   IMS_PER_BATCH: 2
   FG_THRESH: 0.7
