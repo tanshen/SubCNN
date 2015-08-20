@@ -16,6 +16,7 @@ from utils.cython_bbox import bbox_overlaps
 import numpy as np
 import yaml
 from multiprocessing import Process, Queue
+import matplotlib.pyplot as plt
 
 class RoIGeneratingLayer(caffe.Layer):
     """Fast R-CNN data layer used for training."""
@@ -126,6 +127,9 @@ class RoIGeneratingLayer(caffe.Layer):
         # subclass labels
         gt_sublabels = bottom[3].data
 
+        # image data
+        im_blob = bottom[4].data
+
         # heatmap dimensions
         height = heatmap.shape[2]
         width = heatmap.shape[3]
@@ -139,25 +143,21 @@ class RoIGeneratingLayer(caffe.Layer):
         num = tmp.shape[0]
 
         area = self._kernel_size * self._kernel_size
-        aspect = [1, 0.5]  # height / width
+        aspect = [1, 0.75, 0.5, 0.25]  # height / width
         boxes = np.zeros((0, 4), dtype=np.float32)
         for i in xrange(len(aspect)):
             w = math.sqrt(area / aspect[i])
             h = w * aspect[i]
-            print area, w, h
             x1 = np.reshape(tmp[:,0], (num,1)) - w * np.ones((num,1)) / 2
             x2 = np.reshape(tmp[:,0], (num,1)) + w * np.ones((num,1)) / 2
             y1 = np.reshape(tmp[:,1], (num,1)) - h * np.ones((num,1)) / 2
             y2 = np.reshape(tmp[:,1], (num,1)) + h * np.ones((num,1)) / 2
             boxes = np.vstack((boxes, np.hstack((x1, y1, x2, y2)) / self._spatial_scale))
 
-        print boxes.shape
-
         # compute box overlap with gt
         gt_boxes = gts[:,2:]
-        print heatmap.shape
-        for i in xrange(gts.shape[0]):
-            print '{:f} {:f} {:f} {:f} {:f} {:f}'.format(gts[i,0], gts[i,1], gts[i,2], gts[i,3], gts[i,4], gts[i,5])
+        #for i in xrange(gts.shape[0]):
+        #    print '{:f} {:f} {:f} {:f} {:f} {:f}'.format(gts[i,0], gts[i,1], gts[i,2], gts[i,3], gts[i,4], gts[i,5])
         gt_overlaps = bbox_overlaps(boxes.astype(np.float), gt_boxes.astype(np.float))
 
         # number of ROIs
@@ -183,14 +183,13 @@ class RoIGeneratingLayer(caffe.Layer):
 
             # number of objects in the image
             num_objs = index.size / batch_ids.size
-            max_gt_overlaps = np.zeros((num_objs, 1), dtype=np.float32) 
-            print max_gt_overlaps.shape
+            max_gt_overlaps = np.zeros((num_objs, 1), dtype=np.float32)
             print 'image {:d}, {:d} objects'.format(int(image_id), int(num_objs))
 
             # for each batch (one scale of an image)
             boxes_fg = np.zeros((0, 6), dtype=np.float32)
             boxes_bg = np.zeros((0, 6), dtype=np.float32)
-            gt_inds_fg = np.zeros((0), dtype=np.float32)
+            gt_inds_fg = np.zeros((0), dtype=np.int32)
             for i in xrange(len(batch_ids)):
                 batch_id = batch_ids[i]
 
@@ -198,13 +197,36 @@ class RoIGeneratingLayer(caffe.Layer):
                 index_batch = np.where(gts[:,0] == batch_id)[0]
                 overlaps = gt_overlaps[:,index_batch]
                 max_overlaps = overlaps.max(axis = 1)
-                print max_overlaps.max()
                 argmax_overlaps = overlaps.argmax(axis = 1)
 
+                """ debuging
+                # show image
+                im = im_blob[batch_id, :, :, :].transpose((1, 2, 0)).copy()
+                im += cfg.PIXEL_MEANS
+                im = im[:, :, (2, 1, 0)]
+                im = im.astype(np.uint8)
+                plt.imshow(im)
+
+                # draw boxes
+                for j in xrange(len(index_batch)):
+                    roi = gt_boxes[index_batch[j],:]
+                    plt.gca().add_patch(
+                        plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
+                                       roi[3] - roi[1], fill=False,
+                                       edgecolor='r', linewidth=3))
+
+                inds = np.where(max_overlaps > 0.7)[0]
+                for j in xrange(len(inds)):
+                    roi = boxes[inds[j],:]
+                    plt.gca().add_patch(
+                        plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
+                                       roi[3] - roi[1], fill=False,
+                                       edgecolor='g', linewidth=3))
+                plt.show()
+                """
+
                 tmp = np.reshape(overlaps.max(axis = 0), (-1, 1))
-                print tmp.shape
                 max_gt_overlaps = np.reshape(np.hstack((max_gt_overlaps, tmp)).max(axis = 1), (num_objs,1))
-                print max_gt_overlaps
             
                 # extract max scores
                 scores = heatmap[batch_id]
@@ -214,7 +236,6 @@ class RoIGeneratingLayer(caffe.Layer):
                 # collect positives
                 fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
                 batch_ind = batch_id * np.ones((fg_inds.shape[0], 1))
-                print batch_ind.shape, boxes[fg_inds,:].shape, max_scores[fg_inds].shape 
                 boxes_fg = np.vstack((boxes_fg, np.hstack((batch_ind, boxes[fg_inds,:], max_scores[fg_inds]))))
                 gt_inds_fg = np.hstack((gt_inds_fg, index_batch[argmax_overlaps[fg_inds]]))
 
@@ -231,10 +252,10 @@ class RoIGeneratingLayer(caffe.Layer):
             # sort scores and indexes
             I = np.argsort(boxes_fg[:,5])
             # number of fg in the image
-            fg_rois_per_this_image = np.minimum(fg_rois_per_image, I.size)
+            fg_rois_per_this_image = int(np.minimum(fg_rois_per_image, I.size))
             I = I[0:fg_rois_per_this_image]
             boxes_fg = boxes_fg[I,:]
-            gt_inds_fg = gt_inds_fg[I,:]
+            gt_inds_fg = gt_inds_fg[I]
 
             # find hard negatives
             # sort scores and indexes descending

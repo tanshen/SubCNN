@@ -194,12 +194,12 @@ layer {
   top: "conv_sub"
   param {
     name: "conv_sub_w"
-    lr_mult: 1
+    lr_mult: 0.1
     decay_mult: 1
   }
   param {
     name: "conv_sub_b"
-    lr_mult: 2
+    lr_mult: 0.2
     decay_mult: 0
   }
   convolution_param {
@@ -215,6 +215,7 @@ layer {
   bottom: 'gt_rois'
   bottom: 'gt_labels'
   bottom: 'gt_sublabels'
+  bottom: 'data'
   top: 'rois'
   top: 'labels'
   top: 'bbox_targets'
@@ -245,12 +246,12 @@ layer {
   top: "subcls_score"
   param {
     name: "conv_sub_w"
-    lr_mult: 1
+    lr_mult: 0.1
     decay_mult: 1
   }
   param {
     name: "conv_sub_b"
-    lr_mult: 2
+    lr_mult: 0.2
     decay_mult: 0
   }
   convolution_param {
