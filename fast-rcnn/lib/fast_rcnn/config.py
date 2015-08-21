@@ -37,6 +37,14 @@ __C.TRAIN = edict()
 # Each scale is the pixel size of an image's shortest side
 __C.TRAIN.SCALES = (600,)
 
+# parameters for ROI generating
+__C.TRAIN.IMAGE_WIDTH = 400
+__C.TRAIN.IMAGE_HEIGHT = 300
+__C.TRAIN.SPATIAL_SCALE = 0.0625
+__C.TRAIN.KERNEL_SIZE = 5
+# Aspect ratio to use during training
+__C.TRAIN.ASPECTS = (1, 0.75, 0.5, 0.25)
+
 # Max pixel size of the longest side of a scaled input image
 __C.TRAIN.MAX_SIZE = 1000
 

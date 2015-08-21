@@ -9,7 +9,6 @@
 RoIGeneratingLayer implements a Caffe Python layer.
 """
 
-import math
 import caffe
 from fast_rcnn.config import cfg
 from utils.cython_bbox import bbox_overlaps
@@ -126,39 +125,10 @@ class RoIGeneratingLayer(caffe.Layer):
         gt_labels = bottom[2].data
         # subclass labels
         gt_sublabels = bottom[3].data
-
-        # image data
-        im_blob = bottom[4].data
-
-        # heatmap dimensions
-        height = heatmap.shape[2]
-        width = heatmap.shape[3]
-
-        # generate all the boxes on the heatmap
-        h = np.arange(height)
-        w = np.arange(width)
-        y, x = np.meshgrid(h, w, indexing='ij') 
-        tmp = np.dstack((x, y))
-        tmp = np.reshape(tmp, (-1, 2))
-        num = tmp.shape[0]
-
-        area = self._kernel_size * self._kernel_size
-        aspect = [1, 0.75, 0.5, 0.25]  # height / width
-        boxes = np.zeros((0, 4), dtype=np.float32)
-        for i in xrange(len(aspect)):
-            w = math.sqrt(area / aspect[i])
-            h = w * aspect[i]
-            x1 = np.reshape(tmp[:,0], (num,1)) - w * np.ones((num,1)) / 2
-            x2 = np.reshape(tmp[:,0], (num,1)) + w * np.ones((num,1)) / 2
-            y1 = np.reshape(tmp[:,1], (num,1)) - h * np.ones((num,1)) / 2
-            y2 = np.reshape(tmp[:,1], (num,1)) + h * np.ones((num,1)) / 2
-            boxes = np.vstack((boxes, np.hstack((x1, y1, x2, y2)) / self._spatial_scale))
-
-        # compute box overlap with gt
-        gt_boxes = gts[:,2:]
-        #for i in xrange(gts.shape[0]):
-        #    print '{:f} {:f} {:f} {:f} {:f} {:f}'.format(gts[i,0], gts[i,1], gts[i,2], gts[i,3], gts[i,4], gts[i,5])
-        gt_overlaps = bbox_overlaps(boxes.astype(np.float), gt_boxes.astype(np.float))
+        # overlaps
+        gt_overlaps = bottom[4].data
+        # boxes on the grid
+        boxes = bottom[5].data
 
         # number of ROIs
         image_ids = np.unique(gts[:,1])
@@ -185,6 +155,7 @@ class RoIGeneratingLayer(caffe.Layer):
             num_objs = index.size / batch_ids.size
             max_gt_overlaps = np.zeros((num_objs, 1), dtype=np.float32)
             print 'image {:d}, {:d} objects'.format(int(image_id), int(num_objs))
+            print gt_overlaps.shape
 
             # for each batch (one scale of an image)
             boxes_fg = np.zeros((0, 6), dtype=np.float32)
@@ -231,7 +202,7 @@ class RoIGeneratingLayer(caffe.Layer):
                 # extract max scores
                 scores = heatmap[batch_id]
                 max_scores = np.reshape(scores[1:].max(axis = 0), (1,-1))
-                max_scores = np.tile(max_scores, len(aspect)).transpose()
+                max_scores = np.tile(max_scores, len(cfg.TRAIN.ASPECTS)).transpose()
 
                 # collect positives
                 fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
@@ -246,7 +217,7 @@ class RoIGeneratingLayer(caffe.Layer):
                 batch_ind = batch_id * np.ones((bg_inds.shape[0], 1))
                 boxes_bg = np.vstack((boxes_bg, np.hstack((batch_ind, boxes[bg_inds,:], max_scores[bg_inds]))))
 
-            print max_gt_overlaps
+            print max_gt_overlaps, boxes_fg.shape[0]
 
             # find hard positives
             # sort scores and indexes

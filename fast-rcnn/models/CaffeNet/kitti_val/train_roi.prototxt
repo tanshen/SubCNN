@@ -6,6 +6,8 @@ layer {
   top: 'gt_rois'
   top: 'gt_labels'
   top: 'gt_sublabels'
+  top: 'gt_overlaps'
+  top: 'boxes_grid'
   python_param {
     module: 'gt_data_layer.layer'
     layer: 'GtDataLayer'
@@ -215,7 +217,8 @@ layer {
   bottom: 'gt_rois'
   bottom: 'gt_labels'
   bottom: 'gt_sublabels'
-  bottom: 'data'
+  bottom: 'gt_overlaps'
+  bottom: 'boxes_grid'
   top: 'rois'
   top: 'labels'
   top: 'bbox_targets'

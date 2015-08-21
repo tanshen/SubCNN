@@ -6,9 +6,11 @@ import os
 import datasets.imdb
 import numpy as np
 import scipy.sparse
-import utils.cython_bbox
+from utils.cython_bbox import bbox_overlaps
 import subprocess
 import cPickle
+from fast_rcnn.config import cfg
+import math
 
 class kitti(datasets.imdb):
     def __init__(self, image_set, kitti_path=None):
@@ -32,6 +34,9 @@ class kitti(datasets.imdb):
             self._num_subclasses = 227 + 1
 
         self.config = {'top_k': 100000}
+
+        # boxes on grid
+        self._boxes_grid = self._get_boxes_grid()
 
         assert os.path.exists(self._kitti_path), \
                 'KITTI path does not exist: {}'.format(self._kitti_path)
@@ -76,6 +81,37 @@ class kitti(datasets.imdb):
         Return the default path where KITTI is expected to be installed.
         """
         return os.path.join(datasets.ROOT_DIR, 'data', 'KITTI')
+
+    def _get_boxes_grid(self):
+        """
+        Return the boxes on image grid.
+        """
+
+        # height and width of the heatmap
+        height = np.round(cfg.TRAIN.IMAGE_HEIGHT * max(cfg.TRAIN.SCALES) * cfg.TRAIN.SPATIAL_SCALE)
+        width = np.round(cfg.TRAIN.IMAGE_WIDTH * max(cfg.TRAIN.SCALES) * cfg.TRAIN.SPATIAL_SCALE)
+
+        # construct the grid boxes
+        h = np.arange(height)
+        w = np.arange(width)
+        y, x = np.meshgrid(h, w, indexing='ij') 
+        tmp = np.dstack((x, y))
+        tmp = np.reshape(tmp, (-1, 2))
+        num = tmp.shape[0]
+
+        area = cfg.TRAIN.KERNEL_SIZE * cfg.TRAIN.KERNEL_SIZE
+        aspect = cfg.TRAIN.ASPECTS  # height / width
+        boxes_grid = np.zeros((0, 4), dtype=np.float32)
+        for i in xrange(len(aspect)):
+            w = math.sqrt(area / aspect[i])
+            h = w * aspect[i]
+            x1 = np.reshape(tmp[:,0], (num,1)) - w * np.ones((num,1)) / 2
+            x2 = np.reshape(tmp[:,0], (num,1)) + w * np.ones((num,1)) / 2
+            y1 = np.reshape(tmp[:,1], (num,1)) - h * np.ones((num,1)) / 2
+            y2 = np.reshape(tmp[:,1], (num,1)) + h * np.ones((num,1)) / 2
+            boxes_grid = np.vstack((boxes_grid, np.hstack((x1, y1, x2, y2)) / cfg.TRAIN.SPATIAL_SCALE))
+
+        return boxes_grid
 
 
     def gt_roidb(self):
@@ -140,11 +176,22 @@ class kitti(datasets.imdb):
         subindexes = np.zeros((num_objs, self.num_classes), dtype=np.int32)
         subindexes_flipped = np.zeros((num_objs, self.num_classes), dtype=np.int32)
 
+        # compute overlaps between grid boxes and gt boxes in multi-scales
+        # rescale the gt boxes
+        boxes_all = np.zeros((0, 4), dtype=np.float32)
+        for scale in cfg.TRAIN.SCALES:
+            boxes_all = np.vstack((boxes_all, boxes * scale))
+
+        # compute overlap
+        overlaps_grid = bbox_overlaps(self._boxes_grid.astype(np.float), boxes_all.astype(np.float))
+        overlaps_grid = scipy.sparse.csr_matrix(overlaps_grid)
+
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
                 'gt_subclasses': gt_subclasses,
                 'gt_subclasses_flipped': gt_subclasses_flipped,
                 'gt_overlaps' : overlaps,
+                'gt_overlaps_grid': overlaps_grid,
                 'gt_subindexes': subindexes,
                 'gt_subindexes_flipped': subindexes_flipped,
                 'flipped' : False}
@@ -209,11 +256,22 @@ class kitti(datasets.imdb):
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
 
+        # compute overlaps between grid boxes and gt boxes in multi-scales
+        # rescale the gt boxes
+        boxes_all = np.zeros((0, 4), dtype=np.float32)
+        for scale in cfg.TRAIN.SCALES:
+            boxes_all = np.vstack((boxes_all, boxes * scale))
+
+        # compute overlap
+        overlaps_grid = bbox_overlaps(self._boxes_grid.astype(np.float), boxes_all.astype(np.float))
+        overlaps_grid = scipy.sparse.csr_matrix(overlaps_grid)
+
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
                 'gt_subclasses': gt_subclasses,
                 'gt_subclasses_flipped': gt_subclasses_flipped,
                 'gt_overlaps': overlaps,
+                'gt_overlaps_grid': overlaps_grid,
                 'gt_subindexes': subindexes, 
                 'gt_subindexes_flipped': subindexes_flipped, 
                 'flipped' : False}

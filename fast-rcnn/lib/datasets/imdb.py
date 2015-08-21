@@ -12,6 +12,7 @@ from utils.cython_bbox import bbox_overlaps
 import numpy as np
 import scipy.sparse
 import datasets
+from fast_rcnn.config import cfg
 
 class imdb(object):
     """Image database."""
@@ -27,6 +28,7 @@ class imdb(object):
         self._roidb_handler = self.default_roidb
         # Use this dict for storing dataset specific config options
         self.config = {}
+        self._boxes_grid = []
 
     @property
     def name(self):
@@ -47,6 +49,10 @@ class imdb(object):
     @property
     def image_index(self):
         return self._image_index
+
+    @property
+    def boxes_grid(self):
+        return self._boxes_grid
 
     @property
     def roidb_handler(self):
@@ -110,8 +116,20 @@ class imdb(object):
             assert (self.roidb[i]['gt_subindexes'].shape == self.roidb[i]['gt_subindexes_flipped'].shape), \
                 'gt_subindexes {}, gt_subindexes_flip {}'.format(self.roidb[i]['gt_subindexes'].shape, 
                                                                  self.roidb[i]['gt_subindexes_flipped'].shape)
+
+            # compute overlaps between grid boxes and gt boxes in multi-scales
+            # rescale the gt boxes
+            boxes_all = np.zeros((0, 4), dtype=np.float32)
+            for scale in cfg.TRAIN.SCALES:
+                boxes_all = np.vstack((boxes_all, boxes * scale))
+
+            # compute overlap
+            overlaps_grid = bbox_overlaps(self._boxes_grid.astype(np.float), boxes_all.astype(np.float))
+            overlaps_grid = scipy.sparse.csr_matrix(overlaps_grid)
+
             entry = {'boxes' : boxes,
                      'gt_overlaps' : self.roidb[i]['gt_overlaps'],
+                     'gt_overlaps_grid' : overlaps_grid,
                      'gt_classes' : self.roidb[i]['gt_classes'],
                      'gt_subclasses' : self.roidb[i]['gt_subclasses_flipped'],
                      'gt_subclasses_flipped' : self.roidb[i]['gt_subclasses'],

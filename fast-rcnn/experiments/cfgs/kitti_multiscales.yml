@@ -1,6 +1,8 @@
 EXP_DIR: kitti
 TRAIN:
-  SCALES: !!python/tuple [187.5, 375, 750, 937.5, 1125]
+  SCALES: !!python/tuple [1.0, 2.0, 3.0]
+  IMAGE_WIDTH: 1242
+  IMAGE_HEIGHT: 375
   MAX_SIZE: 3726
   IMS_PER_BATCH: 2
   FG_THRESH: 0.5
@@ -8,6 +10,6 @@ TRAIN:
   BBOX_THRESH: 0.5
   SNAPSHOT_INFIX: kitti
 TEST:
-  SCALES: !!python/tuple [375, 750, 1125, 1500]
+  SCALES: !!python/tuple [187.5, 375, 750, 937.5, 1125, 1500]
   MAX_SIZE: 4968
   NMS: 0.5

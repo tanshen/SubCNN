@@ -13,9 +13,10 @@ import cv2
 from fast_rcnn.config import cfg
 from utils.blob import prep_im_for_blob, im_list_to_blob
 
-def get_minibatch(roidb):
+def get_minibatch(roidb, boxes_grid):
     """Given a roidb, construct a minibatch sampled from it."""
     num_images = len(roidb)
+    num_boxes = boxes_grid.shape[0]
     assert(cfg.TRAIN.BATCH_SIZE % num_images == 0), \
         'num_images ({}) must divide BATCH_SIZE ({})'. \
         format(num_images, cfg.TRAIN.BATCH_SIZE)
@@ -27,6 +28,7 @@ def get_minibatch(roidb):
     rois_blob = np.zeros((0, 6), dtype=np.float32)
     labels_blob = np.zeros((0), dtype=np.float32)
     sublabels_blob = np.zeros((0), dtype=np.float32)
+    overlaps_blob = np.zeros((num_boxes,0), dtype=np.float32)
 
     for i in xrange(len(im_indexes)):
 
@@ -41,10 +43,16 @@ def get_minibatch(roidb):
         image_ind = im_i * np.ones((rois.shape[0], 1))
         rois_blob_this_image = np.hstack((batch_ind, image_ind, rois))
         rois_blob = np.vstack((rois_blob, rois_blob_this_image))
+        print rois.shape, rois_blob.shape
 
-        # Add to labels, bbox targets, and bbox loss blobs
+        # Add to labels, sublabels, overlaps
         labels_blob = np.hstack((labels_blob, labels))
         sublabels_blob = np.hstack((sublabels_blob, sublabels))
+
+    for i in xrange(num_images):
+        overlaps = roidb[i]['gt_overlaps_grid'].toarray()
+        overlaps_blob = np.hstack((overlaps_blob, overlaps))
+        print overlaps.shape, overlaps_blob.shape
 
     # For debug visualizations
     # _vis_minibatch(im_blob, rois_blob, labels_blob, sublabels_blob)
@@ -55,6 +63,9 @@ def get_minibatch(roidb):
 
     if cfg.TRAIN.SUBCLS:
         blobs['gt_sublabels'] = sublabels_blob
+
+    blobs['gt_overlaps'] = overlaps_blob
+    blobs['boxes_grid'] = boxes_grid
 
     return blobs
 
@@ -80,9 +91,7 @@ def _get_image_blob(roidb):
         im_size_min = np.min(im_shape[0:2])
         im_size_max = np.max(im_shape[0:2])
 
-        for target_size in cfg.TRAIN.SCALES:
-            im_scale = float(target_size) / float(im_size_min)
-
+        for im_scale in cfg.TRAIN.SCALES:
             # Prevent the biggest axis from being more than MAX_SIZE
             if np.round(im_scale * im_size_max) > cfg.TRAIN.MAX_SIZE:
                 im_scale = float(cfg.TRAIN.MAX_SIZE) / float(im_size_max)
