@@ -13,7 +13,7 @@ import cv2
 from fast_rcnn.config import cfg
 from utils.blob import prep_im_for_blob, im_list_to_blob
 
-def get_minibatch(roidb, boxes_grid):
+def get_minibatch(roidb, boxes_grid, num_classes):
     """Given a roidb, construct a minibatch sampled from it."""
     num_images = len(roidb)
     num_boxes = boxes_grid.shape[0]
@@ -29,6 +29,8 @@ def get_minibatch(roidb, boxes_grid):
     labels_blob = np.zeros((0), dtype=np.float32)
     sublabels_blob = np.zeros((0), dtype=np.float32)
     overlaps_blob = np.zeros((num_boxes,0), dtype=np.float32)
+    bbox_targets_blob = np.zeros((0, 4 * num_classes), dtype=np.float32)
+    bbox_loss_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
 
     for i in xrange(len(im_indexes)):
 
@@ -52,7 +54,10 @@ def get_minibatch(roidb, boxes_grid):
     for i in xrange(num_images):
         overlaps = roidb[i]['gt_overlaps_grid'].toarray()
         overlaps_blob = np.hstack((overlaps_blob, overlaps))
-        print overlaps.shape, overlaps_blob.shape
+
+        bbox_targets, bbox_loss_weights = _get_bbox_regression_labels(roidb[i]['bbox_targets'].toarray(), num_classes)
+        bbox_targets_blob = np.vstack((bbox_targets_blob, bbox_targets))
+        bbox_loss_blob = np.vstack((bbox_loss_blob, bbox_loss_weights))
 
     # For debug visualizations
     # _vis_minibatch(im_blob, rois_blob, labels_blob, sublabels_blob)
@@ -60,6 +65,10 @@ def get_minibatch(roidb, boxes_grid):
     blobs = {'data': im_blob,
              'gt_rois': rois_blob,
              'gt_labels': labels_blob}
+
+    if cfg.TRAIN.BBOX_REG:
+        blobs['gt_bbox_targets'] = bbox_targets_blob
+        blobs['gt_bbox_loss_weights'] = bbox_loss_blob
 
     if cfg.TRAIN.SUBCLS:
         blobs['gt_sublabels'] = sublabels_blob
@@ -112,6 +121,31 @@ def _project_im_rois(im_rois, im_scale_factor):
     """Project image RoIs into the rescaled training image."""
     rois = im_rois * im_scale_factor
     return rois
+
+def _get_bbox_regression_labels(bbox_target_data, num_classes):
+    """Bounding-box regression targets are stored in a compact form in the
+    roidb.
+
+    This function expands those targets into the 4-of-4*K representation used
+    by the network (i.e. only one class has non-zero targets). The loss weights
+    are similarly expanded.
+
+    Returns:
+        bbox_target_data (ndarray): N x 4K blob of regression targets
+        bbox_loss_weights (ndarray): N x 4K blob of loss weights
+    """
+    clss = bbox_target_data[:, 0]
+    bbox_targets = np.zeros((clss.size, 4 * num_classes), dtype=np.float32)
+    bbox_loss_weights = np.zeros(bbox_targets.shape, dtype=np.float32)
+    inds = np.where(clss > 0)[0]
+    for ind in inds:
+        cls = clss[ind]
+        start = 4 * cls
+        end = start + 4
+        bbox_targets[ind, start:end] = bbox_target_data[ind, 1:]
+        bbox_loss_weights[ind, start:end] = [1., 1., 1., 1.]
+    return bbox_targets, bbox_loss_weights
+
 
 def _vis_minibatch(im_blob, rois_blob, labels_blob, sublabels_blob):
     """Visualize a mini-batch for debugging."""

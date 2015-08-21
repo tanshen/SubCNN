@@ -9,7 +9,7 @@
 
 import caffe
 from fast_rcnn.config import cfg
-import roi_data_layer.roidb as rdl_roidb
+import gt_data_layer.roidb as gdl_roidb
 from utils.timer import Timer
 import numpy as np
 import os
@@ -30,7 +30,7 @@ class SolverWrapper(object):
 
         print 'Computing bounding-box regression targets...'
         self.bbox_means, self.bbox_stds = \
-                rdl_roidb.add_bbox_regression_targets(roidb)
+                gdl_roidb.add_bbox_regression_targets(roidb, boxes_grid)
         print 'done'
 
         self.solver = caffe.SGDSolver(solver_prototxt)
@@ -108,7 +108,7 @@ def get_training_roidb(imdb):
         print 'done'
 
     print 'Preparing training data...'
-    rdl_roidb.prepare_roidb(imdb)
+    gdl_roidb.prepare_roidb(imdb)
     print 'done'
 
     return imdb.roidb

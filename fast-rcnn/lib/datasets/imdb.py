@@ -128,6 +128,7 @@ class imdb(object):
             overlaps_grid = scipy.sparse.csr_matrix(overlaps_grid)
 
             entry = {'boxes' : boxes,
+                     'boxes_all' : boxes_all,
                      'gt_overlaps' : self.roidb[i]['gt_overlaps'],
                      'gt_overlaps_grid' : overlaps_grid,
                      'gt_classes' : self.roidb[i]['gt_classes'],

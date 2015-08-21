@@ -19,62 +19,6 @@ import matplotlib.pyplot as plt
 
 class RoIGeneratingLayer(caffe.Layer):
     """Fast R-CNN data layer used for training."""
-    def _compute_targets_roi(self, rois, gts, gt_inds, fg_rois_per_this_image, labels):
-        """Compute bounding-box regression targets for an image."""
-        # Ensure ROIs are floats
-        rois = rois.astype(np.float, copy=False)
-
-        # Indices of examples for which we try to make predictions
-        ex_inds = range(fg_rois_per_this_image)
-
-        gt_rois = gts[gt_inds, 1:]
-        ex_rois = rois[ex_inds, 1:]
-
-        ex_widths = ex_rois[:, 2] - ex_rois[:, 0] + cfg.EPS
-        ex_heights = ex_rois[:, 3] - ex_rois[:, 1] + cfg.EPS
-        ex_ctr_x = ex_rois[:, 0] + 0.5 * ex_widths
-        ex_ctr_y = ex_rois[:, 1] + 0.5 * ex_heights
-
-        gt_widths = gt_rois[:, 2] - gt_rois[:, 0] + cfg.EPS
-        gt_heights = gt_rois[:, 3] - gt_rois[:, 1] + cfg.EPS
-        gt_ctr_x = gt_rois[:, 0] + 0.5 * gt_widths
-        gt_ctr_y = gt_rois[:, 1] + 0.5 * gt_heights
-
-        targets_dx = (gt_ctr_x - ex_ctr_x) / ex_widths
-        targets_dy = (gt_ctr_y - ex_ctr_y) / ex_heights
-        targets_dw = np.log(gt_widths / ex_widths)
-        targets_dh = np.log(gt_heights / ex_heights)
-
-        targets = np.zeros((rois.shape[0], 5), dtype=np.float32)
-        targets[ex_inds, 0] = labels[ex_inds]
-        targets[ex_inds, 1] = targets_dx
-        targets[ex_inds, 2] = targets_dy
-        targets[ex_inds, 3] = targets_dw
-        targets[ex_inds, 4] = targets_dh
-        return targets
-
-    def _get_bbox_regression_labels_roi(self, bbox_target_data, num_classes):
-        """Bounding-box regression targets are stored in a compact form in the roidb.
-
-        This function expands those targets into the 4-of-4*K representation used
-        by the network (i.e. only one class has non-zero targets). The loss weights
-        are similarly expanded.
-
-        Returns:
-            bbox_target_data (ndarray): N x 4K blob of regression targets
-            bbox_loss_weights (ndarray): N x 4K blob of loss weights
-        """
-        clss = bbox_target_data[:, 0]
-        bbox_targets = np.zeros((clss.size, 4 * num_classes), dtype=np.float32)
-        bbox_loss_weights = np.zeros(bbox_targets.shape, dtype=np.float32)
-        inds = np.where(clss > 0)[0]
-        for ind in inds:
-            cls = clss[ind]
-            start = 4 * cls
-            end = start + 4
-            bbox_targets[ind, start:end] = bbox_target_data[ind, 1:]
-            bbox_loss_weights[ind, start:end] = [1., 1., 1., 1.]
-        return bbox_targets, bbox_loss_weights
 
     def setup(self, bottom, top):
         """Setup the RoIGeneratingLayer."""
@@ -123,12 +67,15 @@ class RoIGeneratingLayer(caffe.Layer):
         gts = bottom[1].data
         # class labels
         gt_labels = bottom[2].data
+        # bounding box regression
+        gt_bbox_targets = bottom[3].data
+        gt_bbox_loss_weights = bottom[4].data
         # subclass labels
-        gt_sublabels = bottom[3].data
+        gt_sublabels = bottom[5].data
         # overlaps
-        gt_overlaps = bottom[4].data
+        gt_overlaps = bottom[6].data
         # boxes on the grid
-        boxes = bottom[5].data
+        boxes = bottom[7].data
 
         # number of ROIs
         image_ids = np.unique(gts[:,1])
@@ -155,11 +102,10 @@ class RoIGeneratingLayer(caffe.Layer):
             num_objs = index.size / batch_ids.size
             max_gt_overlaps = np.zeros((num_objs, 1), dtype=np.float32)
             print 'image {:d}, {:d} objects'.format(int(image_id), int(num_objs))
-            print gt_overlaps.shape
 
             # for each batch (one scale of an image)
-            boxes_fg = np.zeros((0, 6), dtype=np.float32)
-            boxes_bg = np.zeros((0, 6), dtype=np.float32)
+            boxes_fg = np.zeros((0, 7), dtype=np.float32)
+            boxes_bg = np.zeros((0, 7), dtype=np.float32)
             gt_inds_fg = np.zeros((0), dtype=np.int32)
             for i in xrange(len(batch_ids)):
                 batch_id = batch_ids[i]
@@ -207,15 +153,17 @@ class RoIGeneratingLayer(caffe.Layer):
                 # collect positives
                 fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
                 batch_ind = batch_id * np.ones((fg_inds.shape[0], 1))
-                boxes_fg = np.vstack((boxes_fg, np.hstack((batch_ind, boxes[fg_inds,:], max_scores[fg_inds]))))
+                inds = np.reshape(fg_inds, (fg_inds.shape[0], 1))
+                boxes_fg = np.vstack((boxes_fg, np.hstack((batch_ind, boxes[fg_inds,:], max_scores[fg_inds], inds))))
                 gt_inds_fg = np.hstack((gt_inds_fg, index_batch[argmax_overlaps[fg_inds]]))
 
                 # flags[argmax_overlaps[fg_inds]] = 1
 
                 # collect negatives
                 bg_inds = np.where((max_overlaps < cfg.TRAIN.BG_THRESH_HI) & (max_overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
+                inds = np.reshape(bg_inds, (bg_inds.shape[0], 1))
                 batch_ind = batch_id * np.ones((bg_inds.shape[0], 1))
-                boxes_bg = np.vstack((boxes_bg, np.hstack((batch_ind, boxes[bg_inds,:], max_scores[bg_inds]))))
+                boxes_bg = np.vstack((boxes_bg, np.hstack((batch_ind, boxes[bg_inds,:], max_scores[bg_inds], inds))))
 
             print max_gt_overlaps, boxes_fg.shape[0]
 
@@ -249,9 +197,10 @@ class RoIGeneratingLayer(caffe.Layer):
             sublabels = np.zeros((length), dtype=np.float32)
             sublabels[0:fg_rois_per_this_image] = gt_sublabels[gt_inds_fg]
 
-            # first try without target normalization
-            bbox_targets_data = self._compute_targets_roi(rois, gts, gt_inds_fg, fg_rois_per_this_image, labels)
-            bbox_targets, bbox_loss = self._get_bbox_regression_labels_roi(bbox_targets_data, self._num_classes)
+            inds = image_id * boxes.shape[0] + np.hstack((boxes_fg[:,6], boxes_bg[:,6]))
+            inds = inds.astype(int)
+            bbox_targets = gt_bbox_targets[inds, :]
+            bbox_loss = gt_bbox_loss_weights[inds, :]
 
             # Add to RoIs blob
             rois_blob = np.vstack((rois_blob, rois))
@@ -280,7 +229,6 @@ class RoIGeneratingLayer(caffe.Layer):
             
 
     def backward(self, top, propagate_down, bottom):
-        """This layer does not propagate gradients."""
         # Initialize all the gradients to 0. We will accumulate gradient
         bottom[0].diff[...] = np.zeros_like(bottom[0].data)
 

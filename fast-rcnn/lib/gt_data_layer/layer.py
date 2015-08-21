@@ -55,7 +55,7 @@ class GtDataLayer(caffe.Layer):
         """Return the blobs to be used for the next minibatch."""
         db_inds = self._get_next_minibatch_inds()
         minibatch_db = [self._roidb[i] for i in db_inds]
-        return get_minibatch(minibatch_db, self._boxes_grid)
+        return get_minibatch(minibatch_db, self._boxes_grid, self._num_classes)
 
     # this function is called in training the net
     def set_roidb(self, roidb, boxes_grid):
@@ -90,16 +90,28 @@ class GtDataLayer(caffe.Layer):
         # classes plus background
         top[2].reshape(1)
 
+        if cfg.TRAIN.BBOX_REG:
+            self._name_to_top_map['gt_bbox_targets'] = 3
+            self._name_to_top_map['gt_bbox_loss_weights'] = 4
+
+            # bbox_targets blob: R bounding-box regression targets with 4
+            # targets per class
+            top[3].reshape(1, self._num_classes * 4)
+
+            # bbox_loss_weights blob: At most 4 targets per roi are active;
+            # thisbinary vector sepcifies the subset of active targets
+            top[4].reshape(1, self._num_classes * 4)
+
         # add subclass labels
         if cfg.TRAIN.SUBCLS:
-            self._name_to_top_map['gt_sublabels'] = 3
-            top[3].reshape(1)
+            self._name_to_top_map['gt_sublabels'] = 5
+            top[5].reshape(1)
 
-        self._name_to_top_map['gt_overlaps'] = 4
-        top[4].reshape(1)
+        self._name_to_top_map['gt_overlaps'] = 6
+        top[6].reshape(1)
 
-        self._name_to_top_map['boxes_grid'] = 5
-        top[5].reshape(1, 4)
+        self._name_to_top_map['boxes_grid'] = 7
+        top[7].reshape(1, 4)
             
     def forward(self, bottom, top):
         """Get blobs and copy them into this layer's top blob vector."""

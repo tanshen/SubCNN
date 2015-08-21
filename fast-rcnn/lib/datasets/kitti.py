@@ -187,6 +187,7 @@ class kitti(datasets.imdb):
         overlaps_grid = scipy.sparse.csr_matrix(overlaps_grid)
 
         return {'boxes' : boxes,
+                'boxes_all' : boxes_all,
                 'gt_classes': gt_classes,
                 'gt_subclasses': gt_subclasses,
                 'gt_subclasses_flipped': gt_subclasses_flipped,
@@ -267,6 +268,7 @@ class kitti(datasets.imdb):
         overlaps_grid = scipy.sparse.csr_matrix(overlaps_grid)
 
         return {'boxes' : boxes,
+                'boxes_all' : boxes_all,
                 'gt_classes': gt_classes,
                 'gt_subclasses': gt_subclasses,
                 'gt_subclasses_flipped': gt_subclasses_flipped,
