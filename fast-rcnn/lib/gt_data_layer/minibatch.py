@@ -45,7 +45,6 @@ def get_minibatch(roidb, boxes_grid, num_classes):
         image_ind = im_i * np.ones((rois.shape[0], 1))
         rois_blob_this_image = np.hstack((batch_ind, image_ind, rois))
         rois_blob = np.vstack((rois_blob, rois_blob_this_image))
-        print rois.shape, rois_blob.shape
 
         # Add to labels, sublabels, overlaps
         labels_blob = np.hstack((labels_blob, labels))

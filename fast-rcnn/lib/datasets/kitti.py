@@ -38,6 +38,10 @@ class kitti(datasets.imdb):
         # boxes on grid
         self._boxes_grid = self._get_boxes_grid()
 
+        # statistics for computing recall
+        self._num_boxes_all = 0
+        self._num_boxes_covered = 0
+
         assert os.path.exists(self._kitti_path), \
                 'KITTI path does not exist: {}'.format(self._kitti_path)
         assert os.path.exists(self._data_path), \
@@ -120,6 +124,7 @@ class kitti(datasets.imdb):
 
         This function loads/saves from/to a cache file to speed up future calls.
         """
+
         cache_file = os.path.join(self.cache_path, self.name + '_gt_roidb.pkl')
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
@@ -129,6 +134,12 @@ class kitti(datasets.imdb):
 
         gt_roidb = [self._load_kitti_voxel_exemplar_annotation(index)
                     for index in self.image_index]
+
+        # print out recall
+        print 'Total number of boxes {:d}'.format(self._num_boxes_all)
+        print 'Number of boxes covered {:d}'.format(self._num_boxes_covered)
+        print 'Recall {:f}'.format(float(self._num_boxes_covered) / float(self._num_boxes_all))
+
         with open(cache_file, 'wb') as fid:
             cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
         print 'wrote gt roidb to {}'.format(cache_file)
@@ -184,6 +195,15 @@ class kitti(datasets.imdb):
 
         # compute overlap
         overlaps_grid = bbox_overlaps(self._boxes_grid.astype(np.float), boxes_all.astype(np.float))
+
+        # check how many gt boxes are covered by grids
+        if num_objs != 0:
+            index = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
+            max_overlaps = overlaps_grid.max(axis = 0)
+            fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
+            self._num_boxes_all += num_objs
+            self._num_boxes_covered += len(np.unique(index[fg_inds]))
+
         overlaps_grid = scipy.sparse.csr_matrix(overlaps_grid)
 
         return {'boxes' : boxes,
@@ -265,6 +285,15 @@ class kitti(datasets.imdb):
 
         # compute overlap
         overlaps_grid = bbox_overlaps(self._boxes_grid.astype(np.float), boxes_all.astype(np.float))
+        
+        # check how many gt boxes are covered by grids
+        if num_objs != 0:
+            index = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
+            max_overlaps = overlaps_grid.max(axis = 0)
+            fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
+            self._num_boxes_all += num_objs
+            self._num_boxes_covered += len(np.unique(index[fg_inds]))
+
         overlaps_grid = scipy.sparse.csr_matrix(overlaps_grid)
 
         return {'boxes' : boxes,
