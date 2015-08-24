@@ -165,7 +165,7 @@ class RoIGeneratingLayer(caffe.Layer):
                 batch_ind = batch_id * np.ones((bg_inds.shape[0], 1))
                 boxes_bg = np.vstack((boxes_bg, np.hstack((batch_ind, boxes[bg_inds,:], max_scores[bg_inds], inds))))
 
-            print max_gt_overlaps, boxes_fg.shape[0]
+            # print max_gt_overlaps, boxes_fg.shape[0]
 
             # find hard positives
             # sort scores and indexes
