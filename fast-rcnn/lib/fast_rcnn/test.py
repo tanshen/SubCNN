@@ -40,8 +40,7 @@ def _get_image_blob(im):
     processed_ims = []
     im_scale_factors = []
 
-    for target_size in cfg.TEST.SCALES:
-        im_scale = float(target_size) / float(im_size_min)
+    for im_scale in cfg.TEST.SCALES:
         # Prevent the biggest axis from being more than MAX_SIZE
         if np.round(im_scale * im_size_max) > cfg.TEST.MAX_SIZE:
             im_scale = float(cfg.TEST.MAX_SIZE) / float(im_size_max)
@@ -97,11 +96,11 @@ def _project_im_rois(im_rois, scales):
 
     return rois, levels
 
-def _get_blobs(im, rois):
+def _get_blobs(im, boxes):
     """Convert an image and RoIs within that image into network inputs."""
-    blobs = {'data' : None, 'rois' : None}
+    blobs = {'data' : None, 'boxes_grid' : None}
     blobs['data'], im_scale_factors = _get_image_blob(im)
-    blobs['rois'] = _get_rois_blob(rois, im_scale_factors)
+    blobs['boxes_grid'] = boxes
     return blobs, im_scale_factors
 
 def _bbox_pred(boxes, box_deltas):
@@ -152,12 +151,12 @@ def _clip_boxes(boxes, im_shape):
     return boxes
 
 def im_detect(net, im, boxes, num_classes, num_subclasses):
-    """Detect object classes in an image given object proposals.
+    """Detect object classes in an image given boxes on grids.
 
     Arguments:
         net (caffe.Net): Fast R-CNN network to use
         im (ndarray): color image to test (in BGR order)
-        boxes (ndarray): R x 4 array of object proposals
+        boxes (ndarray): R x 4 array of boxes
 
     Returns:
         scores (ndarray): R x K array of object class scores (K includes
@@ -165,31 +164,14 @@ def im_detect(net, im, boxes, num_classes, num_subclasses):
         boxes (ndarray): R x (4*K) array of predicted bounding boxes
     """
 
-    if boxes.shape[0] == 0:
-        scores = np.zeros((0, num_classes))
-        pred_boxes = np.zeros((0, 4*num_classes))
-        scores_subcls = np.zeros((0, num_subclasses))
-        return scores, pred_boxes, scores_subcls
-
     blobs, unused_im_scale_factors = _get_blobs(im, boxes)
-
-    # When mapping from image ROIs to feature map ROIs, there's some aliasing
-    # (some distinct image ROIs get mapped to the same feature ROI).
-    # Here, we identify duplicate feature ROIs, so we only compute features
-    # on the unique subset.
-    if cfg.DEDUP_BOXES > 0:
-        v = np.array([1, 1e3, 1e6, 1e9, 1e12])
-        hashes = np.round(blobs['rois'] * cfg.DEDUP_BOXES).dot(v)
-        _, index, inv_index = np.unique(hashes, return_index=True,
-                                        return_inverse=True)
-        blobs['rois'] = blobs['rois'][index, :]
-        boxes = boxes[index, :]
 
     # reshape network inputs
     net.blobs['data'].reshape(*(blobs['data'].shape))
-    net.blobs['rois'].reshape(*(blobs['rois'].shape))
+    net.blobs['boxes_grid'].reshape(*(blobs['boxes_grid'].shape))
     blobs_out = net.forward(data=blobs['data'].astype(np.float32, copy=False),
-                            rois=blobs['rois'].astype(np.float32, copy=False))
+                            boxes_grid=blobs['boxes_grid'].astype(np.float32, copy=False))
+
     if cfg.TEST.SVM:
         # use the raw scores before softmax under the assumption they
         # were trained as linear SVMs
@@ -204,20 +186,15 @@ def im_detect(net, im, boxes, num_classes, num_subclasses):
         # just use class scores
         scores_subcls = scores
 
+    rois = net.blobs['rois'].data
     if cfg.TEST.BBOX_REG:
         # Apply bounding-box regression deltas
         box_deltas = blobs_out['bbox_pred']
-        pred_boxes = _bbox_pred(boxes, box_deltas)
+        pred_boxes = _bbox_pred(rois, box_deltas)
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
     else:
         # Simply repeat the boxes, once for each class
-        pred_boxes = np.tile(boxes, (1, scores.shape[1]))
-
-    if cfg.DEDUP_BOXES > 0:
-        # Map scores and predictions back to the original set of boxes
-        scores = scores[inv_index, :]
-        scores_subcls = scores_subcls[inv_index, :]
-        pred_boxes = pred_boxes[inv_index, :]
+        pred_boxes = np.tile(rois, (1, scores.shape[1]))
 
     return scores, pred_boxes, scores_subcls
 
@@ -303,7 +280,7 @@ def test_net(net, imdb):
     for i in xrange(num_images):
         im = cv2.imread(imdb.image_path_at(i))
         _t['im_detect'].tic()
-        scores, boxes, scores_subcls = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes, imdb.num_subclasses)
+        scores, boxes, scores_subcls = im_detect(net, im, imdb.boxes_grid, imdb.num_classes, imdb.num_subclasses)
         _t['im_detect'].toc()
 
         _t['misc'].tic()

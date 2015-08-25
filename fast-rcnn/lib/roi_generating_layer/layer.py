@@ -15,7 +15,7 @@ from utils.cython_bbox import bbox_overlaps
 import numpy as np
 import yaml
 from multiprocessing import Process, Queue
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 class RoIGeneratingLayer(caffe.Layer):
     """Fast R-CNN data layer used for training."""
@@ -101,7 +101,7 @@ class RoIGeneratingLayer(caffe.Layer):
             # number of objects in the image
             num_objs = index.size / batch_ids.size
             max_gt_overlaps = np.zeros((num_objs, 1), dtype=np.float32)
-            print 'image {:d}, {:d} objects'.format(int(image_id), int(num_objs))
+            # print 'image {:d}, {:d} objects'.format(int(image_id), int(num_objs))
 
             # for each batch (one scale of an image)
             boxes_fg = np.zeros((0, 7), dtype=np.float32)
