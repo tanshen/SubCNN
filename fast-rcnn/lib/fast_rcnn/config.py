@@ -116,6 +116,9 @@ __C.TEST.BBOX_REG = True
 # Test using subclass
 __C.TEST.SUBCLS = True
 
+# Threshold of ROIs in testing
+__C.TEST.ROI_THRESHOLD = 0.1
+
 #
 # MISC
 #

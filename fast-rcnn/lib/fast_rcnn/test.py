@@ -96,11 +96,11 @@ def _project_im_rois(im_rois, scales):
 
     return rois, levels
 
-def _get_blobs(im, boxes):
+def _get_blobs(im, boxes_grid):
     """Convert an image and RoIs within that image into network inputs."""
     blobs = {'data' : None, 'boxes_grid' : None}
     blobs['data'], im_scale_factors = _get_image_blob(im)
-    blobs['boxes_grid'] = boxes
+    blobs['boxes_grid'] = boxes_grid
     return blobs, im_scale_factors
 
 def _bbox_pred(boxes, box_deltas):
@@ -150,7 +150,17 @@ def _clip_boxes(boxes, im_shape):
     boxes[:, 3::4] = np.minimum(boxes[:, 3::4], im_shape[0] - 1)
     return boxes
 
-def im_detect(net, im, boxes, num_classes, num_subclasses):
+
+def _rescale_boxes(boxes, inds, scales):
+    """Rescale grid boxes according to image rescaling."""
+
+    for i in xrange(boxes.shape[0]):
+        boxes[i,:] = boxes[i,:] / scales[inds[i]]
+
+    return boxes
+
+
+def im_detect(net, im, boxes_grid, num_classes, num_subclasses):
     """Detect object classes in an image given boxes on grids.
 
     Arguments:
@@ -164,7 +174,7 @@ def im_detect(net, im, boxes, num_classes, num_subclasses):
         boxes (ndarray): R x (4*K) array of predicted bounding boxes
     """
 
-    blobs, unused_im_scale_factors = _get_blobs(im, boxes)
+    blobs, im_scale_factors = _get_blobs(im, boxes_grid)
 
     # reshape network inputs
     net.blobs['data'].reshape(*(blobs['data'].shape))
@@ -187,14 +197,19 @@ def im_detect(net, im, boxes, num_classes, num_subclasses):
         scores_subcls = scores
 
     rois = net.blobs['rois'].data
+    inds = rois[:,0]
+    boxes = rois[:,1:]
     if cfg.TEST.BBOX_REG:
         # Apply bounding-box regression deltas
         box_deltas = blobs_out['bbox_pred']
-        pred_boxes = _bbox_pred(rois, box_deltas)
+        pred_boxes = _bbox_pred(boxes, box_deltas)
+        pred_boxes = _rescale_boxes(pred_boxes, inds, im_scale_factors)
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
     else:
         # Simply repeat the boxes, once for each class
-        pred_boxes = np.tile(rois, (1, scores.shape[1]))
+        pred_boxes = np.tile(boxes, (1, scores.shape[1]))
+        pred_boxes = _rescale_boxes(pred_boxes, inds, im_scale_factors)
+        pred_boxes = _clip_boxes(pred_boxes, im.shape)
 
     return scores, pred_boxes, scores_subcls
 
@@ -276,7 +291,6 @@ def test_net(net, imdb):
     # timers
     _t = {'im_detect' : Timer(), 'misc' : Timer()}
 
-    roidb = imdb.roidb
     for i in xrange(num_images):
         im = cv2.imread(imdb.image_path_at(i))
         _t['im_detect'].tic()
@@ -286,7 +300,7 @@ def test_net(net, imdb):
         _t['misc'].tic()
         count = 0
         for j in xrange(1, imdb.num_classes):
-            inds = np.where((scores[:, j] > thresh[j]) & (roidb[i]['gt_classes'] == 0))[0]
+            inds = np.where(scores[:, j] > thresh[j])[0]
             cls_scores = scores[inds, j]
             subcls_scores = scores_subcls[inds, 1:]
             cls_boxes = boxes[inds, j*4:(j+1)*4]
