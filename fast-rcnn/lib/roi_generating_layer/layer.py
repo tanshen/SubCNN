@@ -130,6 +130,7 @@ class RoIGeneratingLayer(caffe.Layer):
                 scores = heatmap[batch_id, :, 0:heatmap_size[image_id,0], 0:heatmap_size[image_id,1]]
                 max_scores = np.reshape(scores[1:].max(axis = 0), (1,-1))
                 max_scores = np.tile(max_scores, len(cfg.TRAIN.ASPECTS)).transpose()
+                assert (max_scores.shape[0] == boxes.shape[0])
 
                 # collect positives
                 fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]

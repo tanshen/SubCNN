@@ -38,8 +38,6 @@ __C.TRAIN = edict()
 __C.TRAIN.SCALES = (2,)
 
 # parameters for ROI generating
-__C.TRAIN.IMAGE_WIDTH = 400
-__C.TRAIN.IMAGE_HEIGHT = 300
 __C.TRAIN.SPATIAL_SCALE = 0.0625
 __C.TRAIN.KERNEL_SIZE = 5
 # Aspect ratio to use during training
@@ -117,7 +115,7 @@ __C.TEST.BBOX_REG = True
 __C.TEST.SUBCLS = True
 
 # Threshold of ROIs in testing
-__C.TEST.ROI_THRESHOLD = 10
+__C.TEST.ROI_THRESHOLD = 0.5
 
 #
 # MISC

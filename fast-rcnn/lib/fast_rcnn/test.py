@@ -61,8 +61,13 @@ def _get_boxes_grid(image_height, image_width):
     """
 
     # height and width of the heatmap
-    height = np.floor(image_height * max(cfg.TRAIN.SCALES) * cfg.TRAIN.SPATIAL_SCALE) + 2
-    width = np.floor(image_width * max(cfg.TRAIN.SCALES) * cfg.TRAIN.SPATIAL_SCALE) + 2
+    height = np.round((image_height * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
+    height = np.floor((height - 1) / 2 + 1 + 0.5)
+    height = np.floor((height - 1) / 2 + 1 + 0.5)
+
+    width = np.round((image_width * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
+    width = np.floor((width - 1) / 2.0 + 1 + 0.5)
+    width = np.floor((width - 1) / 2.0 + 1 + 0.5)
 
     # construct the grid boxes
     h = np.arange(height)

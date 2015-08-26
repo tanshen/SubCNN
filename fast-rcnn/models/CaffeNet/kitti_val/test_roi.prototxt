@@ -208,10 +208,18 @@ layer {
   }
 }
 layer {
+  name: "conv_sub_prob"
+  type: "Softmax"
+  bottom: "conv_sub"
+  top: "conv_sub_prob"
+}
+layer {
   name: 'roi'
   type: 'Python'
-  bottom: 'conv_sub'
+  bottom: 'conv_sub_prob'
   bottom: 'boxes_grid'
+  bottom: 'conv5'
+  bottom: 'data'
   top: 'rois'
   python_param {
     module: 'roi_testing_layer.layer'

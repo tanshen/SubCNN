@@ -15,7 +15,7 @@ from utils.cython_bbox import bbox_overlaps
 import numpy as np
 import yaml
 from multiprocessing import Process, Queue
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 class RoITestingLayer(caffe.Layer):
     """Fast R-CNN layer used for testing."""
@@ -44,47 +44,43 @@ class RoITestingLayer(caffe.Layer):
         heatmap = bottom[0].data
         # boxes on the grid
         boxes = bottom[1].data
+        # features
+        conv5 = bottom[2].data
 
         # build the region of interest
         rois_blob = np.zeros((0, 5), dtype=np.float32)
 
         # for each scale of the image
-        for im in xrange(heatmap.shape[0]):
+        for i in xrange(heatmap.shape[0]):
 
-            scores = heatmap[im]
+            scores = heatmap[i]
             max_scores = np.reshape(scores[1:].max(axis = 0), (1,-1))
             max_scores = np.tile(max_scores, len(cfg.TRAIN.ASPECTS)).transpose()
+            assert (max_scores.shape[0] == boxes.shape[0])
 
             # collect boxes with score larger than threshold
             fg_inds = np.where(max_scores > cfg.TEST.ROI_THRESHOLD)[0]
-            batch_ind = im * np.ones((fg_inds.shape[0], 1))
+            batch_ind = i * np.ones((fg_inds.shape[0], 1))
             rois_blob = np.vstack((rois_blob, np.hstack((batch_ind, boxes[fg_inds,:]))))
 
-            """ debuging
+            #""" debuging
             # show image
-            im = im_blob[batch_id, :, :, :].transpose((1, 2, 0)).copy()
+            im_blob = bottom[3].data
+            im = im_blob[i, :, :, :].transpose((1, 2, 0)).copy()
             im += cfg.PIXEL_MEANS
             im = im[:, :, (2, 1, 0)]
             im = im.astype(np.uint8)
             plt.imshow(im)
 
             # draw boxes
-            for j in xrange(len(index_batch)):
-                roi = gt_boxes[index_batch[j],:]
-                plt.gca().add_patch(
-                    plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
-                                   roi[3] - roi[1], fill=False,
-                                   edgecolor='r', linewidth=3))
-
-            inds = np.where(max_overlaps > 0.7)[0]
-            for j in xrange(len(inds)):
-                roi = boxes[inds[j],:]
+            for j in xrange(len(fg_inds)):
+                roi = boxes[fg_inds[j],:]
                 plt.gca().add_patch(
                     plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
                                    roi[3] - roi[1], fill=False,
                                    edgecolor='g', linewidth=3))
             plt.show()
-            """   
+            #"""   
 
         # copy blobs into this layer's top blob vector
         blobs = {'rois': rois_blob}
