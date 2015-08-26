@@ -18,6 +18,7 @@ import cPickle
 import heapq
 from utils.blob import im_list_to_blob
 import os
+import math
 
 def _get_image_blob(im):
     """Converts an image into a network input.
@@ -53,6 +54,37 @@ def _get_image_blob(im):
     blob = im_list_to_blob(processed_ims)
 
     return blob, np.array(im_scale_factors)
+
+def _get_boxes_grid(image_height, image_width):
+    """
+    Return the boxes on image grid.
+    """
+
+    # height and width of the heatmap
+    height = np.floor(image_height * max(cfg.TRAIN.SCALES) * cfg.TRAIN.SPATIAL_SCALE) + 2
+    width = np.floor(image_width * max(cfg.TRAIN.SCALES) * cfg.TRAIN.SPATIAL_SCALE) + 2
+
+    # construct the grid boxes
+    h = np.arange(height)
+    w = np.arange(width)
+    y, x = np.meshgrid(h, w, indexing='ij') 
+    tmp = np.dstack((x, y))
+    tmp = np.reshape(tmp, (-1, 2))
+    num = tmp.shape[0]
+
+    area = cfg.TRAIN.KERNEL_SIZE * cfg.TRAIN.KERNEL_SIZE
+    aspect = cfg.TRAIN.ASPECTS  # height / width
+    boxes_grid = np.zeros((0, 4), dtype=np.float32)
+    for i in xrange(len(aspect)):
+        w = math.sqrt(area / aspect[i])
+        h = w * aspect[i]
+        x1 = np.reshape(tmp[:,0], (num,1)) - w * np.ones((num,1)) / 2
+        x2 = np.reshape(tmp[:,0], (num,1)) + w * np.ones((num,1)) / 2
+        y1 = np.reshape(tmp[:,1], (num,1)) - h * np.ones((num,1)) / 2
+        y2 = np.reshape(tmp[:,1], (num,1)) + h * np.ones((num,1)) / 2
+        boxes_grid = np.vstack((boxes_grid, np.hstack((x1, y1, x2, y2)) / cfg.TRAIN.SPATIAL_SCALE))
+
+    return boxes_grid
 
 def _get_rois_blob(im_rois, im_scale_factors):
     """Converts RoIs into network inputs.
@@ -293,8 +325,10 @@ def test_net(net, imdb):
 
     for i in xrange(num_images):
         im = cv2.imread(imdb.image_path_at(i))
+        boxes_grid = _get_boxes_grid(im.shape[0], im.shape[1])
+
         _t['im_detect'].tic()
-        scores, boxes, scores_subcls = im_detect(net, im, imdb.boxes_grid, imdb.num_classes, imdb.num_subclasses)
+        scores, boxes, scores_subcls = im_detect(net, im, boxes_grid, imdb.num_classes, imdb.num_subclasses)
         _t['im_detect'].toc()
 
         _t['misc'].tic()
@@ -319,7 +353,7 @@ def test_net(net, imdb):
                     heapq.heappop(top_scores[j])
                 thresh[j] = top_scores[j][0]
 
-            sub_classes = subcls_scores.argmax(axis=1)
+            sub_classes = np.reshape(subcls_scores.argmax(axis=1), -1)
 
             all_boxes[j][i] = \
                     np.hstack((cls_boxes, cls_scores[:, np.newaxis], sub_classes[:, np.newaxis])) \

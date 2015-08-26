@@ -10,6 +10,7 @@ layer {
   top: 'gt_sublabels'
   top: 'gt_overlaps'
   top: 'boxes_grid'
+  top: 'heatmap_size'
   python_param {
     module: 'gt_data_layer.layer'
     layer: 'GtDataLayer'
@@ -223,6 +224,7 @@ layer {
   bottom: 'gt_sublabels'
   bottom: 'gt_overlaps'
   bottom: 'boxes_grid'
+  bottom: 'heatmap_size'
   top: 'rois'
   top: 'labels'
   top: 'bbox_targets'

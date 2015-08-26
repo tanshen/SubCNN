@@ -45,7 +45,7 @@ def prepare_roidb(imdb):
         assert all(max_classes[nonzero_inds] != 0)
         assert all(max_subclasses[nonzero_inds] != 0)
 
-def add_bbox_regression_targets(roidb, boxes_grid):
+def add_bbox_regression_targets(roidb):
     """Add information needed to train bounding-box regressors."""
     assert len(roidb) > 0
     assert 'max_classes' in roidb[0], 'Did you call prepare_roidb first?'
@@ -56,6 +56,7 @@ def add_bbox_regression_targets(roidb, boxes_grid):
 
     for im_i in xrange(num_images):
         boxes_all = roidb[im_i]['boxes_all']
+        boxes_grid = roidb[im_i]['boxes_grid']
         gt_overlaps_grid = roidb[im_i]['gt_overlaps_grid'].toarray()
         gt_classes = roidb[im_i]['gt_classes']
         gt_classes_all = np.tile(gt_classes, len(cfg.TRAIN.SCALES))

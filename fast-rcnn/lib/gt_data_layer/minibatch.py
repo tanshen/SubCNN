@@ -13,13 +13,16 @@ import cv2
 from fast_rcnn.config import cfg
 from utils.blob import prep_im_for_blob, im_list_to_blob
 
-def get_minibatch(roidb, boxes_grid, num_classes):
+def get_minibatch(roidb, num_classes):
     """Given a roidb, construct a minibatch sampled from it."""
     num_images = len(roidb)
-    num_boxes = boxes_grid.shape[0]
     assert(cfg.TRAIN.BATCH_SIZE % num_images == 0), \
         'num_images ({}) must divide BATCH_SIZE ({})'. \
         format(num_images, cfg.TRAIN.BATCH_SIZE)
+
+    num_boxes = 0
+    for i in xrange(num_images):
+        num_boxes = max(roidb[i]['boxes_grid'].shape[0], num_boxes)
 
     # Get the input image blob, formatted for caffe
     im_blob, im_scales, im_indexes = _get_image_blob(roidb)
@@ -28,9 +31,12 @@ def get_minibatch(roidb, boxes_grid, num_classes):
     rois_blob = np.zeros((0, 6), dtype=np.float32)
     labels_blob = np.zeros((0), dtype=np.float32)
     sublabels_blob = np.zeros((0), dtype=np.float32)
+
     overlaps_blob = np.zeros((num_boxes,0), dtype=np.float32)
     bbox_targets_blob = np.zeros((0, 4 * num_classes), dtype=np.float32)
     bbox_loss_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
+    boxes_grid_blob = np.zeros((0, 5), dtype=np.float32)
+    heatmap_size_blob = np.zeros((0, 2), dtype=np.float32)
 
     for i in xrange(len(im_indexes)):
 
@@ -51,7 +57,22 @@ def get_minibatch(roidb, boxes_grid, num_classes):
         sublabels_blob = np.hstack((sublabels_blob, sublabels))
 
     for i in xrange(num_images):
+        boxes_grid = roidb[i]['boxes_grid']
+        image_ind = i * np.ones((boxes_grid.shape[0], 1))
+        boxes_grid_blob = np.vstack((boxes_grid_blob, np.hstack((image_ind, boxes_grid))))
+
+        # heatmap size
+        heatmap_size = np.zeros((1, 2), dtype=np.float32)
+        heatmap_size[0,0] = roidb[i]['heatmap_height']
+        heatmap_size[0,1] = roidb[i]['heatmap_width']
+        heatmap_size_blob = np.vstack((heatmap_size_blob, heatmap_size))
+
         overlaps = roidb[i]['gt_overlaps_grid'].toarray()
+        # pad overlaps
+        if overlaps.shape[0] < num_boxes:
+            overlaps_pad = np.zeros((num_boxes, overlaps.shape[1]), dtype=np.float32)
+            overlaps_pad[0:overlaps.shape[0], 0:overlaps.shape[1]] = overlaps
+            overlaps = overlaps_pad
         overlaps_blob = np.hstack((overlaps_blob, overlaps))
 
         bbox_targets, bbox_loss_weights = _get_bbox_regression_labels(roidb[i]['bbox_targets'].toarray(), num_classes)
@@ -73,7 +94,8 @@ def get_minibatch(roidb, boxes_grid, num_classes):
         blobs['gt_sublabels'] = sublabels_blob
 
     blobs['gt_overlaps'] = overlaps_blob
-    blobs['boxes_grid'] = boxes_grid
+    blobs['boxes_grid'] = boxes_grid_blob
+    blobs['heatmap_size'] = heatmap_size_blob
 
     return blobs
 

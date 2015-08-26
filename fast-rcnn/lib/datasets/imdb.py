@@ -28,7 +28,6 @@ class imdb(object):
         self._roidb_handler = self.default_roidb
         # Use this dict for storing dataset specific config options
         self.config = {}
-        self._boxes_grid = []
 
     @property
     def name(self):
@@ -49,10 +48,6 @@ class imdb(object):
     @property
     def image_index(self):
         return self._image_index
-
-    @property
-    def boxes_grid(self):
-        return self._boxes_grid
 
     @property
     def roidb_handler(self):
@@ -123,12 +118,17 @@ class imdb(object):
             for scale in cfg.TRAIN.SCALES:
                 boxes_all = np.vstack((boxes_all, boxes * scale))
 
+            boxes_grid = self.roidb[i]['boxes_grid']
+
             # compute overlap
-            overlaps_grid = bbox_overlaps(self._boxes_grid.astype(np.float), boxes_all.astype(np.float))
+            overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
             overlaps_grid = scipy.sparse.csr_matrix(overlaps_grid)
 
             entry = {'boxes' : boxes,
                      'boxes_all' : boxes_all,
+                     'boxes_grid' : boxes_grid,
+                     'heatmap_height' : self.roidb[i]['heatmap_height'],
+                     'heatmap_width' : self.roidb[i]['heatmap_width'],
                      'gt_overlaps' : self.roidb[i]['gt_overlaps'],
                      'gt_overlaps_grid' : overlaps_grid,
                      'gt_classes' : self.roidb[i]['gt_classes'],

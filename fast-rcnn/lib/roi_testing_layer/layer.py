@@ -88,6 +88,7 @@ class RoITestingLayer(caffe.Layer):
 
         # copy blobs into this layer's top blob vector
         blobs = {'rois': rois_blob}
+        print rois_blob.shape
 
         for blob_name, blob in blobs.iteritems():
             top_ind = self._name_to_top_map[blob_name]

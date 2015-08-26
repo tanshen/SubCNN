@@ -75,7 +75,9 @@ class RoIGeneratingLayer(caffe.Layer):
         # overlaps
         gt_overlaps = bottom[6].data
         # boxes on the grid
-        boxes = bottom[7].data
+        boxes_grid = bottom[7].data
+        # heatmap size
+        heatmap_size = bottom[8].data
 
         # number of ROIs
         image_ids = np.unique(gts[:,1])
@@ -91,6 +93,7 @@ class RoIGeneratingLayer(caffe.Layer):
         bbox_loss_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
 
         # for each image
+        inds_target = 0
         for im in xrange(num_image):
             image_id = image_ids[im]
 
@@ -103,6 +106,10 @@ class RoIGeneratingLayer(caffe.Layer):
             max_gt_overlaps = np.zeros((num_objs, 1), dtype=np.float32)
             # print 'image {:d}, {:d} objects'.format(int(image_id), int(num_objs))
 
+            # boxes grid of this image
+            index_grid = np.where(boxes_grid[:,0] == image_id)[0]
+            boxes = boxes_grid[index_grid, 1:]
+
             # for each batch (one scale of an image)
             boxes_fg = np.zeros((0, 7), dtype=np.float32)
             boxes_bg = np.zeros((0, 7), dtype=np.float32)
@@ -112,41 +119,15 @@ class RoIGeneratingLayer(caffe.Layer):
 
                 # compute max overlap
                 index_batch = np.where(gts[:,0] == batch_id)[0]
-                overlaps = gt_overlaps[:,index_batch]
+                overlaps = gt_overlaps[:boxes.shape[0], index_batch]
                 max_overlaps = overlaps.max(axis = 1)
                 argmax_overlaps = overlaps.argmax(axis = 1)
-
-                """ debuging
-                # show image
-                im = im_blob[batch_id, :, :, :].transpose((1, 2, 0)).copy()
-                im += cfg.PIXEL_MEANS
-                im = im[:, :, (2, 1, 0)]
-                im = im.astype(np.uint8)
-                plt.imshow(im)
-
-                # draw boxes
-                for j in xrange(len(index_batch)):
-                    roi = gt_boxes[index_batch[j],:]
-                    plt.gca().add_patch(
-                        plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
-                                       roi[3] - roi[1], fill=False,
-                                       edgecolor='r', linewidth=3))
-
-                inds = np.where(max_overlaps > 0.7)[0]
-                for j in xrange(len(inds)):
-                    roi = boxes[inds[j],:]
-                    plt.gca().add_patch(
-                        plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
-                                       roi[3] - roi[1], fill=False,
-                                       edgecolor='g', linewidth=3))
-                plt.show()
-                """
 
                 tmp = np.reshape(overlaps.max(axis = 0), (-1, 1))
                 max_gt_overlaps = np.reshape(np.hstack((max_gt_overlaps, tmp)).max(axis = 1), (num_objs,1))
             
                 # extract max scores
-                scores = heatmap[batch_id]
+                scores = heatmap[batch_id, :, 0:heatmap_size[image_id,0], 0:heatmap_size[image_id,1]]
                 max_scores = np.reshape(scores[1:].max(axis = 0), (1,-1))
                 max_scores = np.tile(max_scores, len(cfg.TRAIN.ASPECTS)).transpose()
 
@@ -164,6 +145,32 @@ class RoIGeneratingLayer(caffe.Layer):
                 inds = np.reshape(bg_inds, (bg_inds.shape[0], 1))
                 batch_ind = batch_id * np.ones((bg_inds.shape[0], 1))
                 boxes_bg = np.vstack((boxes_bg, np.hstack((batch_ind, boxes[bg_inds,:], max_scores[bg_inds], inds))))
+
+                """ debuging
+                # show image
+                im_blob = bottom[9].data
+                im = im_blob[batch_id, :, :, :].transpose((1, 2, 0)).copy()
+                im += cfg.PIXEL_MEANS
+                im = im[:, :, (2, 1, 0)]
+                im = im.astype(np.uint8)
+                plt.imshow(im)
+
+                # draw boxes
+                for j in xrange(len(index_batch)):
+                    roi = gts[index_batch[j],2:]
+                    plt.gca().add_patch(
+                        plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
+                                       roi[3] - roi[1], fill=False,
+                                       edgecolor='r', linewidth=3))
+
+                for j in xrange(len(fg_inds)):
+                    roi = boxes[fg_inds[j],:]
+                    plt.gca().add_patch(
+                        plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
+                                       roi[3] - roi[1], fill=False,
+                                       edgecolor='g', linewidth=3))
+                plt.show()
+                #"""
 
             # print max_gt_overlaps, boxes_fg.shape[0]
 
@@ -197,14 +204,14 @@ class RoIGeneratingLayer(caffe.Layer):
             sublabels = np.zeros((length), dtype=np.float32)
             sublabels[0:fg_rois_per_this_image] = gt_sublabels[gt_inds_fg]
 
-            inds = image_id * boxes.shape[0] + np.hstack((boxes_fg[:,6], boxes_bg[:,6]))
+            inds = inds_target + np.hstack((boxes_fg[:,6], boxes_bg[:,6]))
             inds = inds.astype(int)
             bbox_targets = gt_bbox_targets[inds, :]
             bbox_loss = gt_bbox_loss_weights[inds, :]
+            inds_target += boxes.shape[0]
 
             # Add to RoIs blob
             rois_blob = np.vstack((rois_blob, rois))
-
             # Add to labels, bbox targets, and bbox loss blobs
             labels_blob = np.hstack((labels_blob, labels))
             sublabels_blob = np.hstack((sublabels_blob, sublabels))

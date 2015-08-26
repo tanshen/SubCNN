@@ -3,6 +3,7 @@ __author__ = 'yuxiang' # derived from honda.py by fyang
 import datasets
 import datasets.kitti
 import os
+import PIL
 import datasets.imdb
 import numpy as np
 import scipy.sparse
@@ -34,9 +35,6 @@ class kitti(datasets.imdb):
             self._num_subclasses = 227 + 1
 
         self.config = {'top_k': 100000}
-
-        # boxes on grid
-        self._boxes_grid = self._get_boxes_grid()
 
         # statistics for computing recall
         self._num_boxes_all = 0
@@ -86,14 +84,14 @@ class kitti(datasets.imdb):
         """
         return os.path.join(datasets.ROOT_DIR, 'data', 'KITTI')
 
-    def _get_boxes_grid(self):
+    def _get_boxes_grid(self, image_height, image_width):
         """
         Return the boxes on image grid.
         """
 
         # height and width of the heatmap
-        height = np.round(cfg.TRAIN.IMAGE_HEIGHT * max(cfg.TRAIN.SCALES) * cfg.TRAIN.SPATIAL_SCALE)
-        width = np.round(cfg.TRAIN.IMAGE_WIDTH * max(cfg.TRAIN.SCALES) * cfg.TRAIN.SPATIAL_SCALE)
+        height = np.floor(image_height * max(cfg.TRAIN.SCALES) * cfg.TRAIN.SPATIAL_SCALE) + 2
+        width = np.floor(image_width * max(cfg.TRAIN.SCALES) * cfg.TRAIN.SPATIAL_SCALE) + 2
 
         # construct the grid boxes
         h = np.arange(height)
@@ -115,7 +113,7 @@ class kitti(datasets.imdb):
             y2 = np.reshape(tmp[:,1], (num,1)) + h * np.ones((num,1)) / 2
             boxes_grid = np.vstack((boxes_grid, np.hstack((x1, y1, x2, y2)) / cfg.TRAIN.SPATIAL_SCALE))
 
-        return boxes_grid
+        return boxes_grid, height, width
 
 
     def gt_roidb(self):
@@ -193,8 +191,14 @@ class kitti(datasets.imdb):
         for scale in cfg.TRAIN.SCALES:
             boxes_all = np.vstack((boxes_all, boxes * scale))
 
+        # compute grid boxes
+        s = PIL.Image.open(self.image_path_from_index(index)).size
+        image_height = s[1]
+        image_width = s[0]
+        boxes_grid, heatmap_height, heatmap_width = self._get_boxes_grid(image_height, image_width)
+
         # compute overlap
-        overlaps_grid = bbox_overlaps(self._boxes_grid.astype(np.float), boxes_all.astype(np.float))
+        overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
 
         # check how many gt boxes are covered by grids
         if num_objs != 0:
@@ -208,6 +212,9 @@ class kitti(datasets.imdb):
 
         return {'boxes' : boxes,
                 'boxes_all' : boxes_all,
+                'boxes_grid' : boxes_grid,
+                'heatmap_height' : heatmap_height,
+                'heatmap_width' : heatmap_width,
                 'gt_classes': gt_classes,
                 'gt_subclasses': gt_subclasses,
                 'gt_subclasses_flipped': gt_subclasses_flipped,
@@ -283,21 +290,30 @@ class kitti(datasets.imdb):
         for scale in cfg.TRAIN.SCALES:
             boxes_all = np.vstack((boxes_all, boxes * scale))
 
+        # compute grid boxes
+        s = PIL.Image.open(self.image_path_from_index(index)).size
+        image_height = s[1]
+        image_width = s[0]
+        boxes_grid, heatmap_height, heatmap_width = self._get_boxes_grid(image_height, image_width)
+
         # compute overlap
-        overlaps_grid = bbox_overlaps(self._boxes_grid.astype(np.float), boxes_all.astype(np.float))
+        overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
         
         # check how many gt boxes are covered by grids
         if num_objs != 0:
-            index = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
+            ind = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
             max_overlaps = overlaps_grid.max(axis = 0)
             fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
             self._num_boxes_all += num_objs
-            self._num_boxes_covered += len(np.unique(index[fg_inds]))
+            self._num_boxes_covered += len(np.unique(ind[fg_inds]))
 
         overlaps_grid = scipy.sparse.csr_matrix(overlaps_grid)
 
         return {'boxes' : boxes,
                 'boxes_all' : boxes_all,
+                'boxes_grid' : boxes_grid,
+                'heatmap_height' : heatmap_height,
+                'heatmap_width' : heatmap_width,
                 'gt_classes': gt_classes,
                 'gt_subclasses': gt_subclasses,
                 'gt_subclasses_flipped': gt_subclasses_flipped,
