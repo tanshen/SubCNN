@@ -174,6 +174,7 @@ class RoIGeneratingLayer(caffe.Layer):
                 #"""
 
             # print max_gt_overlaps, boxes_fg.shape[0]
+            # print boxes_fg.shape[0]
 
             # find hard positives
             # sort scores and indexes

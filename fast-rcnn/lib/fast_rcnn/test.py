@@ -19,6 +19,7 @@ import heapq
 from utils.blob import im_list_to_blob
 import os
 import math
+import matplotlib.pyplot as plt
 
 def _get_image_blob(im):
     """Converts an image into a network input.
@@ -247,6 +248,19 @@ def im_detect(net, im, boxes_grid, num_classes, num_subclasses):
         pred_boxes = np.tile(boxes, (1, scores.shape[1]))
         pred_boxes = _rescale_boxes(pred_boxes, inds, im_scale_factors)
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
+
+      
+    # draw boxes
+    if 0:
+        print scores, pred_boxes.shape
+        plt.imshow(im)
+        for j in xrange(pred_boxes.shape[0]):
+            roi = pred_boxes[j,4:]
+            plt.gca().add_patch(
+            plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
+                           roi[3] - roi[1], fill=False,
+                           edgecolor='g', linewidth=3))
+        plt.show()
 
     return scores, pred_boxes, scores_subcls
 

@@ -44,11 +44,11 @@ class RoITestingLayer(caffe.Layer):
         heatmap = bottom[0].data
         # boxes on the grid
         boxes = bottom[1].data
-        # features
-        conv5 = bottom[2].data
 
         # build the region of interest
         rois_blob = np.zeros((0, 5), dtype=np.float32)
+        roi_max = np.zeros((1, 5), dtype=np.float32)
+        roi_score = 0
 
         # for each scale of the image
         for i in xrange(heatmap.shape[0]):
@@ -58,14 +58,22 @@ class RoITestingLayer(caffe.Layer):
             max_scores = np.tile(max_scores, len(cfg.TRAIN.ASPECTS)).transpose()
             assert (max_scores.shape[0] == boxes.shape[0])
 
+            if np.max(max_scores) > roi_score:
+                roi_score = np.max(max_scores)
+                ind = np.argmax(max_scores)
+                roi_max[0,0] = i
+                roi_max[0,1:] = boxes[ind,:]
+                print roi_score, roi_max
+
             # collect boxes with score larger than threshold
             fg_inds = np.where(max_scores > cfg.TEST.ROI_THRESHOLD)[0]
             batch_ind = i * np.ones((fg_inds.shape[0], 1))
             rois_blob = np.vstack((rois_blob, np.hstack((batch_ind, boxes[fg_inds,:]))))
 
-            #""" debuging
+            """ debuging
+            print boxes.shape, heatmap.shape, max(max_scores), fg_inds.shape, fg_inds
             # show image
-            im_blob = bottom[3].data
+            im_blob = bottom[2].data
             im = im_blob[i, :, :, :].transpose((1, 2, 0)).copy()
             im += cfg.PIXEL_MEANS
             im = im[:, :, (2, 1, 0)]
@@ -80,7 +88,11 @@ class RoITestingLayer(caffe.Layer):
                                    roi[3] - roi[1], fill=False,
                                    edgecolor='g', linewidth=3))
             plt.show()
-            #"""   
+            #"""
+
+        # prevent empty roi
+        if rois_blob.shape[0] == 0:
+            rois_blob = roi_max
 
         # copy blobs into this layer's top blob vector
         blobs = {'rois': rois_blob}
