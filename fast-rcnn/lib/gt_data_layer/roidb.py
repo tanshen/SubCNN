@@ -60,8 +60,9 @@ def add_bbox_regression_targets(roidb):
         gt_overlaps_grid = roidb[im_i]['gt_overlaps_grid'].toarray()
         gt_classes = roidb[im_i]['gt_classes']
         gt_classes_all = np.tile(gt_classes, len(cfg.TRAIN.SCALES))
+        scales_all = np.repeat(cfg.TRAIN.SCALES, len(gt_classes))
         roidb[im_i]['bbox_targets'] = \
-                _compute_targets(boxes_grid, boxes_all, gt_overlaps_grid, gt_classes_all)
+                _compute_targets(boxes_grid, boxes_all, gt_overlaps_grid, gt_classes_all, scales_all)
 
     # Compute values needed for means and stds
     # var(x) = E(x^2) - E(x)^2
@@ -96,7 +97,7 @@ def add_bbox_regression_targets(roidb):
     # (the predicts will need to be unnormalized and uncentered)
     return means.ravel(), stds.ravel()
 
-def _compute_targets(boxes_grid, boxes_all, gt_overlaps_grid, gt_classes_all):
+def _compute_targets(boxes_grid, boxes_all, gt_overlaps_grid, gt_classes_all, scales_all):
     """Compute bounding-box regression targets for an image."""
     if gt_overlaps_grid.shape[1] == 0:
         return np.zeros((boxes_grid.shape[0], 5), dtype=np.float32)
@@ -110,6 +111,12 @@ def _compute_targets(boxes_grid, boxes_all, gt_overlaps_grid, gt_classes_all):
 
     gt_rois = boxes_all[gt_inds, :]
     ex_rois = boxes_grid[ex_inds, :]
+
+    # rescale gt and ex to the original size
+    scales = scales_all[gt_inds]
+    for i in xrange(len(scales)):
+        gt_rois[i,:] = gt_rois[i,:] / scales[i]
+        ex_rois[i,:] = ex_rois[i,:] / scales[i]
 
     ex_widths = ex_rois[:, 2] - ex_rois[:, 0] + cfg.EPS
     ex_heights = ex_rois[:, 3] - ex_rois[:, 1] + cfg.EPS

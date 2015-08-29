@@ -264,24 +264,24 @@ def im_detect(net, im, boxes_grid, num_classes, num_subclasses):
 
     return scores, pred_boxes, scores_subcls
 
-def vis_detections(im, class_name, dets, thresh=0.3):
+def vis_detections(im, class_name, dets, thresh=0.1):
     """Visual debugging of detections."""
     import matplotlib.pyplot as plt
     im = im[:, :, (2, 1, 0)]
+    plt.cla()
+    plt.imshow(im)
     for i in xrange(np.minimum(10, dets.shape[0])):
         bbox = dets[i, :4]
-        score = dets[i, -1]
+        score = dets[i, -2]
         if score > thresh:
-            plt.cla()
-            plt.imshow(im)
             plt.gca().add_patch(
                 plt.Rectangle((bbox[0], bbox[1]),
                               bbox[2] - bbox[0],
                               bbox[3] - bbox[1], fill=False,
                               edgecolor='g', linewidth=3)
                 )
-            plt.title('{}  {:.3f}'.format(class_name, score))
-            plt.show()
+            # plt.title('{}  {:.3f}'.format(class_name, score))
+    plt.show()
 
 def apply_nms(all_boxes, thresh):
     """Apply non-maximum suppression to all predicted boxes output by the
@@ -379,7 +379,7 @@ def test_net(net, imdb):
                     .astype(np.float32, copy=False)
             count = count + len(cls_scores)
 
-            if 0:
+            if 1:
                 keep = nms(all_boxes[j][i], cfg.TEST.NMS)
                 vis_detections(im, imdb.classes[j], all_boxes[j][i][keep, :])
         _t['misc'].toc()
