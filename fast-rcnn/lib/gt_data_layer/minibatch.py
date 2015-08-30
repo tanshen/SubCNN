@@ -122,10 +122,6 @@ def _get_image_blob(roidb):
         im_size_max = np.max(im_shape[0:2])
 
         for im_scale in cfg.TRAIN.SCALES:
-            # Prevent the biggest axis from being more than MAX_SIZE
-            if np.round(im_scale * im_size_max) > cfg.TRAIN.MAX_SIZE:
-                im_scale = float(cfg.TRAIN.MAX_SIZE) / float(im_size_max)
-
             im = cv2.resize(im_orig, None, None, fx=im_scale, fy=im_scale,
                         interpolation=cv2.INTER_LINEAR)
 

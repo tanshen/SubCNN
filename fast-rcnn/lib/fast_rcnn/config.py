@@ -35,7 +35,7 @@ __C.TRAIN = edict()
 
 # Scales to use during training (can list multiple scales)
 # Each scale is the pixel size of an image's shortest side
-__C.TRAIN.SCALES = (2,)
+__C.TRAIN.SCALES = (0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0)
 
 # parameters for ROI generating
 __C.TRAIN.SPATIAL_SCALE = 0.0625
@@ -156,6 +156,18 @@ def get_output_dir(imdb, net):
     else:
         return osp.join(path, net.name)
 
+# map the scales to scales for RoI pooling of classification
+def add_scale_mapping():
+    scales = __C.TRAIN.SCALES
+    num = len(scales)
+
+    kernel_size = __C.TRAIN.KERNEL_SIZE / __C.TRAIN.SPATIAL_SCALE
+    area = kernel_size * kernel_size
+    areas = np.repeat(area, num) / (scales ** 2)
+    print areas
+
+
+
 def _merge_a_into_b(a, b):
     """Merge config dictionary a into config dictionary b, clobbering the
     options in b whenever they are also specified in a.
@@ -191,3 +203,4 @@ def cfg_from_file(filename):
         yaml_cfg = edict(yaml.load(f))
 
     _merge_a_into_b(yaml_cfg, __C)
+    add_scale_mapping()
