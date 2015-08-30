@@ -32,33 +32,35 @@ class RoIGeneratingLayer(caffe.Layer):
 
         self._name_to_top_map = {
             'rois': 0,
-            'labels': 1}
+            'rois_sub': 1,
+            'labels': 2}
 
         # rois blob: holds R regions of interest, each is a 5-tuple
         # (n, x1, y1, x2, y2) specifying an image batch index n and a
         # rectangle (x1, y1, x2, y2)
         top[0].reshape(1, 5)
+        top[1].reshape(1, 5)
 
         # labels blob: R categorical labels in [0, ..., K] for K foreground
         # classes plus background
-        top[1].reshape(1)
+        top[2].reshape(1)
 
         if cfg.TRAIN.BBOX_REG:
-            self._name_to_top_map['bbox_targets'] = 2
-            self._name_to_top_map['bbox_loss_weights'] = 3
+            self._name_to_top_map['bbox_targets'] = 3
+            self._name_to_top_map['bbox_loss_weights'] = 4
 
             # bbox_targets blob: R bounding-box regression targets with 4
             # targets per class
-            top[2].reshape(1, self._num_classes * 4)
+            top[3].reshape(1, self._num_classes * 4)
 
             # bbox_loss_weights blob: At most 4 targets per roi are active;
             # thisbinary vector sepcifies the subset of active targets
-            top[3].reshape(1, self._num_classes * 4)
+            top[4].reshape(1, self._num_classes * 4)
 
         # add subclass labels
         if cfg.TRAIN.SUBCLS:
-            self._name_to_top_map['sublabels'] = 4
-            top[4].reshape(1)
+            self._name_to_top_map['sublabels'] = 5
+            top[5].reshape(1)
 
     def forward(self, bottom, top):
         # parse input
@@ -87,6 +89,7 @@ class RoIGeneratingLayer(caffe.Layer):
 
         # build the region of interest and label blobs
         rois_blob = np.zeros((0, 5), dtype=np.float32)
+        rois_sub_blob = np.zeros((0, 5), dtype=np.float32)
         labels_blob = np.zeros((0), dtype=np.float32)
         sublabels_blob = np.zeros((0), dtype=np.float32)
         bbox_targets_blob = np.zeros((0, 4 * self._num_classes), dtype=np.float32)
@@ -111,11 +114,17 @@ class RoIGeneratingLayer(caffe.Layer):
             boxes = boxes_grid[index_grid, 1:]
 
             # for each batch (one scale of an image)
-            boxes_fg = np.zeros((0, 7), dtype=np.float32)
-            boxes_bg = np.zeros((0, 7), dtype=np.float32)
+            boxes_fg = np.zeros((0, 12), dtype=np.float32)
+            boxes_bg = np.zeros((0, 12), dtype=np.float32)
             gt_inds_fg = np.zeros((0), dtype=np.int32)
             for i in xrange(len(batch_ids)):
                 batch_id = batch_ids[i]
+
+                # scale index of this batch is i
+                scale_ind = i
+                scale = cfg.TRAIN.SCALES[scale_ind]
+                scale_map = cfg.TRAIN.SCALE_MAPPING[scale_ind]
+                batch_id_map = batch_ids[scale_map]
 
                 # compute max overlap
                 index_batch = np.where(gts[:,0] == batch_id)[0]
@@ -135,8 +144,9 @@ class RoIGeneratingLayer(caffe.Layer):
                 # collect positives
                 fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
                 batch_ind = batch_id * np.ones((fg_inds.shape[0], 1))
+                batch_ind_map = batch_id_map * np.ones((fg_inds.shape[0], 1))
                 inds = np.reshape(fg_inds, (fg_inds.shape[0], 1))
-                boxes_fg = np.vstack((boxes_fg, np.hstack((batch_ind, boxes[fg_inds,:], max_scores[fg_inds], inds))))
+                boxes_fg = np.vstack((boxes_fg, np.hstack((batch_ind, boxes[fg_inds,:], batch_ind_map, boxes[fg_inds,:]/scale, max_scores[fg_inds], inds))))
                 gt_inds_fg = np.hstack((gt_inds_fg, index_batch[argmax_overlaps[fg_inds]]))
 
                 # flags[argmax_overlaps[fg_inds]] = 1
@@ -145,7 +155,8 @@ class RoIGeneratingLayer(caffe.Layer):
                 bg_inds = np.where((max_overlaps < cfg.TRAIN.BG_THRESH_HI) & (max_overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
                 inds = np.reshape(bg_inds, (bg_inds.shape[0], 1))
                 batch_ind = batch_id * np.ones((bg_inds.shape[0], 1))
-                boxes_bg = np.vstack((boxes_bg, np.hstack((batch_ind, boxes[bg_inds,:], max_scores[bg_inds], inds))))
+                batch_ind_map = batch_id_map * np.ones((bg_inds.shape[0], 1))
+                boxes_bg = np.vstack((boxes_bg, np.hstack((batch_ind, boxes[bg_inds,:], batch_ind_map, boxes[bg_inds,:]/scale, max_scores[bg_inds], inds))))
 
                 """ debuging
                 # show image
@@ -178,7 +189,7 @@ class RoIGeneratingLayer(caffe.Layer):
 
             # find hard positives
             # sort scores and indexes
-            I = np.argsort(boxes_fg[:,5])
+            I = np.argsort(boxes_fg[:,10])
             # number of fg in the image
             fg_rois_per_this_image = int(np.minimum(fg_rois_per_image, I.size))
             I = I[0:fg_rois_per_this_image]
@@ -187,7 +198,7 @@ class RoIGeneratingLayer(caffe.Layer):
 
             # find hard negatives
             # sort scores and indexes descending
-            I = np.argsort(boxes_bg[:,5])[::-1]
+            I = np.argsort(boxes_bg[:,10])[::-1]
             # number of bg in the image
             bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
             bg_rois_per_this_image = np.minimum(bg_rois_per_this_image, I.size)
@@ -195,7 +206,8 @@ class RoIGeneratingLayer(caffe.Layer):
             boxes_bg = boxes_bg[I,:]
 
             # ROIs
-            rois = np.vstack((boxes_fg[:,:5], boxes_bg[:,:5]))
+            rois = np.vstack((boxes_fg[:,5:10], boxes_bg[:,5:10]))
+            rois_sub = np.vstack((boxes_fg[:,:5], boxes_bg[:,:5]))
 
             # compute information of the ROIs: labels, sublabels, bbox_targets, bbox_loss_weights
             length = rois.shape[0]
@@ -206,7 +218,7 @@ class RoIGeneratingLayer(caffe.Layer):
             sublabels = np.zeros((length), dtype=np.float32)
             sublabels[0:fg_rois_per_this_image] = gt_sublabels[gt_inds_fg]
 
-            inds = inds_target + np.hstack((boxes_fg[:,6], boxes_bg[:,6]))
+            inds = inds_target + np.hstack((boxes_fg[:,11], boxes_bg[:,11]))
             inds = inds.astype(int)
             bbox_targets = gt_bbox_targets[inds, :]
             bbox_loss = gt_bbox_loss_weights[inds, :]
@@ -214,6 +226,7 @@ class RoIGeneratingLayer(caffe.Layer):
 
             # Add to RoIs blob
             rois_blob = np.vstack((rois_blob, rois))
+            rois_sub_blob = np.vstack((rois_sub_blob, rois_sub))
             # Add to labels, bbox targets, and bbox loss blobs
             labels_blob = np.hstack((labels_blob, labels))
             sublabels_blob = np.hstack((sublabels_blob, sublabels))
@@ -222,6 +235,7 @@ class RoIGeneratingLayer(caffe.Layer):
 
         # copy blobs into this layer's top blob vector
         blobs = {'rois': rois_blob,
+                 'rois_sub': rois_sub_blob,
                  'labels': labels_blob}
         if cfg.TRAIN.BBOX_REG:
             blobs['bbox_targets'] = bbox_targets_blob
