@@ -231,6 +231,7 @@ layer {
   bottom: 'gt_overlaps'
   bottom: 'boxes_grid'
   bottom: 'heatmap_size'
+  bottom: 'data'
   top: 'rois'
   top: 'rois_sub'
   top: 'labels'

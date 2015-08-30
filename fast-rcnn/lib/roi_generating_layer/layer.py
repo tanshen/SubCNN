@@ -15,7 +15,7 @@ from utils.cython_bbox import bbox_overlaps
 import numpy as np
 import yaml
 from multiprocessing import Process, Queue
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 class RoIGeneratingLayer(caffe.Layer):
     """Fast R-CNN data layer used for training."""
@@ -208,6 +208,35 @@ class RoIGeneratingLayer(caffe.Layer):
             # ROIs
             rois = np.vstack((boxes_fg[:,5:10], boxes_bg[:,5:10]))
             rois_sub = np.vstack((boxes_fg[:,:5], boxes_bg[:,:5]))
+
+            #""" debuging
+            # show image
+            im_blob = bottom[9].data
+            batch_id = 2
+            im = im_blob[batch_id, :, :, :].transpose((1, 2, 0)).copy()
+            im += cfg.PIXEL_MEANS
+            im = im[:, :, (2, 1, 0)]
+            im = im.astype(np.uint8)
+            plt.imshow(im)
+
+            # draw boxes
+            index_batch = np.where(gts[:,0] == batch_id)[0]
+            for j in xrange(len(index_batch)):
+                roi = gts[index_batch[j],2:]
+                plt.gca().add_patch(
+                    plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
+                                   roi[3] - roi[1], fill=False,
+                                   edgecolor='r', linewidth=3))
+
+            for j in xrange(boxes_fg.shape[0]):
+                roi = rois[j,1:]
+                plt.gca().add_patch(
+                    plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
+                                   roi[3] - roi[1], fill=False,
+                                   edgecolor='g', linewidth=3))
+            plt.show()
+            #"""
+
 
             # compute information of the ROIs: labels, sublabels, bbox_targets, bbox_loss_weights
             length = rois.shape[0]
