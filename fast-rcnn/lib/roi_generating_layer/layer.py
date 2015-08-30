@@ -123,8 +123,9 @@ class RoIGeneratingLayer(caffe.Layer):
                 # scale index of this batch is i
                 scale_ind = i
                 scale = cfg.TRAIN.SCALES[scale_ind]
-                scale_map = cfg.TRAIN.SCALE_MAPPING[scale_ind]
-                batch_id_map = batch_ids[scale_map]
+                scale_ind_map = cfg.TRAIN.SCALE_MAPPING[scale_ind]
+                scale_map = cfg.TRAIN.SCALES[scale_ind_map]
+                batch_id_map = batch_ids[scale_ind_map]
 
                 # compute max overlap
                 index_batch = np.where(gts[:,0] == batch_id)[0]
@@ -146,7 +147,7 @@ class RoIGeneratingLayer(caffe.Layer):
                 batch_ind = batch_id * np.ones((fg_inds.shape[0], 1))
                 batch_ind_map = batch_id_map * np.ones((fg_inds.shape[0], 1))
                 inds = np.reshape(fg_inds, (fg_inds.shape[0], 1))
-                boxes_fg = np.vstack((boxes_fg, np.hstack((batch_ind, boxes[fg_inds,:], batch_ind_map, boxes[fg_inds,:]/scale, max_scores[fg_inds], inds))))
+                boxes_fg = np.vstack((boxes_fg, np.hstack((batch_ind, boxes[fg_inds,:], batch_ind_map, boxes[fg_inds,:] * scale_map/scale, max_scores[fg_inds], inds))))
                 gt_inds_fg = np.hstack((gt_inds_fg, index_batch[argmax_overlaps[fg_inds]]))
 
                 # flags[argmax_overlaps[fg_inds]] = 1
@@ -156,7 +157,7 @@ class RoIGeneratingLayer(caffe.Layer):
                 inds = np.reshape(bg_inds, (bg_inds.shape[0], 1))
                 batch_ind = batch_id * np.ones((bg_inds.shape[0], 1))
                 batch_ind_map = batch_id_map * np.ones((bg_inds.shape[0], 1))
-                boxes_bg = np.vstack((boxes_bg, np.hstack((batch_ind, boxes[bg_inds,:], batch_ind_map, boxes[bg_inds,:]/scale, max_scores[bg_inds], inds))))
+                boxes_bg = np.vstack((boxes_bg, np.hstack((batch_ind, boxes[bg_inds,:], batch_ind_map, boxes[bg_inds,:] * scale_map/scale, max_scores[bg_inds], inds))))
 
                 """ debuging
                 # show image
@@ -212,29 +213,31 @@ class RoIGeneratingLayer(caffe.Layer):
             #""" debuging
             # show image
             im_blob = bottom[9].data
-            batch_id = 2
-            im = im_blob[batch_id, :, :, :].transpose((1, 2, 0)).copy()
-            im += cfg.PIXEL_MEANS
-            im = im[:, :, (2, 1, 0)]
-            im = im.astype(np.uint8)
-            plt.imshow(im)
 
-            # draw boxes
-            index_batch = np.where(gts[:,0] == batch_id)[0]
-            for j in xrange(len(index_batch)):
-                roi = gts[index_batch[j],2:]
-                plt.gca().add_patch(
-                    plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
-                                   roi[3] - roi[1], fill=False,
-                                   edgecolor='r', linewidth=3))
+            for i in xrange(boxes_fg.shape[0]):
 
-            for j in xrange(boxes_fg.shape[0]):
-                roi = rois[j,1:]
+                batch_id = rois[i,0]
+                im = im_blob[batch_id, :, :, :].transpose((1, 2, 0)).copy()
+                im += cfg.PIXEL_MEANS
+                im = im[:, :, (2, 1, 0)]
+                im = im.astype(np.uint8)
+                plt.imshow(im)
+
+                # draw boxes
+                index_batch = np.where(gts[:,0] == batch_id)[0]
+                for j in xrange(len(index_batch)):
+                    roi = gts[index_batch[j],2:]
+                    plt.gca().add_patch(
+                        plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
+                                       roi[3] - roi[1], fill=False,
+                                       edgecolor='r', linewidth=3))
+
+                roi = rois[i,1:]
                 plt.gca().add_patch(
                     plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
                                    roi[3] - roi[1], fill=False,
                                    edgecolor='g', linewidth=3))
-            plt.show()
+                plt.show()
             #"""
 
 
