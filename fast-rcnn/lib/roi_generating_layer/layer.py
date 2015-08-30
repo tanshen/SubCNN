@@ -15,7 +15,7 @@ from utils.cython_bbox import bbox_overlaps
 import numpy as np
 import yaml
 from multiprocessing import Process, Queue
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 class RoIGeneratingLayer(caffe.Layer):
     """Fast R-CNN data layer used for training."""
@@ -210,7 +210,7 @@ class RoIGeneratingLayer(caffe.Layer):
             rois = np.vstack((boxes_fg[:,5:10], boxes_bg[:,5:10]))
             rois_sub = np.vstack((boxes_fg[:,:5], boxes_bg[:,:5]))
 
-            #""" debuging
+            """ debuging
             # show image
             im_blob = bottom[9].data
 

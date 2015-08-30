@@ -220,6 +220,7 @@ layer {
   bottom: 'boxes_grid'
   bottom: 'data'
   top: 'rois'
+  top: 'rois_sub'
   python_param {
     module: 'roi_testing_layer.layer'
     layer: 'RoITestingLayer'
@@ -227,11 +228,11 @@ layer {
   }
 }
 layer {
-  name: "roi_pool5"
+  name: "roi_pool5_sub"
   type: "ROIPooling"
   bottom: "conv5"
-  bottom: "rois"
-  top: "pool5"
+  bottom: "rois_sub"
+  top: "pool5_sub"
   roi_pooling_param {
     pooled_w: 5
     pooled_h: 5
@@ -241,7 +242,7 @@ layer {
 layer {
   name: "conv_sub_pool"
   type: "Convolution"
-  bottom: "pool5"
+  bottom: "pool5_sub"
   top: "subcls_score"
   param {
     name: "conv_sub_w"
@@ -265,10 +266,22 @@ layer {
   top: "subcls_prob"
 }
 layer {
-  name: "fc6_scratch"
+  name: "roi_pool5"
+  type: "ROIPooling"
+  bottom: "conv5"
+  bottom: "rois"
+  top: "pool5"
+  roi_pooling_param {
+    pooled_w: 6
+    pooled_h: 6
+    spatial_scale: 0.0625 # 1/16
+  }
+}
+layer {
+  name: "fc6"
   type: "InnerProduct"
   bottom: "pool5"
-  top: "fc6_scratch"
+  top: "fc6"
   param {
     lr_mult: 1
     decay_mult: 1
@@ -279,36 +292,28 @@ layer {
   }
   inner_product_param {
     num_output: 4096
-    weight_filler {
-      type: "gaussian"
-      std: 0.01
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
-    }
   }
 }
 layer {
-  name: "relu6_scratch"
+  name: "relu6"
   type: "ReLU"
-  bottom: "fc6_scratch"
-  top: "fc6_scratch"
+  bottom: "fc6"
+  top: "fc6"
 }
 layer {
-  name: "drop6_scratch"
+  name: "drop6"
   type: "Dropout"
-  bottom: "fc6_scratch"
-  top: "fc6_scratch"
+  bottom: "fc6"
+  top: "fc6"
   dropout_param {
     dropout_ratio: 0.5
   }
 }
 layer {
-  name: "fc7_scratch"
+  name: "fc7"
   type: "InnerProduct"
-  bottom: "fc6_scratch"
-  top: "fc7_scratch"
+  bottom: "fc6"
+  top: "fc7"
   param {
     lr_mult: 1
     decay_mult: 1
@@ -318,28 +323,20 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 512 
-    weight_filler {
-      type: "gaussian"
-      std: 0.01
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
-    }
+    num_output: 4096
   }
 }
 layer {
-  name: "relu7_scratch"
+  name: "relu7"
   type: "ReLU"
-  bottom: "fc7_scratch"
-  top: "fc7_scratch"
+  bottom: "fc7"
+  top: "fc7"
 }
 layer {
-  name: "drop7_scratch"
+  name: "drop7"
   type: "Dropout"
-  bottom: "fc7_scratch"
-  top: "fc7_scratch"
+  bottom: "fc7"
+  top: "fc7"
   dropout_param {
     dropout_ratio: 0.5
   }
@@ -347,7 +344,7 @@ layer {
 layer {
   name: "cls_score"
   type: "InnerProduct"
-  bottom: "fc7_scratch"
+  bottom: "fc7"
   top: "cls_score"
   param {
     lr_mult: 1
@@ -372,7 +369,7 @@ layer {
 layer {
   name: "bbox_pred"
   type: "InnerProduct"
-  bottom: "fc7_scratch"
+  bottom: "fc7"
   top: "bbox_pred"
   param {
     lr_mult: 1

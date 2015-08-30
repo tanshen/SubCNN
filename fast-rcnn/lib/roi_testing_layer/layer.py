@@ -31,12 +31,14 @@ class RoITestingLayer(caffe.Layer):
         self._spatial_scale = layer_params['spatial_scale']
 
         self._name_to_top_map = {
-            'rois': 0}
+            'rois': 0,
+            'rois_sub': 1}
 
         # rois blob: holds R regions of interest, each is a 5-tuple
         # (n, x1, y1, x2, y2) specifying an image batch index n and a
         # rectangle (x1, y1, x2, y2)
         top[0].reshape(1, 5)
+        top[1].reshape(1, 5)
 
 
     def forward(self, bottom, top):
@@ -47,7 +49,9 @@ class RoITestingLayer(caffe.Layer):
 
         # build the region of interest
         rois_blob = np.zeros((0, 5), dtype=np.float32)
+        rois_sub_blob = np.zeros((0, 5), dtype=np.float32)
         roi_max = np.zeros((1, 5), dtype=np.float32)
+        roi_max_map = np.zeros((1, 5), dtype=np.float32)
         roi_score = 0
 
         # for each scale of the image
@@ -58,17 +62,27 @@ class RoITestingLayer(caffe.Layer):
             max_scores = np.tile(max_scores, len(cfg.TRAIN.ASPECTS)).transpose()
             assert (max_scores.shape[0] == boxes.shape[0])
 
+            # collect boxes with score larger than threshold
+            fg_inds = np.where(max_scores > cfg.TEST.ROI_THRESHOLD)[0]
+            batch_ind = i * np.ones((fg_inds.shape[0], 1))
+            rois_sub_blob = np.vstack((rois_sub_blob, np.hstack((batch_ind, boxes[fg_inds,:]))))
+
+            # scale index of this batch is i
+            scale_ind = i
+            scale = cfg.TEST.SCALES[scale_ind]
+            scale_ind_map = cfg.TEST.SCALE_MAPPING[scale_ind]
+            scale_map = cfg.TEST.SCALES[scale_ind_map]
+            batch_ind_map = scale_ind_map * np.ones((fg_inds.shape[0], 1))
+            rois_blob = np.vstack((rois_blob, np.hstack((batch_ind_map, boxes[fg_inds,:] * scale_map/scale))))
+
             if np.max(max_scores) > roi_score:
                 roi_score = np.max(max_scores)
                 ind = np.argmax(max_scores)
                 roi_max[0,0] = i
                 roi_max[0,1:] = boxes[ind,:]
-                print roi_score, roi_max
-
-            # collect boxes with score larger than threshold
-            fg_inds = np.where(max_scores > cfg.TEST.ROI_THRESHOLD)[0]
-            batch_ind = i * np.ones((fg_inds.shape[0], 1))
-            rois_blob = np.vstack((rois_blob, np.hstack((batch_ind, boxes[fg_inds,:]))))
+                roi_max_map[0,0] = scale_ind_map
+                roi_max_map[0,1:] = boxes[ind,:] * scale_map/scale
+                print roi_score, roi_max, roi_max_map
 
             """ debuging
             print boxes.shape, heatmap.shape, max(max_scores), fg_inds.shape, fg_inds
@@ -91,11 +105,13 @@ class RoITestingLayer(caffe.Layer):
             #"""
 
         # prevent empty roi
-        if rois_blob.shape[0] == 0:
-            rois_blob = roi_max
+        if rois_sub_blob.shape[0] == 0:
+            rois_sub_blob = roi_max
+            rois_blob = roi_max_map
 
         # copy blobs into this layer's top blob vector
-        blobs = {'rois': rois_blob}
+        blobs = {'rois': rois_blob,
+                 'rois_sub': rois_sub_blob}
         print rois_blob.shape
 
         for blob_name, blob in blobs.iteritems():

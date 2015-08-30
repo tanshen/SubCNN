@@ -248,8 +248,7 @@ def im_detect(net, im, boxes_grid, num_classes, num_subclasses):
         pred_boxes = np.tile(boxes, (1, scores.shape[1]))
         pred_boxes = _rescale_boxes(pred_boxes, inds, im_scale_factors)
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
-
-      
+   
     # draw boxes
     if 0:
         print scores, pred_boxes.shape

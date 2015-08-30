@@ -95,7 +95,7 @@ __C.TEST = edict()
 
 # Scales to use during testing (can list multiple scales)
 # Each scale is the pixel size of an image's shortest side
-__C.TEST.SCALES = (600,)
+__C.TEST.SCALES = (0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0)
 
 # Max pixel size of the longest side of a scaled input image
 __C.TEST.MAX_SIZE = 1000
@@ -158,6 +158,7 @@ def get_output_dir(imdb, net):
 
 # map the scales to scales for RoI pooling of classification
 def add_scale_mapping():
+    # train
     scales = np.array(__C.TRAIN.SCALES)
     num = len(scales)
 
@@ -170,6 +171,20 @@ def add_scale_mapping():
     levels = diff_areas.argmin(axis=1)
 
     __C.TRAIN.SCALE_MAPPING = levels
+
+    # test
+    scales = np.array(__C.TEST.SCALES)
+    num = len(scales)
+
+    kernel_size = __C.TRAIN.KERNEL_SIZE / __C.TRAIN.SPATIAL_SCALE
+    area = kernel_size * kernel_size
+    areas = np.repeat(area, num) / (scales ** 2)
+
+    scaled_areas = areas[:, np.newaxis] * (scales[np.newaxis, :] ** 2)
+    diff_areas = np.abs(scaled_areas - 224 * 224)
+    levels = diff_areas.argmin(axis=1)
+
+    __C.TEST.SCALE_MAPPING = levels
 
 def _merge_a_into_b(a, b):
     """Merge config dictionary a into config dictionary b, clobbering the
