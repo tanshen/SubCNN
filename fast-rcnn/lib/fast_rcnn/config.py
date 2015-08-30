@@ -158,15 +158,18 @@ def get_output_dir(imdb, net):
 
 # map the scales to scales for RoI pooling of classification
 def add_scale_mapping():
-    scales = __C.TRAIN.SCALES
+    scales = np.array(__C.TRAIN.SCALES)
     num = len(scales)
 
     kernel_size = __C.TRAIN.KERNEL_SIZE / __C.TRAIN.SPATIAL_SCALE
     area = kernel_size * kernel_size
     areas = np.repeat(area, num) / (scales ** 2)
-    print areas
 
+    scaled_areas = areas[:, np.newaxis] * (scales[np.newaxis, :] ** 2)
+    diff_areas = np.abs(scaled_areas - 224 * 224)
+    levels = diff_areas.argmin(axis=1)
 
+    __C.TRAIN.SCALE_MAPPING = levels
 
 def _merge_a_into_b(a, b):
     """Merge config dictionary a into config dictionary b, clobbering the
