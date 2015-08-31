@@ -70,25 +70,35 @@ def _get_boxes_grid(image_height, image_width):
     width = np.floor((width - 1) / 2.0 + 1 + 0.5)
     width = np.floor((width - 1) / 2.0 + 1 + 0.5)
 
-    # construct the grid boxes
+    # compute the grid box centers
     h = np.arange(height)
     w = np.arange(width)
     y, x = np.meshgrid(h, w, indexing='ij') 
-    tmp = np.dstack((x, y))
-    tmp = np.reshape(tmp, (-1, 2))
-    num = tmp.shape[0]
+    centers = np.dstack((x, y))
+    centers = np.reshape(centers, (-1, 2))
+    num = centers.shape[0]
 
+    # compute width and height of grid box
     area = cfg.TRAIN.KERNEL_SIZE * cfg.TRAIN.KERNEL_SIZE
     aspect = cfg.TRAIN.ASPECTS  # height / width
-    boxes_grid = np.zeros((0, 4), dtype=np.float32)
-    for i in xrange(len(aspect)):
-        w = math.sqrt(area / aspect[i])
-        h = w * aspect[i]
-        x1 = np.reshape(tmp[:,0], (num,1)) - w * np.ones((num,1)) / 2
-        x2 = np.reshape(tmp[:,0], (num,1)) + w * np.ones((num,1)) / 2
-        y1 = np.reshape(tmp[:,1], (num,1)) - h * np.ones((num,1)) / 2
-        y2 = np.reshape(tmp[:,1], (num,1)) + h * np.ones((num,1)) / 2
-        boxes_grid = np.vstack((boxes_grid, np.hstack((x1, y1, x2, y2)) / cfg.TRAIN.SPATIAL_SCALE))
+    num_aspect = len(aspect)
+    widths = np.zeros((1, num_aspect), dtype=np.float32)
+    heights = np.zeros((1, num_aspect), dtype=np.float32)
+    for i in xrange(num_aspect):
+        widths[0,i] = math.sqrt(area / aspect[i])
+        heights[0,i] = widths[0,i] * aspect[i]
+
+    # construct grid boxes
+    centers = np.repeat(centers, num_aspect, axis=0)
+    widths = np.tile(widths, num).transpose()
+    heights = np.tile(heights, num).transpose()
+
+    x1 = np.reshape(centers[:,0], (-1, 1)) - widths * 0.5
+    x2 = np.reshape(centers[:,0], (-1, 1)) + widths * 0.5
+    y1 = np.reshape(centers[:,1], (-1, 1)) - heights * 0.5
+    y2 = np.reshape(centers[:,1], (-1, 1)) + heights * 0.5
+    
+    boxes_grid = np.hstack((x1, y1, x2, y2)) / cfg.TRAIN.SPATIAL_SCALE
 
     return boxes_grid
 
@@ -248,10 +258,24 @@ def im_detect(net, im, boxes_grid, num_classes, num_subclasses):
         pred_boxes = np.tile(boxes, (1, scores.shape[1]))
         pred_boxes = _rescale_boxes(pred_boxes, inds, im_scale_factors)
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
+
+    # only select one aspect with the highest score
+    num = boxes.shape[0]
+    num_aspect = len(cfg.TEST.ASPECTS)
+    inds = []
+    for i in xrange(num/num_aspect):
+        index = range(i*num_aspect, (i+1)*num_aspect)
+        max_scores = scores[index,1:].max(axis = 1)
+        ind_max = np.argmax(max_scores)
+        inds.append(index[ind_max])
+
+    scores = scores[inds]
+    pred_boxes = pred_boxes[inds]
+    scores_subcls = scores_subcls[inds]
    
     # draw boxes
-    if 0:
-        print scores, pred_boxes.shape
+    if 1:
+        # print scores, pred_boxes.shape
         plt.imshow(im)
         for j in xrange(pred_boxes.shape[0]):
             roi = pred_boxes[j,4:]

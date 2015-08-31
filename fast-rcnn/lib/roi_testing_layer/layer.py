@@ -59,7 +59,7 @@ class RoITestingLayer(caffe.Layer):
 
             scores = heatmap[i]
             max_scores = np.reshape(scores[1:].max(axis = 0), (1,-1))
-            max_scores = np.tile(max_scores, len(cfg.TRAIN.ASPECTS)).transpose()
+            max_scores = np.repeat(max_scores, len(cfg.TRAIN.ASPECTS)).transpose()
             assert (max_scores.shape[0] == boxes.shape[0])
 
             # collect boxes with score larger than threshold
@@ -82,7 +82,6 @@ class RoITestingLayer(caffe.Layer):
                 roi_max[0,1:] = boxes[ind,:]
                 roi_max_map[0,0] = scale_ind_map
                 roi_max_map[0,1:] = boxes[ind,:] * scale_map/scale
-                print roi_score, roi_max, roi_max_map
 
             """ debuging
             print boxes.shape, heatmap.shape, max(max_scores), fg_inds.shape, fg_inds

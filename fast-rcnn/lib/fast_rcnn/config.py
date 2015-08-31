@@ -96,6 +96,7 @@ __C.TEST = edict()
 # Scales to use during testing (can list multiple scales)
 # Each scale is the pixel size of an image's shortest side
 __C.TEST.SCALES = (0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0)
+__C.TEST.ASPECTS = (1, 0.75, 0.5, 0.25)
 
 # Max pixel size of the longest side of a scaled input image
 __C.TEST.MAX_SIZE = 1000
