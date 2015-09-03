@@ -20,82 +20,25 @@ def get_minibatch(roidb, num_classes):
         'num_images ({}) must divide BATCH_SIZE ({})'. \
         format(num_images, cfg.TRAIN.BATCH_SIZE)
 
-    num_boxes = 0
-    for i in xrange(num_images):
-        num_boxes = max(roidb[i]['boxes_grid'].shape[0], num_boxes)
-
     # Get the input image blob, formatted for caffe
-    im_blob, im_scales, im_indexes = _get_image_blob(roidb)
+    im_blob = _get_image_blob(roidb)
 
-    # Now, build the region of interest and label blobs
-    rois_blob = np.zeros((0, 6), dtype=np.float32)
-    labels_blob = np.zeros((0), dtype=np.float32)
-    sublabels_blob = np.zeros((0), dtype=np.float32)
-
-    overlaps_blob = np.zeros((num_boxes,0), dtype=np.float32)
-    bbox_targets_blob = np.zeros((0, 4 * num_classes), dtype=np.float32)
-    bbox_loss_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
-    boxes_grid_blob = np.zeros((0, 5), dtype=np.float32)
-    heatmap_size_blob = np.zeros((0, 2), dtype=np.float32)
-
-    for i in xrange(len(im_indexes)):
-
-        im_i = im_indexes[i]
-        im_rois = roidb[im_i]['boxes']
-        labels = roidb[im_i]['gt_classes']
-        sublabels = roidb[im_i]['gt_subclasses']
-
-        # Add to RoIs blob
-        rois = _project_im_rois(im_rois, im_scales[i])
-        batch_ind = i * np.ones((rois.shape[0], 1))
-        image_ind = im_i * np.ones((rois.shape[0], 1))
-        rois_blob_this_image = np.hstack((batch_ind, image_ind, rois))
-        rois_blob = np.vstack((rois_blob, rois_blob_this_image))
-
-        # Add to labels, sublabels, overlaps
-        labels_blob = np.hstack((labels_blob, labels))
-        sublabels_blob = np.hstack((sublabels_blob, sublabels))
-
+    # build the box information blob
+    info_boxes_blob = np.zeros((0, 18), dtype=np.float32)
     for i in xrange(num_images):
-        boxes_grid = roidb[i]['boxes_grid']
-        image_ind = i * np.ones((boxes_grid.shape[0], 1))
-        boxes_grid_blob = np.vstack((boxes_grid_blob, np.hstack((image_ind, boxes_grid))))
+        info_boxes = roidb[i]['info_boxes']
 
-        # heatmap size
-        heatmap_size = np.zeros((1, 2), dtype=np.float32)
-        heatmap_size[0,0] = roidb[i]['heatmap_height']
-        heatmap_size[0,1] = roidb[i]['heatmap_width']
-        heatmap_size_blob = np.vstack((heatmap_size_blob, heatmap_size))
+        # change the batch index
+        info_boxes[:,2] += i * len(cfg.TRAIN.SCALES)
+        info_boxes[:,7] += i * len(cfg.TRAIN.SCALES)
 
-        overlaps = roidb[i]['gt_overlaps_grid'].toarray()
-        # pad overlaps
-        if overlaps.shape[0] < num_boxes:
-            overlaps_pad = np.zeros((num_boxes, overlaps.shape[1]), dtype=np.float32)
-            overlaps_pad[0:overlaps.shape[0], 0:overlaps.shape[1]] = overlaps
-            overlaps = overlaps_pad
-        overlaps_blob = np.hstack((overlaps_blob, overlaps))
-
-        bbox_targets, bbox_loss_weights = _get_bbox_regression_labels(roidb[i]['bbox_targets'].toarray(), num_classes)
-        bbox_targets_blob = np.vstack((bbox_targets_blob, bbox_targets))
-        bbox_loss_blob = np.vstack((bbox_loss_blob, bbox_loss_weights))
+        info_boxes_blob = np.vstack((info_boxes_blob, info_boxes))
 
     # For debug visualizations
     # _vis_minibatch(im_blob, rois_blob, labels_blob, sublabels_blob)
 
     blobs = {'data': im_blob,
-             'gt_rois': rois_blob,
-             'gt_labels': labels_blob}
-
-    if cfg.TRAIN.BBOX_REG:
-        blobs['gt_bbox_targets'] = bbox_targets_blob
-        blobs['gt_bbox_loss_weights'] = bbox_loss_blob
-
-    if cfg.TRAIN.SUBCLS:
-        blobs['gt_sublabels'] = sublabels_blob
-
-    blobs['gt_overlaps'] = overlaps_blob
-    blobs['boxes_grid'] = boxes_grid_blob
-    blobs['heatmap_size'] = heatmap_size_blob
+             'info_boxes': info_boxes_blob}
 
     return blobs
 
@@ -104,8 +47,6 @@ def _get_image_blob(roidb):
     """
     num_images = len(roidb)
     processed_ims = []
-    im_scales = []
-    im_indexes = []
 
     for i in xrange(num_images):
         # read image
@@ -126,13 +67,11 @@ def _get_image_blob(roidb):
                         interpolation=cv2.INTER_LINEAR)
 
             processed_ims.append(im)
-            im_scales.append(im_scale)
-            im_indexes.append(i)
 
     # Create a blob to hold the input images
     blob = im_list_to_blob(processed_ims)
 
-    return blob, im_scales, im_indexes
+    return blob
 
 def _project_im_rois(im_rois, im_scale_factor):
     """Project image RoIs into the rescaled training image."""

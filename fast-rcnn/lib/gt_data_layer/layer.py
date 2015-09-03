@@ -73,8 +73,7 @@ class GtDataLayer(caffe.Layer):
 
         self._name_to_top_map = {
             'data': 0,
-            'gt_rois': 1,
-            'gt_labels': 2}
+            'info_boxes': 1}
 
         # data blob: holds a batch of N images, each with 3 channels
         # The height and width (100 x 100) are dummy values
@@ -83,37 +82,7 @@ class GtDataLayer(caffe.Layer):
         # rois blob: holds R regions of interest, each is a 5-tuple
         # (n, im, x1, y1, x2, y2) specifying an image batch index n, image index im, and a
         # rectangle (x1, y1, x2, y2)
-        top[1].reshape(1, 6)
-
-        # labels blob: R categorical labels in [0, ..., K] for K foreground
-        # classes plus background
-        top[2].reshape(1)
-
-        if cfg.TRAIN.BBOX_REG:
-            self._name_to_top_map['gt_bbox_targets'] = 3
-            self._name_to_top_map['gt_bbox_loss_weights'] = 4
-
-            # bbox_targets blob: R bounding-box regression targets with 4
-            # targets per class
-            top[3].reshape(1, self._num_classes * 4)
-
-            # bbox_loss_weights blob: At most 4 targets per roi are active;
-            # thisbinary vector sepcifies the subset of active targets
-            top[4].reshape(1, self._num_classes * 4)
-
-        # add subclass labels
-        if cfg.TRAIN.SUBCLS:
-            self._name_to_top_map['gt_sublabels'] = 5
-            top[5].reshape(1)
-
-        self._name_to_top_map['gt_overlaps'] = 6
-        top[6].reshape(1)
-
-        self._name_to_top_map['boxes_grid'] = 7
-        top[7].reshape(1, 4)
-
-        self._name_to_top_map['heatmap_size'] = 8
-        top[8].reshape(1, 2)
+        top[1].reshape(1, 18)
             
     def forward(self, bottom, top):
         """Get blobs and copy them into this layer's top blob vector."""

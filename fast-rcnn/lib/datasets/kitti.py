@@ -98,27 +98,37 @@ class kitti(datasets.imdb):
         width = np.floor((width - 1) / 2.0 + 1 + 0.5)
         width = np.floor((width - 1) / 2.0 + 1 + 0.5)
 
-        # construct the grid boxes
+        # compute the grid box centers
         h = np.arange(height)
         w = np.arange(width)
         y, x = np.meshgrid(h, w, indexing='ij') 
-        tmp = np.dstack((x, y))
-        tmp = np.reshape(tmp, (-1, 2))
-        num = tmp.shape[0]
+        centers = np.dstack((x, y))
+        centers = np.reshape(centers, (-1, 2))
+        num = centers.shape[0]
 
+        # compute width and height of grid box
         area = cfg.TRAIN.KERNEL_SIZE * cfg.TRAIN.KERNEL_SIZE
         aspect = cfg.TRAIN.ASPECTS  # height / width
-        boxes_grid = np.zeros((0, 4), dtype=np.float32)
-        for i in xrange(len(aspect)):
-            w = math.sqrt(area / aspect[i])
-            h = w * aspect[i]
-            x1 = np.reshape(tmp[:,0], (num,1)) - w * np.ones((num,1)) / 2
-            x2 = np.reshape(tmp[:,0], (num,1)) + w * np.ones((num,1)) / 2
-            y1 = np.reshape(tmp[:,1], (num,1)) - h * np.ones((num,1)) / 2
-            y2 = np.reshape(tmp[:,1], (num,1)) + h * np.ones((num,1)) / 2
-            boxes_grid = np.vstack((boxes_grid, np.hstack((x1, y1, x2, y2)) / cfg.TRAIN.SPATIAL_SCALE))
+        num_aspect = len(aspect)
+        widths = np.zeros((1, num_aspect), dtype=np.float32)
+        heights = np.zeros((1, num_aspect), dtype=np.float32)
+        for i in xrange(num_aspect):
+            widths[0,i] = math.sqrt(area / aspect[i])
+            heights[0,i] = widths[0,i] * aspect[i]
 
-        return boxes_grid, height, width
+        # construct grid boxes
+        centers = np.repeat(centers, num_aspect, axis=0)
+        widths = np.tile(widths, num).transpose()
+        heights = np.tile(heights, num).transpose()
+
+        x1 = np.reshape(centers[:,0], (-1, 1)) - widths * 0.5
+        x2 = np.reshape(centers[:,0], (-1, 1)) + widths * 0.5
+        y1 = np.reshape(centers[:,1], (-1, 1)) - heights * 0.5
+        y2 = np.reshape(centers[:,1], (-1, 1)) + heights * 0.5
+    
+        boxes_grid = np.hstack((x1, y1, x2, y2)) / cfg.TRAIN.SPATIAL_SCALE
+
+        return boxes_grid
 
 
     def gt_roidb(self):
@@ -200,7 +210,7 @@ class kitti(datasets.imdb):
         s = PIL.Image.open(self.image_path_from_index(index)).size
         image_height = s[1]
         image_width = s[0]
-        boxes_grid, heatmap_height, heatmap_width = self._get_boxes_grid(image_height, image_width)
+        boxes_grid = self._get_boxes_grid(image_height, image_width)
 
         # compute overlap
         overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
@@ -213,18 +223,11 @@ class kitti(datasets.imdb):
             self._num_boxes_all += num_objs
             self._num_boxes_covered += len(np.unique(index[fg_inds]))
 
-        overlaps_grid = scipy.sparse.csr_matrix(overlaps_grid)
-
         return {'boxes' : boxes,
-                'boxes_all' : boxes_all,
-                'boxes_grid' : boxes_grid,
-                'heatmap_height' : heatmap_height,
-                'heatmap_width' : heatmap_width,
                 'gt_classes': gt_classes,
                 'gt_subclasses': gt_subclasses,
                 'gt_subclasses_flipped': gt_subclasses_flipped,
                 'gt_overlaps' : overlaps,
-                'gt_overlaps_grid': overlaps_grid,
                 'gt_subindexes': subindexes,
                 'gt_subindexes_flipped': subindexes_flipped,
                 'flipped' : False}
@@ -299,7 +302,7 @@ class kitti(datasets.imdb):
         s = PIL.Image.open(self.image_path_from_index(index)).size
         image_height = s[1]
         image_width = s[0]
-        boxes_grid, heatmap_height, heatmap_width = self._get_boxes_grid(image_height, image_width)
+        boxes_grid = self._get_boxes_grid(image_height, image_width)
 
         # compute overlap
         overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
@@ -312,18 +315,11 @@ class kitti(datasets.imdb):
             self._num_boxes_all += num_objs
             self._num_boxes_covered += len(np.unique(ind[fg_inds]))
 
-        overlaps_grid = scipy.sparse.csr_matrix(overlaps_grid)
-
         return {'boxes' : boxes,
-                'boxes_all' : boxes_all,
-                'boxes_grid' : boxes_grid,
-                'heatmap_height' : heatmap_height,
-                'heatmap_width' : heatmap_width,
                 'gt_classes': gt_classes,
                 'gt_subclasses': gt_subclasses,
                 'gt_subclasses_flipped': gt_subclasses_flipped,
                 'gt_overlaps': overlaps,
-                'gt_overlaps_grid': overlaps_grid,
                 'gt_subindexes': subindexes, 
                 'gt_subindexes_flipped': subindexes_flipped, 
                 'flipped' : False}

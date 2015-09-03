@@ -11,6 +11,54 @@ import numpy as np
 from fast_rcnn.config import cfg
 import utils.cython_bbox
 import scipy.sparse
+import PIL
+
+def get_boxes_grid(image_height, image_width):
+    """
+    Return the boxes on image grid.
+    """
+
+    # height and width of the heatmap
+    height = np.round((image_height * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
+    height = np.floor((height - 1) / 2 + 1 + 0.5)
+    height = np.floor((height - 1) / 2 + 1 + 0.5)
+
+    width = np.round((image_width * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
+    width = np.floor((width - 1) / 2.0 + 1 + 0.5)
+    width = np.floor((width - 1) / 2.0 + 1 + 0.5)
+
+    # compute the grid box centers
+    h = np.arange(height)
+    w = np.arange(width)
+    y, x = np.meshgrid(h, w, indexing='ij') 
+    centers = np.dstack((x, y))
+    centers = np.reshape(centers, (-1, 2))
+    num = centers.shape[0]
+
+    # compute width and height of grid box
+    area = cfg.TRAIN.KERNEL_SIZE * cfg.TRAIN.KERNEL_SIZE
+    aspect = cfg.TRAIN.ASPECTS  # height / width
+    num_aspect = len(aspect)
+    widths = np.zeros((1, num_aspect), dtype=np.float32)
+    heights = np.zeros((1, num_aspect), dtype=np.float32)
+    for i in xrange(num_aspect):
+        widths[0,i] = math.sqrt(area / aspect[i])
+        heights[0,i] = widths[0,i] * aspect[i]
+
+    # construct grid boxes
+    centers = np.repeat(centers, num_aspect, axis=0)
+    widths = np.tile(widths, num).transpose()
+    heights = np.tile(heights, num).transpose()
+
+    x1 = np.reshape(centers[:,0], (-1, 1)) - widths * 0.5
+    x2 = np.reshape(centers[:,0], (-1, 1)) + widths * 0.5
+    y1 = np.reshape(centers[:,1], (-1, 1)) - heights * 0.5
+    y2 = np.reshape(centers[:,1], (-1, 1)) + heights * 0.5
+    
+    boxes_grid = np.hstack((x1, y1, x2, y2)) / cfg.TRAIN.SPATIAL_SCALE
+
+    return boxes_grid, centers[:,0], centers[:,1]
+
 
 def prepare_roidb(imdb):
     """Enrich the imdb's roidb by adding some derived quantities that
@@ -22,28 +70,48 @@ def prepare_roidb(imdb):
     roidb = imdb.roidb
     for i in xrange(len(imdb.image_index)):
         roidb[i]['image'] = imdb.image_path_at(i)
-        # need gt_overlaps as a dense array for argmax
-        gt_overlaps = roidb[i]['gt_overlaps'].toarray()
-        gt_subindexes = roidb[i]['gt_subindexes']
-        # max overlap with gt over classes (columns)
-        max_overlaps = gt_overlaps.max(axis=1)
-        # gt class that had the max overlap
-        max_classes = gt_overlaps.argmax(axis=1)
-        max_subclasses = np.zeros(max_classes.shape, dtype=np.int32)
-        for j in range(len(max_classes)):
-            max_subclasses[j] = gt_subindexes[j, max_classes[j]]
-        roidb[i]['max_classes'] = max_classes
-        roidb[i]['max_subclasses'] = max_subclasses
-        roidb[i]['max_overlaps'] = max_overlaps
-        # sanity checks
-        # max overlap of 0 => class should be zero (background)
-        zero_inds = np.where(max_overlaps == 0)[0]
-        assert all(max_classes[zero_inds] == 0)
-        assert all(max_subclasses[zero_inds] == 0)
-        # max overlap > 0 => class should not be zero (must be a fg class)
-        nonzero_inds = np.where(max_overlaps > 0)[0]
-        assert all(max_classes[nonzero_inds] != 0)
-        assert all(max_subclasses[nonzero_inds] != 0)
+        boxes = roidb[i]['boxes']
+        labels = roidb[i]['gt_classes']
+        sublabels = roidb[i]['gt_subclasses']
+
+        # compute grid boxes
+        s = PIL.Image.open(imdb.image_path_at(i)).size
+        image_height = s[1]
+        image_width = s[0]
+        boxes_grid, cx, cy = get_boxes_grid(image_height, image_width)
+
+        info_boxes = np.zeros((0, 18), dtype=np.float32)
+        # for each scale
+        for scale_ind, scale in enumerate(cfg.TRAIN.SCALES):
+            boxes_rescaled = boxes * scale
+            # compute overlap
+            overlaps = bbox_overlaps(boxes_grid.astype(np.float), boxes_rescaled.astype(np.float))
+            max_overlaps = overlaps.max(axis = 1)
+            argmax_overlaps = overlaps.argmax(axis = 1)
+            # select positive boxes
+            fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
+            if len(fg_inds) > 0:
+                gt_inds = argmax_overlaps[fg_inds]
+                # bounding box regression targets
+                gt_targets = _compute_targets(boxes_grid[fg_inds,:], boxes_rescaled[gt_inds,:])
+                # scale mapping for RoI pooling
+                scale_ind_map = cfg.TRAIN.SCALE_MAPPING[scale_ind]
+                scale_map = cfg.TRAIN.SCALES[scale_ind_map]
+                # contruct the list of positive boxes
+                # (cx, cy, scale_ind, box, scale_ind_map, box_map, gt_label, gt_sublabel, target)
+                info_box = np.zeros((len(fg_inds), 18), dtype=np.float32)
+                info_box[:, 0] = cx[fg_inds]
+                info_box[:, 1] = cy[fg_inds]
+                info_box[:, 2] = scale_ind
+                info_box[:, 3:7] = boxes_grid[fg_inds,:]
+                info_box[:, 7] = scale_ind_map
+                info_box[:, 8:12] = boxes_grid[fg_inds,:] * scale_map / scale
+                info_box[:, 12] = labels[gt_inds]
+                info_box[:, 13] = sublabels[gt_inds]
+                info_box[:, 14:] = gt_targets
+                info_boxes = np.vstack((info_boxes, info_box))
+
+        roidb[i]['info_boxes'] = info_boxes
 
 def add_bbox_regression_targets(roidb):
     """Add information needed to train bounding-box regressors."""
@@ -54,69 +122,38 @@ def add_bbox_regression_targets(roidb):
     # Infer number of classes from the number of columns in gt_overlaps
     num_classes = roidb[0]['gt_overlaps'].shape[1]
 
-    for im_i in xrange(num_images):
-        boxes_all = roidb[im_i]['boxes_all']
-        boxes_grid = roidb[im_i]['boxes_grid']
-        gt_overlaps_grid = roidb[im_i]['gt_overlaps_grid'].toarray()
-        gt_classes = roidb[im_i]['gt_classes']
-        gt_classes_all = np.tile(gt_classes, len(cfg.TRAIN.SCALES))
-        scales_all = np.repeat(cfg.TRAIN.SCALES, len(gt_classes))
-        roidb[im_i]['bbox_targets'] = \
-                _compute_targets(boxes_grid, boxes_all, gt_overlaps_grid, gt_classes_all, scales_all)
-
     # Compute values needed for means and stds
     # var(x) = E(x^2) - E(x)^2
     class_counts = np.zeros((num_classes, 1)) + cfg.EPS
     sums = np.zeros((num_classes, 4))
     squared_sums = np.zeros((num_classes, 4))
     for im_i in xrange(num_images):
-        targets = roidb[im_i]['bbox_targets']
+        targets = roidb[im_i]['info_boxes']
         for cls in xrange(1, num_classes):
-            cls_inds = np.where(targets[:, 0] == cls)[0]
+            cls_inds = np.where(targets[:, 12] == cls)[0]
             if cls_inds.size > 0:
                 class_counts[cls] += cls_inds.size
-                sums[cls, :] += targets[cls_inds, 1:].sum(axis=0)
-                squared_sums[cls, :] += (targets[cls_inds, 1:] ** 2).sum(axis=0)
+                sums[cls, :] += targets[cls_inds, 14:].sum(axis=0)
+                squared_sums[cls, :] += (targets[cls_inds, 14:] ** 2).sum(axis=0)
 
     means = sums / class_counts
     stds = np.sqrt(squared_sums / class_counts - means ** 2)
 
     # Normalize targets
     for im_i in xrange(num_images):
-        targets = roidb[im_i]['bbox_targets']
+        targets = roidb[im_i]['info_boxes']
         for cls in xrange(1, num_classes):
-            cls_inds = np.where(targets[:, 0] == cls)[0]
-            roidb[im_i]['bbox_targets'][cls_inds, 1:] -= means[cls, :]
+            cls_inds = np.where(targets[:, 12] == cls)[0]
+            roidb[im_i]['info_boxes'][cls_inds, 14:] -= means[cls, :]
             if stds[cls, 0] != 0:
-                roidb[im_i]['bbox_targets'][cls_inds, 1:] /= stds[cls, :]
-        # save sparse matrix
-        targets = roidb[im_i]['bbox_targets']
-        roidb[im_i]['bbox_targets'] = scipy.sparse.csr_matrix(targets)
+                roidb[im_i]['info_boxes'][cls_inds, 14:] /= stds[cls, :]
 
     # These values will be needed for making predictions
     # (the predicts will need to be unnormalized and uncentered)
     return means.ravel(), stds.ravel()
 
-def _compute_targets(boxes_grid, boxes_all, gt_overlaps_grid, gt_classes_all, scales_all):
-    """Compute bounding-box regression targets for an image."""
-    if gt_overlaps_grid.shape[1] == 0:
-        return np.zeros((boxes_grid.shape[0], 5), dtype=np.float32)
-
-    max_overlaps = gt_overlaps_grid.max(axis = 1)
-    argmax_overlaps = gt_overlaps_grid.argmax(axis = 1)
-
-    # Indices of examples for which we try to make predictions
-    ex_inds = np.where(max_overlaps >= cfg.TRAIN.BBOX_THRESH)[0]
-    gt_inds = argmax_overlaps[ex_inds]
-
-    gt_rois = boxes_all[gt_inds, :]
-    ex_rois = boxes_grid[ex_inds, :]
-
-    # rescale gt and ex to the original size
-    scales = scales_all[gt_inds]
-    for i in xrange(len(scales)):
-        gt_rois[i,:] = gt_rois[i,:] / scales[i]
-        ex_rois[i,:] = ex_rois[i,:] / scales[i]
+def _compute_targets(ex_rois, gt_rois):
+    """Compute bounding-box regression targets for an image. The targets are scale invariance"""
 
     ex_widths = ex_rois[:, 2] - ex_rois[:, 0] + cfg.EPS
     ex_heights = ex_rois[:, 3] - ex_rois[:, 1] + cfg.EPS
@@ -133,10 +170,9 @@ def _compute_targets(boxes_grid, boxes_all, gt_overlaps_grid, gt_classes_all, sc
     targets_dw = np.log(gt_widths / ex_widths)
     targets_dh = np.log(gt_heights / ex_heights)
 
-    targets = np.zeros((boxes_grid.shape[0], 5), dtype=np.float32)
-    targets[ex_inds, 0] = gt_classes_all[gt_inds]
-    targets[ex_inds, 1] = targets_dx
-    targets[ex_inds, 2] = targets_dy
-    targets[ex_inds, 3] = targets_dw
-    targets[ex_inds, 4] = targets_dh
+    targets = np.zeros((ex_rois.shape[0], 4), dtype=np.float32)
+    targets[:, 0] = targets_dx
+    targets[:, 1] = targets_dy
+    targets[:, 2] = targets_dw
+    targets[:, 3] = targets_dh
     return targets

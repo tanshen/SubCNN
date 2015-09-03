@@ -64,30 +64,35 @@ class RoIGeneratingLayer(caffe.Layer):
 
     def forward(self, bottom, top):
         # parse input
-        heatmap = bottom[0].data
-        # (n, im, x1, y1, x2, y2) specifying an image batch index n, image index im and a rectangle (x1, y1, x2, y2)
-        gts = bottom[1].data
-        # class labels
-        gt_labels = bottom[2].data
-        # bounding box regression
-        gt_bbox_targets = bottom[3].data
-        gt_bbox_loss_weights = bottom[4].data
-        # subclass labels
-        gt_sublabels = bottom[5].data
-        # overlaps
-        gt_overlaps = bottom[6].data
-        # boxes on the grid
-        boxes_grid = bottom[7].data
-        # heatmap size
-        heatmap_size = bottom[8].data
+        conv_sub_prob = bottom[0].data
+        info_boxes = bottom[1].data
+
+        # compute the heatmap
+        heatmap = conv_sub_prob[:, 1:, :, :].max(axis = 1)
+
+        # process the positive boxes
+        num_positive = info_boxes.shape[0]
+        scores_positive = np.zeros((num_positive,), dtype=np.float32)
+        for i in xrange(num_positive):
+            cx = int(info_boxes[i, 0])
+            cy = int(info_boxes[i, 1])
+            batch_index = int(info_boxes[i, 2])
+            scores_positive[i] = heatmap[batch_index, cy, cx]
+            # mask the heatmap location
+            heatmap[batch_index, cy, cx] = -1.0
+
+        # select positive boxes for each image
+            
+        # select negative boxes
+        num_batch = heatmap.shape[0]
+        for batch_index in xrange(num_batch):
 
         # number of ROIs
-        image_ids = np.unique(gts[:,1])
-        num_image = len(image_ids)
+        num_image = num_batch / len(cfg.TRAIN.SCALES)
         rois_per_image = cfg.TRAIN.BATCH_SIZE / num_image
         fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
-        # build the region of interest and label blobs
+        # build the blobs of interest
         rois_blob = np.zeros((0, 5), dtype=np.float32)
         rois_sub_blob = np.zeros((0, 5), dtype=np.float32)
         labels_blob = np.zeros((0), dtype=np.float32)
