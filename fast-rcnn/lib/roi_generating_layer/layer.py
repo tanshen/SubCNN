@@ -15,7 +15,7 @@ from utils.cython_bbox import bbox_overlaps
 import numpy as np
 import yaml
 from multiprocessing import Process, Queue
-# import matplotlib.pyplot as plt
+import random
 
 class RoIGeneratingLayer(caffe.Layer):
     """Fast R-CNN data layer used for training."""
@@ -70,9 +70,18 @@ class RoIGeneratingLayer(caffe.Layer):
         # compute the heatmap
         heatmap = conv_sub_prob[:, 1:, :, :].max(axis = 1)
 
+        # numbers
+        num_batch = heatmap.shape[0]
+        num_scale = len(cfg.TRAIN.SCALES)
+        num_aspect = len(cfg.TRAIN.ASPECTS)
+        num_image = num_batch / num_scale
+        rois_per_image = cfg.TRAIN.BATCH_SIZE / num_image
+        fg_rois_per_image = int(np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))
+
         # process the positive boxes
         num_positive = info_boxes.shape[0]
-        scores_positive = np.zeros((num_positive,), dtype=np.float32)
+        scores_positive = np.zeros((num_positive), dtype=np.float32)
+        sep_positive = -1 * np.ones((num_image+1), dtype=np.int32)
         for i in xrange(num_positive):
             cx = int(info_boxes[i, 0])
             cy = int(info_boxes[i, 1])
@@ -80,195 +89,120 @@ class RoIGeneratingLayer(caffe.Layer):
             scores_positive[i] = heatmap[batch_index, cy, cx]
             # mask the heatmap location
             heatmap[batch_index, cy, cx] = -1.0
+            # check which image
+            image_index = int(batch_index / num_scale)
+            sep_positive[image_index+1] = i
 
         # select positive boxes for each image
-            
-        # select negative boxes
-        num_batch = heatmap.shape[0]
-        for batch_index in xrange(num_batch):
+        index_positive = []
+        count_image = np.zeros((num_image), dtype=np.int32)
+        for i in xrange(num_image):
+            num = sep_positive[i+1] - sep_positive[i]
+            index = np.array(range(sep_positive[i]+1, sep_positive[i+1]+1))
+            if num <= fg_rois_per_image:
+                # use all the positives of this image
+                index_positive.extend(index)
+                count_image[i] = len(index)
+            else:
+                # select hard positives (low score positives)
+                scores = scores_positive[index]
+                I = np.argsort(scores)
+                index_positive.extend(index[I[0:fg_rois_per_image]])
+                count_image[i] = fg_rois_per_image
 
-        # number of ROIs
-        num_image = num_batch / len(cfg.TRAIN.SCALES)
-        rois_per_image = cfg.TRAIN.BATCH_SIZE / num_image
-        fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
+        # select negative boxes for each image
+        index_negative = []
+        for i in xrange(num_image):
+            batch_index = range(i * num_scale, (i+1) * num_scale)
+            # sort heatmap to select hard negatives (high score negatives)
+            I = np.argsort(heatmap[batch_index], axis=None)[::-1]
+            num = rois_per_image - count_image[i]
+            index_negative.extend(I[0:num] + i * num_scale * heatmap.shape[1] * heatmap.shape[2])
 
         # build the blobs of interest
-        rois_blob = np.zeros((0, 5), dtype=np.float32)
-        rois_sub_blob = np.zeros((0, 5), dtype=np.float32)
-        labels_blob = np.zeros((0), dtype=np.float32)
-        sublabels_blob = np.zeros((0), dtype=np.float32)
-        bbox_targets_blob = np.zeros((0, 4 * self._num_classes), dtype=np.float32)
+        batch_size = cfg.TRAIN.BATCH_SIZE
+        rois_blob = np.zeros((batch_size, 5), dtype=np.float32)
+        rois_sub_blob = np.zeros((batch_size, 5), dtype=np.float32)
+        labels_blob = np.zeros((batch_size), dtype=np.float32)
+        sublabels_blob = np.zeros((batch_size), dtype=np.float32)
+        bbox_targets_blob = np.zeros((batch_size, 4 * self._num_classes), dtype=np.float32)
         bbox_loss_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
 
-        # for each image
-        inds_target = 0
-        for im in xrange(num_image):
-            image_id = image_ids[im]
+        count = 0
+        # positives
+        for i in xrange(len(index_positive)):
+            ind = index_positive[i]
+            rois_sub_blob[count,:] = info_boxes[ind, 2:7]
+            rois_blob[count,:] = info_boxes[ind, 7:12]
+            labels_blob[count] = info_boxes[ind, 12]
+            sublabels_blob[count] = info_boxes[ind, 13]
+            # bounding box regression
+            cls = int(info_boxes[ind, 12])
+            start = 4 * cls
+            end = start + 4
+            bbox_targets_blob[count, start:end] = info_boxes[ind, 14:]
+            bbox_loss_blob[count, start:end] = [1., 1., 1., 1.]
+            count += 1
 
-            # batches of this image
-            index = np.where(gts[:,1] == image_id)[0]
-            batch_ids = np.unique(gts[index,0])
+        # negatives
+        for i in xrange(len(index_negative)):
+            ind = index_negative[i]
+            # parse index
+            batch_index = int(ind / (heatmap.shape[1] * heatmap.shape[2]))
+            tmp = ind % (heatmap.shape[1] * heatmap.shape[2])
+            cy = int(tmp / heatmap.shape[2])
+            cx = tmp % heatmap.shape[2]
+            # sample an aspect ratio
+            aspect_index = random.randint(1, num_aspect) - 1
+            width = cfg.TRAIN.ASPECT_WIDTHS[aspect_index]
+            height = cfg.TRAIN.ASPECT_HEIGHTS[aspect_index]
+            # scale mapping
+            image_index = int(batch_index / num_scale)
+            scale_index = batch_index % num_scale
+            scale = cfg.TRAIN.SCALES[scale_index]
+            # check if the point is inside this scale
+            rescale = scale / cfg.TRAIN.SCALES[-1]
+            if cx < heatmap.shape[2] * rescale and cy < heatmap.shape[1] * rescale:
+                scale_index_map = cfg.TRAIN.SCALE_MAPPING[scale_index]
+                scale_map = cfg.TRAIN.SCALES[scale_index_map]
+                batch_index_map = image_index * num_scale + scale_index_map
+            else:
+                # do not do scale mapping
+                scale_map = scale
+                batch_index_map = batch_index
+            # assign information
+            rois_sub_blob[count, 0] = batch_index
+            rois_sub_blob[count, 1] = (cx - width / 2) / cfg.TRAIN.SPATIAL_SCALE
+            rois_sub_blob[count, 2] = (cy - height / 2) / cfg.TRAIN.SPATIAL_SCALE
+            rois_sub_blob[count, 3] = (cx + width / 2) / cfg.TRAIN.SPATIAL_SCALE
+            rois_sub_blob[count, 4] = (cy + height / 2) / cfg.TRAIN.SPATIAL_SCALE
+            rois_blob[count, 0] = batch_index_map
+            rois_blob[count, 1:] = rois_sub_blob[count, 1:] * scale_map / scale
+            count = count + 1
 
-            # number of objects in the image
-            num_objs = index.size / batch_ids.size
-            max_gt_overlaps = np.zeros((num_objs, 1), dtype=np.float32)
-            # print 'image {:d}, {:d} objects'.format(int(image_id), int(num_objs))
+        assert (count == cfg.TRAIN.BATCH_SIZE)
 
-            # boxes grid of this image
-            index_grid = np.where(boxes_grid[:,0] == image_id)[0]
-            boxes = boxes_grid[index_grid, 1:]
+        """ debuging
+        # show image
+        import matplotlib.pyplot as plt
+        im_blob = bottom[2].data
+        for i in xrange(rois_blob.shape[0]):
+            batch_id = rois_blob[i,0]
+            im = im_blob[batch_id, :, :, :].transpose((1, 2, 0)).copy()
+            im += cfg.PIXEL_MEANS
+            im = im[:, :, (2, 1, 0)]
+            im = im.astype(np.uint8)
+            plt.imshow(im)
 
-            # for each batch (one scale of an image)
-            boxes_fg = np.zeros((0, 12), dtype=np.float32)
-            boxes_bg = np.zeros((0, 12), dtype=np.float32)
-            gt_inds_fg = np.zeros((0), dtype=np.int32)
-            for i in xrange(len(batch_ids)):
-                batch_id = batch_ids[i]
-
-                # scale index of this batch is i
-                scale_ind = i
-                scale = cfg.TRAIN.SCALES[scale_ind]
-                scale_ind_map = cfg.TRAIN.SCALE_MAPPING[scale_ind]
-                scale_map = cfg.TRAIN.SCALES[scale_ind_map]
-                batch_id_map = batch_ids[scale_ind_map]
-
-                # compute max overlap
-                index_batch = np.where(gts[:,0] == batch_id)[0]
-                overlaps = gt_overlaps[:boxes.shape[0], index_batch]
-                max_overlaps = overlaps.max(axis = 1)
-                argmax_overlaps = overlaps.argmax(axis = 1)
-
-                tmp = np.reshape(overlaps.max(axis = 0), (-1, 1))
-                max_gt_overlaps = np.reshape(np.hstack((max_gt_overlaps, tmp)).max(axis = 1), (num_objs,1))
-            
-                # extract max scores
-                scores = heatmap[batch_id, :, 0:heatmap_size[image_id,0], 0:heatmap_size[image_id,1]]
-                max_scores = np.reshape(scores[1:].max(axis = 0), (1,-1))
-                max_scores = np.tile(max_scores, len(cfg.TRAIN.ASPECTS)).transpose()
-                assert (max_scores.shape[0] == boxes.shape[0])
-
-                # collect positives
-                fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
-                batch_ind = batch_id * np.ones((fg_inds.shape[0], 1))
-                batch_ind_map = batch_id_map * np.ones((fg_inds.shape[0], 1))
-                inds = np.reshape(fg_inds, (fg_inds.shape[0], 1))
-                boxes_fg = np.vstack((boxes_fg, np.hstack((batch_ind, boxes[fg_inds,:], batch_ind_map, boxes[fg_inds,:] * scale_map/scale, max_scores[fg_inds], inds))))
-                gt_inds_fg = np.hstack((gt_inds_fg, index_batch[argmax_overlaps[fg_inds]]))
-
-                # flags[argmax_overlaps[fg_inds]] = 1
-
-                # collect negatives
-                bg_inds = np.where((max_overlaps < cfg.TRAIN.BG_THRESH_HI) & (max_overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
-                inds = np.reshape(bg_inds, (bg_inds.shape[0], 1))
-                batch_ind = batch_id * np.ones((bg_inds.shape[0], 1))
-                batch_ind_map = batch_id_map * np.ones((bg_inds.shape[0], 1))
-                boxes_bg = np.vstack((boxes_bg, np.hstack((batch_ind, boxes[bg_inds,:], batch_ind_map, boxes[bg_inds,:] * scale_map/scale, max_scores[bg_inds], inds))))
-
-                """ debuging
-                # show image
-                im_blob = bottom[9].data
-                im = im_blob[batch_id, :, :, :].transpose((1, 2, 0)).copy()
-                im += cfg.PIXEL_MEANS
-                im = im[:, :, (2, 1, 0)]
-                im = im.astype(np.uint8)
-                plt.imshow(im)
-
-                # draw boxes
-                for j in xrange(len(index_batch)):
-                    roi = gts[index_batch[j],2:]
-                    plt.gca().add_patch(
-                        plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
-                                       roi[3] - roi[1], fill=False,
-                                       edgecolor='r', linewidth=3))
-
-                for j in xrange(len(fg_inds)):
-                    roi = boxes[fg_inds[j],:]
-                    plt.gca().add_patch(
-                        plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
-                                       roi[3] - roi[1], fill=False,
-                                       edgecolor='g', linewidth=3))
-                plt.show()
-                #"""
-
-            # print max_gt_overlaps, boxes_fg.shape[0]
-            # print boxes_fg.shape[0]
-
-            # find hard positives
-            # sort scores and indexes
-            I = np.argsort(boxes_fg[:,10])
-            # number of fg in the image
-            fg_rois_per_this_image = int(np.minimum(fg_rois_per_image, I.size))
-            I = I[0:fg_rois_per_this_image]
-            boxes_fg = boxes_fg[I,:]
-            gt_inds_fg = gt_inds_fg[I]
-
-            # find hard negatives
-            # sort scores and indexes descending
-            I = np.argsort(boxes_bg[:,10])[::-1]
-            # number of bg in the image
-            bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
-            bg_rois_per_this_image = np.minimum(bg_rois_per_this_image, I.size)
-            I = I[0:bg_rois_per_this_image]
-            boxes_bg = boxes_bg[I,:]
-
-            # ROIs
-            rois = np.vstack((boxes_fg[:,5:10], boxes_bg[:,5:10]))
-            rois_sub = np.vstack((boxes_fg[:,:5], boxes_bg[:,:5]))
-
-            """ debuging
-            # show image
-            im_blob = bottom[9].data
-
-            for i in xrange(boxes_fg.shape[0]):
-
-                batch_id = rois[i,0]
-                im = im_blob[batch_id, :, :, :].transpose((1, 2, 0)).copy()
-                im += cfg.PIXEL_MEANS
-                im = im[:, :, (2, 1, 0)]
-                im = im.astype(np.uint8)
-                plt.imshow(im)
-
-                # draw boxes
-                index_batch = np.where(gts[:,0] == batch_id)[0]
-                for j in xrange(len(index_batch)):
-                    roi = gts[index_batch[j],2:]
-                    plt.gca().add_patch(
-                        plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
-                                       roi[3] - roi[1], fill=False,
-                                       edgecolor='r', linewidth=3))
-
-                roi = rois[i,1:]
-                plt.gca().add_patch(
-                    plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
-                                   roi[3] - roi[1], fill=False,
-                                   edgecolor='g', linewidth=3))
-                plt.show()
-            #"""
-
-
-            # compute information of the ROIs: labels, sublabels, bbox_targets, bbox_loss_weights
-            length = rois.shape[0]
-
-            labels = np.zeros((length), dtype=np.float32)
-            labels[0:fg_rois_per_this_image] = gt_labels[gt_inds_fg]
-
-            sublabels = np.zeros((length), dtype=np.float32)
-            sublabels[0:fg_rois_per_this_image] = gt_sublabels[gt_inds_fg]
-
-            inds = inds_target + np.hstack((boxes_fg[:,11], boxes_bg[:,11]))
-            inds = inds.astype(int)
-            bbox_targets = gt_bbox_targets[inds, :]
-            bbox_loss = gt_bbox_loss_weights[inds, :]
-            inds_target += boxes.shape[0]
-
-            # Add to RoIs blob
-            rois_blob = np.vstack((rois_blob, rois))
-            rois_sub_blob = np.vstack((rois_sub_blob, rois_sub))
-            # Add to labels, bbox targets, and bbox loss blobs
-            labels_blob = np.hstack((labels_blob, labels))
-            sublabels_blob = np.hstack((sublabels_blob, sublabels))
-            bbox_targets_blob = np.vstack((bbox_targets_blob, bbox_targets))
-            bbox_loss_blob = np.vstack((bbox_loss_blob, bbox_loss))
+            # draw boxes
+            roi = rois_blob[i,1:]
+            print roi
+            plt.gca().add_patch(
+                plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
+                               roi[3] - roi[1], fill=False,
+                               edgecolor='g', linewidth=3))
+            plt.show()
+        #"""
 
         # copy blobs into this layer's top blob vector
         blobs = {'rois': rois_blob,
@@ -286,7 +220,6 @@ class RoIGeneratingLayer(caffe.Layer):
             top[top_ind].reshape(*(blob.shape))
             # Copy data into net's input blobs
             top[top_ind].data[...] = blob.astype(np.float32, copy=False)
-            
 
     def backward(self, top, propagate_down, bottom):
         # Initialize all the gradients to 0. We will accumulate gradient

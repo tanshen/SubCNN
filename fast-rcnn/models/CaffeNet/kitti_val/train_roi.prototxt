@@ -217,6 +217,7 @@ layer {
   type: 'Python'
   bottom: 'conv_sub_prob'
   bottom: 'info_boxes'
+  bottom: 'data'
   top: 'rois'
   top: 'rois_sub'
   top: 'labels'

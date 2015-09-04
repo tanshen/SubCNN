@@ -9,9 +9,12 @@
 
 import numpy as np
 from fast_rcnn.config import cfg
-import utils.cython_bbox
+from utils.cython_bbox import bbox_overlaps
 import scipy.sparse
 import PIL
+import math
+import os
+import cPickle
 
 def get_boxes_grid(image_height, image_width):
     """
@@ -67,20 +70,32 @@ def prepare_roidb(imdb):
     each ground-truth box. The class with maximum overlap is also
     recorded.
     """
+
+    cache_file = os.path.join(imdb.cache_path, imdb.name + '_gt_roidb_prepared.pkl')
+    if os.path.exists(cache_file):
+        with open(cache_file, 'rb') as fid:
+            imdb._roidb = cPickle.load(fid)
+        print '{} gt roidb prepared loaded from {}'.format(imdb.name, cache_file)
+        return
+
     roidb = imdb.roidb
     for i in xrange(len(imdb.image_index)):
         roidb[i]['image'] = imdb.image_path_at(i)
         boxes = roidb[i]['boxes']
         labels = roidb[i]['gt_classes']
         sublabels = roidb[i]['gt_subclasses']
+        info_boxes = np.zeros((0, 18), dtype=np.float32)
+
+        if boxes.shape[0] == 0:
+            roidb[i]['info_boxes'] = info_boxes
+            continue
 
         # compute grid boxes
         s = PIL.Image.open(imdb.image_path_at(i)).size
         image_height = s[1]
         image_width = s[0]
         boxes_grid, cx, cy = get_boxes_grid(image_height, image_width)
-
-        info_boxes = np.zeros((0, 18), dtype=np.float32)
+        
         # for each scale
         for scale_ind, scale in enumerate(cfg.TRAIN.SCALES):
             boxes_rescaled = boxes * scale
@@ -113,10 +128,14 @@ def prepare_roidb(imdb):
 
         roidb[i]['info_boxes'] = info_boxes
 
+    with open(cache_file, 'wb') as fid:
+        cPickle.dump(roidb, fid, cPickle.HIGHEST_PROTOCOL)
+    print 'wrote gt roidb prepared to {}'.format(cache_file)
+
 def add_bbox_regression_targets(roidb):
     """Add information needed to train bounding-box regressors."""
     assert len(roidb) > 0
-    assert 'max_classes' in roidb[0], 'Did you call prepare_roidb first?'
+    assert 'info_boxes' in roidb[0], 'Did you call prepare_roidb first?'
 
     num_images = len(roidb)
     # Infer number of classes from the number of columns in gt_overlaps

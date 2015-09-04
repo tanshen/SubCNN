@@ -19,6 +19,7 @@ Most tools in $ROOT/tools take a --cfg option to specify an override file.
 import os
 import os.path as osp
 import numpy as np
+import math
 # `pip install easydict` if you don't have it
 from easydict import EasyDict as edict
 
@@ -97,6 +98,8 @@ __C.TEST = edict()
 # Each scale is the pixel size of an image's shortest side
 __C.TEST.SCALES = (0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0)
 __C.TEST.ASPECTS = (1, 0.75, 0.5, 0.25)
+__C.TEST.SPATIAL_SCALE = 0.0625
+__C.TEST.KERNEL_SIZE = 5
 
 # Max pixel size of the longest side of a scaled input image
 __C.TEST.MAX_SIZE = 1000
@@ -173,11 +176,24 @@ def add_scale_mapping():
 
     __C.TRAIN.SCALE_MAPPING = levels
 
+    # compute width and height of grid box
+    area = __C.TRAIN.KERNEL_SIZE * __C.TRAIN.KERNEL_SIZE
+    aspect = __C.TRAIN.ASPECTS  # height / width
+    num_aspect = len(aspect)
+    widths = np.zeros((num_aspect), dtype=np.float32)
+    heights = np.zeros((num_aspect), dtype=np.float32)
+    for i in xrange(num_aspect):
+        widths[i] = math.sqrt(area / aspect[i])
+        heights[i] = widths[i] * aspect[i]
+
+    __C.TRAIN.ASPECT_WIDTHS = widths
+    __C.TRAIN.ASPECT_HEIGHTS = heights
+
     # test
     scales = np.array(__C.TEST.SCALES)
     num = len(scales)
 
-    kernel_size = __C.TRAIN.KERNEL_SIZE / __C.TRAIN.SPATIAL_SCALE
+    kernel_size = __C.TEST.KERNEL_SIZE / __C.TEST.SPATIAL_SCALE
     area = kernel_size * kernel_size
     areas = np.repeat(area, num) / (scales ** 2)
 
@@ -186,6 +202,19 @@ def add_scale_mapping():
     levels = diff_areas.argmin(axis=1)
 
     __C.TEST.SCALE_MAPPING = levels
+
+    # compute width and height of grid box
+    area = __C.TEST.KERNEL_SIZE * __C.TEST.KERNEL_SIZE
+    aspect = __C.TEST.ASPECTS  # height / width
+    num_aspect = len(aspect)
+    widths = np.zeros((num_aspect), dtype=np.float32)
+    heights = np.zeros((num_aspect), dtype=np.float32)
+    for i in xrange(num_aspect):
+        widths[i] = math.sqrt(area / aspect[i])
+        heights[i] = widths[i] * aspect[i]
+
+    __C.TEST.ASPECT_WIDTHS = widths
+    __C.TEST.ASPECT_HEIGHTS = heights
 
 def _merge_a_into_b(a, b):
     """Merge config dictionary a into config dictionary b, clobbering the
