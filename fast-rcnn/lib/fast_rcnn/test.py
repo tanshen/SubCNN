@@ -19,7 +19,6 @@ import heapq
 from utils.blob import im_list_to_blob
 import os
 import math
-import matplotlib.pyplot as plt
 
 def _get_image_blob(im):
     """Converts an image into a network input.
@@ -274,8 +273,9 @@ def im_detect(net, im, boxes_grid, num_classes, num_subclasses):
     scores_subcls = scores_subcls[inds]
    
     # draw boxes
-    if 1:
+    if 0:
         # print scores, pred_boxes.shape
+        import matplotlib.pyplot as plt
         plt.imshow(im)
         for j in xrange(pred_boxes.shape[0]):
             roi = pred_boxes[j,4:]
@@ -402,7 +402,7 @@ def test_net(net, imdb):
                     .astype(np.float32, copy=False)
             count = count + len(cls_scores)
 
-            if 1:
+            if 0:
                 keep = nms(all_boxes[j][i], cfg.TEST.NMS)
                 vis_detections(im, imdb.classes[j], all_boxes[j][i][keep, :])
         _t['misc'].toc()
