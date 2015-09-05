@@ -73,16 +73,20 @@ class GtDataLayer(caffe.Layer):
 
         self._name_to_top_map = {
             'data': 0,
-            'info_boxes': 1}
+            'info_boxes': 1,
+            'parameters': 2}
 
         # data blob: holds a batch of N images, each with 3 channels
         # The height and width (100 x 100) are dummy values
         top[0].reshape(1, 3, 100, 100)
 
-        # rois blob: holds R regions of interest, each is a 5-tuple
-        # (n, im, x1, y1, x2, y2) specifying an image batch index n, image index im, and a
-        # rectangle (x1, y1, x2, y2)
+        # info boxes blob
         top[1].reshape(1, 18)
+
+        # parameters blob
+        num_scale = len(cfg.TRAIN.SCALES)
+        num_aspect = len(cfg.TRAIN.ASPECTS)
+        top[2].reshape(2 + 2*num_scale + 2*num_aspect)
             
     def forward(self, bottom, top):
         """Get blobs and copy them into this layer's top blob vector."""

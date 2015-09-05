@@ -25,20 +25,33 @@ def get_minibatch(roidb, num_classes):
 
     # build the box information blob
     info_boxes_blob = np.zeros((0, 18), dtype=np.float32)
+    num_scale = len(cfg.TRAIN.SCALES)
     for i in xrange(num_images):
         info_boxes = roidb[i]['info_boxes']
 
         # change the batch index
-        info_boxes[:,2] += i * len(cfg.TRAIN.SCALES)
-        info_boxes[:,7] += i * len(cfg.TRAIN.SCALES)
+        info_boxes[:,2] += i * num_scale
+        info_boxes[:,7] += i * num_scale
 
         info_boxes_blob = np.vstack((info_boxes_blob, info_boxes))
+
+    # build the parameter blob
+    num_aspect = len(cfg.TRAIN.ASPECTS)
+    num = 2 + 2 * num_scale + 2 * num_aspect
+    parameters_blob = np.zeros((num), dtype=np.float32)
+    parameters_blob[0] = num_scale
+    parameters_blob[1] = num_aspect
+    paramters_blob[2:2+num_scale] = cfg.TRAIN.SCALES
+    paramters_blob[2+num_scale:2+2*num_scale] = cfg.TRAIN.SCALE_MAPPING
+    paramters_blob[2+2*num_scale:2+2*num_scale+num_aspect] = cfg.TRAIN.ASPECT_HEIGHTS
+    paramters_blob[2+2*num_scale+num_aspect:2+2*num_scale+2*num_aspect] = cfg.TRAIN.ASPECT_WIDTHS
 
     # For debug visualizations
     # _vis_minibatch(im_blob, rois_blob, labels_blob, sublabels_blob)
 
     blobs = {'data': im_blob,
-             'info_boxes': info_boxes_blob}
+             'info_boxes': info_boxes_blob,
+             'parameters': parameters_blob}
 
     return blobs
 
