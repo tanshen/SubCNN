@@ -41,10 +41,10 @@ def get_minibatch(roidb, num_classes):
     parameters_blob = np.zeros((num), dtype=np.float32)
     parameters_blob[0] = num_scale
     parameters_blob[1] = num_aspect
-    paramters_blob[2:2+num_scale] = cfg.TRAIN.SCALES
-    paramters_blob[2+num_scale:2+2*num_scale] = cfg.TRAIN.SCALE_MAPPING
-    paramters_blob[2+2*num_scale:2+2*num_scale+num_aspect] = cfg.TRAIN.ASPECT_HEIGHTS
-    paramters_blob[2+2*num_scale+num_aspect:2+2*num_scale+2*num_aspect] = cfg.TRAIN.ASPECT_WIDTHS
+    parameters_blob[2:2+num_scale] = cfg.TRAIN.SCALES
+    parameters_blob[2+num_scale:2+2*num_scale] = cfg.TRAIN.SCALE_MAPPING
+    parameters_blob[2+2*num_scale:2+2*num_scale+num_aspect] = cfg.TRAIN.ASPECT_HEIGHTS
+    parameters_blob[2+2*num_scale+num_aspect:2+2*num_scale+2*num_aspect] = cfg.TRAIN.ASPECT_WIDTHS
 
     # For debug visualizations
     # _vis_minibatch(im_blob, rois_blob, labels_blob, sublabels_blob)
