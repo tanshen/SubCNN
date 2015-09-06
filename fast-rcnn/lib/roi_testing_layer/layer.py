@@ -57,8 +57,7 @@ class RoITestingLayer(caffe.Layer):
         # for each scale of the image
         for i in xrange(heatmap.shape[0]):
 
-            scores = heatmap[i]
-            max_scores = np.reshape(scores[1:].max(axis = 0), (1,-1))
+            max_scores = np.reshape(heatmap[i], (1,-1))
             max_scores = np.repeat(max_scores, len(cfg.TRAIN.ASPECTS)).transpose()
             assert (max_scores.shape[0] == boxes.shape[0])
 
