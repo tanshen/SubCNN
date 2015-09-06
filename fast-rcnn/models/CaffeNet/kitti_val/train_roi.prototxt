@@ -214,9 +214,15 @@ layer {
   top: "conv_sub_prob"
 }
 layer {
+  name: 'heatmap'
+  type: 'HeatmapGenerating'
+  bottom: 'conv_sub_prob'
+  top: 'heatmap'
+}
+layer {
   name: 'roi'
   type: 'ROIGenerating'
-  bottom: 'conv_sub_prob'
+  bottom: 'heatmap'
   bottom: 'info_boxes'
   bottom: 'parameters'
   top: 'rois'
