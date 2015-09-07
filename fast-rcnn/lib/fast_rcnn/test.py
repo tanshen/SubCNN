@@ -273,7 +273,7 @@ def im_detect(net, im, boxes_grid, num_classes, num_subclasses):
     scores_subcls = scores_subcls[inds]
    
     # draw boxes
-    if 0:
+    if 1:
         # print scores, pred_boxes.shape
         import matplotlib.pyplot as plt
         plt.imshow(im)
@@ -402,7 +402,7 @@ def test_net(net, imdb):
                     .astype(np.float32, copy=False)
             count = count + len(cls_scores)
 
-            if 0:
+            if 1:
                 keep = nms(all_boxes[j][i], cfg.TEST.NMS)
                 vis_detections(im, imdb.classes[j], all_boxes[j][i][keep, :])
         _t['misc'].toc()

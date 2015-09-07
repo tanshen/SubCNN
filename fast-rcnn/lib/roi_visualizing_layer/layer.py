@@ -28,7 +28,7 @@ class RoIVisualizingLayer(caffe.Layer):
         
         # show image
         for i in xrange(rois_blob.shape[0]):
-            batch_id = rois_blob[i,0]
+            batch_id = int(rois_blob[i,0])
             im = im_blob[batch_id, :, :, :].transpose((1, 2, 0)).copy()
             im += cfg.PIXEL_MEANS
             im = im[:, :, (2, 1, 0)]
