@@ -239,6 +239,16 @@ layer {
   }
 }
 layer {
+  name: 'roi_visual'
+  type: 'Python'
+  bottom: "rois"
+  bottom: "data"
+  python_param {
+    module: 'roi_visualizing_layer.layer'
+    layer: 'RoIVisualizingLayer'
+  }
+}
+layer {
   name: "roi_pool5_sub"
   type: "ROIPooling"
   bottom: "conv5"
