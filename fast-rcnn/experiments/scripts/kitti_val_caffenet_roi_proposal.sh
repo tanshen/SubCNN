@@ -13,4 +13,4 @@ time ./tools/train_net.py --gpu $1 \
   --solver models/CaffeNet/kitti_val/solver_roi_proposal.prototxt \
   --weights data/imagenet_models/CaffeNet.v2.caffemodel \
   --imdb kitti_train \
-  --cfg experiments/cfgs/kitti_multiscales.yml
+  --cfg experiments/cfgs/kitti_multiscales_proposal.yml
