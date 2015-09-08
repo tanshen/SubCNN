@@ -226,6 +226,7 @@ layer {
   bottom: 'info_boxes'
   bottom: 'parameters'
   top: 'rois_sub'
+  top: 'sublabels'
   roi_generating_param {
     flag_proposal_only: 1
     batch_size: 64

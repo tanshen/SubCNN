@@ -226,11 +226,11 @@ layer {
   bottom: 'info_boxes'
   bottom: 'parameters'
   top: 'rois_sub'
+  top: 'sublabels'
   top: 'rois'
   top: 'labels'
   top: 'bbox_targets'
   top: 'bbox_loss_weights'
-  top: 'sublabels'
   roi_generating_param {
     batch_size: 64
     num_classes: 2
