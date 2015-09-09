@@ -287,6 +287,73 @@ def im_detect(net, im, boxes_grid, num_classes, num_subclasses):
 
     return scores, pred_boxes, scores_subcls
 
+def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
+    """Detect object classes in an image given boxes on grids.
+
+    Arguments:
+        net (caffe.Net): Fast R-CNN network to use
+        im (ndarray): color image to test (in BGR order)
+        boxes (ndarray): R x 4 array of boxes
+
+    Returns:
+        scores (ndarray): R x K array of object class scores (K includes
+            background as object category 0)
+        boxes (ndarray): R x (4*K) array of predicted bounding boxes
+    """
+
+    blobs, im_scale_factors = _get_blobs(im, boxes_grid)
+
+    # reshape network inputs
+    net.blobs['data'].reshape(*(blobs['data'].shape))
+    net.blobs['boxes_grid'].reshape(*(blobs['boxes_grid'].shape))
+    blobs_out = net.forward(data=blobs['data'].astype(np.float32, copy=False),
+                            boxes_grid=blobs['boxes_grid'].astype(np.float32, copy=False))
+
+    scores_subcls = blobs_out['subcls_prob']
+
+    # build scores
+    scores = scores = np.zeros((scores_subcls.shape[0], num_classes))
+    scores[:,0] = scores_subcls[:,0]
+    scores[:,1] = scores_subcls[:,1:].max(axis = 1)
+
+    rois = net.blobs['rois_sub'].data
+    inds = rois[:,0]
+    boxes = rois[:,1:]
+
+    # Simply repeat the boxes, once for each class
+    pred_boxes = np.tile(boxes, (1, scores.shape[1]))
+    pred_boxes = _rescale_boxes(pred_boxes, inds, im_scale_factors)
+    pred_boxes = _clip_boxes(pred_boxes, im.shape)
+
+    # only select one aspect with the highest score
+    num = boxes.shape[0]
+    num_aspect = len(cfg.TEST.ASPECTS)
+    inds = []
+    for i in xrange(num/num_aspect):
+        index = range(i*num_aspect, (i+1)*num_aspect)
+        max_scores = scores[index,1:].max(axis = 1)
+        ind_max = np.argmax(max_scores)
+        inds.append(index[ind_max])
+
+    scores = scores[inds]
+    pred_boxes = pred_boxes[inds]
+    scores_subcls = scores_subcls[inds]
+   
+    # draw boxes
+    if 1:
+        # print scores, pred_boxes.shape
+        import matplotlib.pyplot as plt
+        plt.imshow(im)
+        for j in xrange(pred_boxes.shape[0]):
+            roi = pred_boxes[j,4:]
+            plt.gca().add_patch(
+            plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
+                           roi[3] - roi[1], fill=False,
+                           edgecolor='g', linewidth=3))
+        plt.show()
+
+    return scores, pred_boxes, scores_subcls
+
 def vis_detections(im, class_name, dets, thresh=0.1):
     """Visual debugging of detections."""
     import matplotlib.pyplot as plt
@@ -370,7 +437,7 @@ def test_net(net, imdb):
         boxes_grid = _get_boxes_grid(im.shape[0], im.shape[1])
 
         _t['im_detect'].tic()
-        scores, boxes, scores_subcls = im_detect(net, im, boxes_grid, imdb.num_classes, imdb.num_subclasses)
+        scores, boxes, scores_subcls = im_detect_proposal(net, im, boxes_grid, imdb.num_classes, imdb.num_subclasses)
         _t['im_detect'].toc()
 
         _t['misc'].tic()
