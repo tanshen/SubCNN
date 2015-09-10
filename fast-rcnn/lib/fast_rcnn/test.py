@@ -313,12 +313,10 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
     print scores_subcls.shape
 
     # build scores
-    tmp = scores_subcls
     tmp = np.reshape(scores_subcls, (scores_subcls.shape[0], scores_subcls.shape[1]))
     scores = np.zeros((scores_subcls.shape[0], num_classes))
     scores[:,0] = tmp[:,0]
     scores[:,1] = tmp[:,1:].max(axis = 1)
-    print tmp.shape, scores.shape, scores
 
     rois = net.blobs['rois_sub'].data
     inds = rois[:,0]
@@ -329,19 +327,12 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
     pred_boxes = _rescale_boxes(pred_boxes, inds, im_scale_factors)
     pred_boxes = _clip_boxes(pred_boxes, im.shape)
 
-    # only select one aspect with the highest score
-    num = boxes.shape[0]
-    num_aspect = len(cfg.TEST.ASPECTS)
-    inds = []
-    for i in xrange(num/num_aspect):
-        index = range(i*num_aspect, (i+1)*num_aspect)
-        max_scores = scores[index,1:].max(axis = 1)
-        ind_max = np.argmax(max_scores)
-        inds.append(index[ind_max])
-
+    # select boxes
+    inds = np.where(scores[:,1] > cfg.TEST.ROI_THRESHOLD)[0]
     scores = scores[inds]
     pred_boxes = pred_boxes[inds]
     scores_subcls = scores_subcls[inds]
+    print scores.shape
    
     # draw boxes
     if 1:
