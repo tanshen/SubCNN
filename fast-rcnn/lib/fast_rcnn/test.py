@@ -310,11 +310,15 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
                             boxes_grid=blobs['boxes_grid'].astype(np.float32, copy=False))
 
     scores_subcls = blobs_out['subcls_prob']
+    print scores_subcls.shape
 
     # build scores
-    scores = scores = np.zeros((scores_subcls.shape[0], num_classes))
-    scores[:,0] = scores_subcls[:,0]
-    scores[:,1] = scores_subcls[:,1:].max(axis = 1)
+    tmp = scores_subcls
+    tmp = np.reshape(scores_subcls, (scores_subcls.shape[0], scores_subcls.shape[1]))
+    scores = np.zeros((scores_subcls.shape[0], num_classes))
+    scores[:,0] = tmp[:,0]
+    scores[:,1] = tmp[:,1:].max(axis = 1)
+    print tmp.shape, scores.shape, scores
 
     rois = net.blobs['rois_sub'].data
     inds = rois[:,0]
