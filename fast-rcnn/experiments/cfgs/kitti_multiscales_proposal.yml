@@ -1,6 +1,6 @@
 EXP_DIR: kitti
 TRAIN:
-  SCALES: !!python/tuple [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+  SCALES: !!python/tuple [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
   ASPECTS: !!python/tuple [1.0, 0.75, 0.5, 0.25]
   MAX_SIZE: 3726
   IMS_PER_BATCH: 1
@@ -13,7 +13,7 @@ TRAIN:
   BBOX_REG: False
   SNAPSHOT_ITERS: 5000
 TEST:
-  SCALES: !!python/tuple [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+  SCALES: !!python/tuple [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
   ASPECTS: !!python/tuple [1.0, 0.75, 0.5, 0.25]
   MAX_SIZE: 3726
   NMS: 0.5

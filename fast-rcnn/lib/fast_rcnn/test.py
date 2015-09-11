@@ -483,7 +483,8 @@ def test_net(net, imdb):
         cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
 
     # print 'Applying NMS to all detections'
-    nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
+    # nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
 
     print 'Evaluating detections'
-    imdb.evaluate_detections(nms_dets, output_dir)
+    # imdb.evaluate_detections(nms_dets, output_dir)
+    imdb.evaluate_detections(all_boxes, output_dir)
