@@ -271,3 +271,28 @@ layer {
   bottom: "subcls_score"
   top: "subcls_prob"
 }
+layer {
+  name: "bbox_pred_proposal"
+  type: "InnerProduct"
+  bottom: "pool5_sub"
+  top: "bbox_pred"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 8 
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}

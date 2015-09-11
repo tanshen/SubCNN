@@ -321,11 +321,17 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
     rois = net.blobs['rois_sub'].data
     inds = rois[:,0]
     boxes = rois[:,1:]
-
-    # Simply repeat the boxes, once for each class
-    pred_boxes = np.tile(boxes, (1, scores.shape[1]))
-    pred_boxes = _rescale_boxes(pred_boxes, inds, im_scale_factors)
-    pred_boxes = _clip_boxes(pred_boxes, im.shape)
+    if cfg.TEST.BBOX_REG:
+        # Apply bounding-box regression deltas
+        box_deltas = blobs_out['bbox_pred']
+        pred_boxes = _bbox_pred(boxes, box_deltas)
+        pred_boxes = _rescale_boxes(pred_boxes, inds, im_scale_factors)
+        pred_boxes = _clip_boxes(pred_boxes, im.shape)
+    else:
+        # Simply repeat the boxes, once for each class
+        pred_boxes = np.tile(boxes, (1, scores.shape[1]))
+        pred_boxes = _rescale_boxes(pred_boxes, inds, im_scale_factors)
+        pred_boxes = _clip_boxes(pred_boxes, im.shape)
 
     # select boxes
     inds = np.where(scores[:,1] > cfg.TEST.ROI_THRESHOLD)[0]

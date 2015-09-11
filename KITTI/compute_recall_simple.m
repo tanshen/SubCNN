@@ -1,4 +1,4 @@
-function recall_all = compute_recall
+function recall_all = compute_recall_simple
 
 cls = 'car';
 
@@ -46,12 +46,12 @@ fprintf('load ground truth done\n');
 
 detections = cell(1, M);
 for i = 1:M
-    filename = sprintf('/net/acadia3/data/RegionletSetup/KITTI/CandBB/ss/train/%06d.txt', ids(i));
+    filename = sprintf('/home/yuxiang/Projects/SLM/ACF/results_kitti_train/%06d.txt', ids(i));
     disp(filename);
     fid = fopen(filename, 'r');
-    C = textscan(fid, '%d %d %d %d %d');
+    C = textscan(fid, '%s %f %d %f %f %f %f %f %f %f %f %f %f %f %f %f');   
     fclose(fid);
-    det = double([C{2} C{3} C{4} C{5}]);
+    det = double([C{5} C{6} C{7} C{8}]);
     detections{i} = det;
 end
 
@@ -132,7 +132,7 @@ for difficulty = 1:3
 
             box_gt = [gt(j).x1 gt(j).y1 gt(j).x2 gt(j).y2];
             overlap = boxoverlap(det, box_gt);
-            disp(max(overlap));
+            % disp(max(overlap));
             if max(overlap) >= MIN_OVERLAP
                 tp = tp + 1;
             else

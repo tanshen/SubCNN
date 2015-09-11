@@ -227,6 +227,8 @@ layer {
   bottom: 'parameters'
   top: 'rois_sub'
   top: 'sublabels'
+  top: 'bbox_targets'
+  top: 'bbox_loss_weights'
   roi_generating_param {
     flag_proposal_only: 1
     batch_size: 64
@@ -273,5 +275,39 @@ layer {
   bottom: "subcls_score"
   bottom: "sublabels"
   top: "loss_subcls"
+  loss_weight: 1
+}
+layer {
+  name: "bbox_pred_proposal"
+  type: "InnerProduct"
+  bottom: "pool5_sub"
+  top: "bbox_pred"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 8 
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "loss_bbox_proposal"
+  type: "SmoothL1Loss"
+  bottom: "bbox_pred"
+  bottom: "bbox_targets"
+  bottom: "bbox_loss_weights"
+  top: "loss_bbox"
   loss_weight: 1
 }
