@@ -341,7 +341,7 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
     print scores.shape
    
     # draw boxes
-    if 1:
+    if 0:
         # print scores, pred_boxes.shape
         import matplotlib.pyplot as plt
         plt.imshow(im)
@@ -387,6 +387,16 @@ def apply_nms(all_boxes, thresh):
             dets = all_boxes[cls_ind][im_ind]
             if dets == []:
                 continue
+
+            x1 = dets[:, 0]
+            y1 = dets[:, 1]
+            x2 = dets[:, 2]
+            y2 = dets[:, 3]
+            inds = np.where((x2 > x1) & (y2 > y1))[0]
+            dets = dets[inds,:]
+            if dets == []:
+                continue
+
             keep = nms(dets, thresh)
             if len(keep) == 0:
                 continue

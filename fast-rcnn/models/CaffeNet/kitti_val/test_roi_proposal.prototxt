@@ -272,7 +272,7 @@ layer {
   top: "subcls_prob"
 }
 layer {
-  name: "bbox_pred_proposal"
+  name: "bbox_pred"
   type: "InnerProduct"
   bottom: "pool5_sub"
   top: "bbox_pred"

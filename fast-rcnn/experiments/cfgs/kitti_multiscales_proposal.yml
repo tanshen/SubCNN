@@ -17,5 +17,5 @@ TEST:
   ASPECTS: !!python/tuple [1.0, 0.75, 0.5, 0.25]
   MAX_SIZE: 3726
   NMS: 0.5
-  ROI_THRESHOLD: 0.1
+  ROI_THRESHOLD: 0.015
   BBOX_REG: True
