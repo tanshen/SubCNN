@@ -75,7 +75,7 @@ def _get_image_blob(roidb):
         im_size_min = np.min(im_shape[0:2])
         im_size_max = np.max(im_shape[0:2])
 
-        for im_scale in cfg.TRAIN.SCALES:
+        for im_scale in cfg.TRAIN.SCALES_BASE:
             im = cv2.resize(im_orig, None, None, fx=im_scale, fy=im_scale,
                         interpolation=cv2.INTER_LINEAR)
 

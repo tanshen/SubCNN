@@ -34,18 +34,19 @@ cfg = __C
 
 __C.TRAIN = edict()
 
-# Scales to use during training (can list multiple scales)
-# Each scale is the pixel size of an image's shortest side
-__C.TRAIN.SCALES = (0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0)
+# Scales to compute real features
+__C.TRAIN.SCALES_BASE = (0.25, 0.5, 1.0, 2.0, 4.0)
+
+# The number of scales per octave in the image pyramid 
+# An octave is the set of scales up to half of the initial scale
+__C.TRAIN.NUM_PER_OCTAVE = 8
 
 # parameters for ROI generating
 __C.TRAIN.SPATIAL_SCALE = 0.0625
 __C.TRAIN.KERNEL_SIZE = 5
+
 # Aspect ratio to use during training
 __C.TRAIN.ASPECTS = (1, 0.75, 0.5, 0.25)
-
-# Max pixel size of the longest side of a scaled input image
-__C.TRAIN.MAX_SIZE = 1000
 
 # Images to use per minibatch
 __C.TRAIN.IMS_PER_BATCH = 2
@@ -94,19 +95,23 @@ __C.TRAIN.SUBCLS = True
 
 __C.TEST = edict()
 
-# Scales to use during testing (can list multiple scales)
-# Each scale is the pixel size of an image's shortest side
-__C.TEST.SCALES = (0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0)
+# Scales to compute real features
+__C.TEST.SCALES_BASE = (0.25, 0.5, 1.0, 2.0, 4.0)
+
+# The number of scales per octave in the image pyramid 
+# An octave is the set of scales up to half of the initial scale
+__C.TEST.NUM_PER_OCTAVE = 8
+
+# Aspect ratio to use during testing
 __C.TEST.ASPECTS = (1, 0.75, 0.5, 0.25)
+
+# parameters for ROI generating
 __C.TEST.SPATIAL_SCALE = 0.0625
 __C.TEST.KERNEL_SIZE = 5
 
-# Max pixel size of the longest side of a scaled input image
-__C.TEST.MAX_SIZE = 1000
-
 # Overlap threshold used for non-maximum suppression (suppress boxes with
 # IoU >= this threshold)
-__C.TEST.NMS = 0.3
+__C.TEST.NMS = 0.5
 
 # Experimental: treat the (K+1) units in the cls_score layer as linear
 # predictors (trained, eg, with one-vs-rest SVMs).
@@ -160,25 +165,55 @@ def get_output_dir(imdb, net):
     else:
         return osp.join(path, net.name)
 
-# map the scales to scales for RoI pooling of classification
-def add_scale_mapping():
-    # train
-    scales = np.array(__C.TRAIN.SCALES)
-    num = len(scales)
+def _add_more_info(is_train):
+    # compute all the scales
+    if is_train:
+        scales_base = __C.TRAIN.SCALES_BASE
+        num_per_octave = __C.TRAIN.NUM_PER_OCTAVE
+    else:
+        scales_base = __C.TEST.SCALES_BASE
+        num_per_octave = __C.TEST.NUM_PER_OCTAVE
 
-    kernel_size = __C.TRAIN.KERNEL_SIZE / __C.TRAIN.SPATIAL_SCALE
+    num = (len(scales_base) - 1) * num_per_octave + 1
+    scales = []
+    smin = min(scales_base)
+    step = 1.0 / num_per_octave
+    for i in xrange(num):
+        scales.append( smin * (2 ** (i * step)) )
+
+    if is_train:
+        __C.TRAIN.SCALES = scales
+    else:
+        __C.TEST.SCALES = scales
+    print scales
+
+
+    # map the scales to scales for RoI pooling of classification
+    if is_train:
+        kernel_size = __C.TRAIN.KERNEL_SIZE / __C.TRAIN.SPATIAL_SCALE
+    else:
+        kernel_size = __C.TEST.KERNEL_SIZE / __C.TEST.SPATIAL_SCALE
+
     area = kernel_size * kernel_size
+    scales = np.array(scales)
     areas = np.repeat(area, num) / (scales ** 2)
-
     scaled_areas = areas[:, np.newaxis] * (scales[np.newaxis, :] ** 2)
     diff_areas = np.abs(scaled_areas - 224 * 224)
     levels = diff_areas.argmin(axis=1)
 
-    __C.TRAIN.SCALE_MAPPING = levels
+    if is_train:
+        __C.TRAIN.SCALE_MAPPING = levels
+    else:
+        __C.TEST.SCALE_MAPPING = levels
 
     # compute width and height of grid box
-    area = __C.TRAIN.KERNEL_SIZE * __C.TRAIN.KERNEL_SIZE
-    aspect = __C.TRAIN.ASPECTS  # height / width
+    if is_train:
+        area = __C.TRAIN.KERNEL_SIZE * __C.TRAIN.KERNEL_SIZE
+        aspect = __C.TRAIN.ASPECTS  # height / width
+    else:
+        area = __C.TEST.KERNEL_SIZE * __C.TEST.KERNEL_SIZE
+        aspect = __C.TEST.ASPECTS  # height / width
+
     num_aspect = len(aspect)
     widths = np.zeros((num_aspect), dtype=np.float32)
     heights = np.zeros((num_aspect), dtype=np.float32)
@@ -186,35 +221,12 @@ def add_scale_mapping():
         widths[i] = math.sqrt(area / aspect[i])
         heights[i] = widths[i] * aspect[i]
 
-    __C.TRAIN.ASPECT_WIDTHS = widths
-    __C.TRAIN.ASPECT_HEIGHTS = heights
-
-    # test
-    scales = np.array(__C.TEST.SCALES)
-    num = len(scales)
-
-    kernel_size = __C.TEST.KERNEL_SIZE / __C.TEST.SPATIAL_SCALE
-    area = kernel_size * kernel_size
-    areas = np.repeat(area, num) / (scales ** 2)
-
-    scaled_areas = areas[:, np.newaxis] * (scales[np.newaxis, :] ** 2)
-    diff_areas = np.abs(scaled_areas - 224 * 224)
-    levels = diff_areas.argmin(axis=1)
-
-    __C.TEST.SCALE_MAPPING = levels
-
-    # compute width and height of grid box
-    area = __C.TEST.KERNEL_SIZE * __C.TEST.KERNEL_SIZE
-    aspect = __C.TEST.ASPECTS  # height / width
-    num_aspect = len(aspect)
-    widths = np.zeros((num_aspect), dtype=np.float32)
-    heights = np.zeros((num_aspect), dtype=np.float32)
-    for i in xrange(num_aspect):
-        widths[i] = math.sqrt(area / aspect[i])
-        heights[i] = widths[i] * aspect[i]
-
-    __C.TEST.ASPECT_WIDTHS = widths
-    __C.TEST.ASPECT_HEIGHTS = heights
+    if is_train:
+        __C.TRAIN.ASPECT_WIDTHS = widths
+        __C.TRAIN.ASPECT_HEIGHTS = heights
+    else:
+        __C.TEST.ASPECT_WIDTHS = widths
+        __C.TEST.ASPECT_HEIGHTS = heights
 
 def _merge_a_into_b(a, b):
     """Merge config dictionary a into config dictionary b, clobbering the
@@ -251,4 +263,5 @@ def cfg_from_file(filename):
         yaml_cfg = edict(yaml.load(f))
 
     _merge_a_into_b(yaml_cfg, __C)
-    add_scale_mapping()
+    _add_more_info(1)
+    _add_more_info(0)

@@ -187,9 +187,20 @@ layer {
   top: "conv5"
 }
 layer {
+  name: 'feature'
+  type: 'FeatureExtrapolating'
+  bottom: 'conv5'
+  top: 'conv5_feature'
+  feature_extrapolating_param {
+    min_scale: 0.25
+    max_scale: 4
+    num_per_octave: 8
+  }
+}
+layer {
   name: "conv_sub"
   type: "Convolution"
-  bottom: "conv5"
+  bottom: "conv5_feature"
   top: "conv_sub"
   param {
     name: "conv_sub_w"
@@ -238,9 +249,19 @@ layer {
   }
 }
 layer {
+  name: 'roi_visualizing'
+  type: 'Python'
+  bottom: 'rois_sub'
+  bottom: 'data'
+  python_param {
+    module: 'roi_visualizing_layer.layer'
+    layer: 'RoIVisualizingLayer'
+  }
+}
+layer {
   name: "roi_pool5_sub"
   type: "ROIPooling"
-  bottom: "conv5"
+  bottom: "conv5_feature"
   bottom: "rois_sub"
   top: "pool5_sub"
   roi_pooling_param {
