@@ -35,7 +35,7 @@ cfg = __C
 __C.TRAIN = edict()
 
 # Scales to compute real features
-__C.TRAIN.SCALES_BASE = (0.25, 0.5, 1.0, 2.0, 4.0)
+__C.TRAIN.SCALES_BASE = (0.25, 0.5, 1.0, 2.0, 3.0)
 
 # The number of scales per octave in the image pyramid 
 # An octave is the set of scales up to half of the initial scale
@@ -96,7 +96,7 @@ __C.TRAIN.SUBCLS = True
 __C.TEST = edict()
 
 # Scales to compute real features
-__C.TEST.SCALES_BASE = (0.25, 0.5, 1.0, 2.0, 4.0)
+__C.TEST.SCALES_BASE = (0.25, 0.5, 1.0, 2.0, 3.0)
 
 # The number of scales per octave in the image pyramid 
 # An octave is the set of scales up to half of the initial scale
@@ -174,12 +174,19 @@ def _add_more_info(is_train):
         scales_base = __C.TEST.SCALES_BASE
         num_per_octave = __C.TEST.NUM_PER_OCTAVE
 
-    num = (len(scales_base) - 1) * num_per_octave + 1
+    num_scale_base = len(scales_base)
+    num = (num_scale_base - 1) * num_per_octave + 1
     scales = []
-    smin = min(scales_base)
-    step = 1.0 / num_per_octave
     for i in xrange(num):
-        scales.append( smin * (2 ** (i * step)) )
+        index_scale_base = i / num_per_octave
+        sbase = scales_base[index_scale_base]
+        j = i % num_per_octave
+        if j == 0:
+            scales.append(sbase)
+        else:
+            sbase_next = scales_base[index_scale_base+1]
+            step = (sbase_next - sbase) / num_per_octave
+            scales.append(sbase + j * step)
 
     if is_train:
         __C.TRAIN.SCALES = scales
