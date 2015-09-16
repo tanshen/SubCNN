@@ -41,10 +41,7 @@ def _get_image_blob(im):
     processed_ims = []
     im_scale_factors = []
 
-    for im_scale in cfg.TEST.SCALES:
-        # Prevent the biggest axis from being more than MAX_SIZE
-        if np.round(im_scale * im_size_max) > cfg.TEST.MAX_SIZE:
-            im_scale = float(cfg.TEST.MAX_SIZE) / float(im_size_max)
+    for im_scale in cfg.TEST.SCALES_BASE:
         im = cv2.resize(im_orig, None, None, fx=im_scale, fy=im_scale,
                         interpolation=cv2.INTER_LINEAR)
         im_scale_factors.append(im_scale)
@@ -250,12 +247,12 @@ def im_detect(net, im, boxes_grid, num_classes, num_subclasses):
         # Apply bounding-box regression deltas
         box_deltas = blobs_out['bbox_pred']
         pred_boxes = _bbox_pred(boxes, box_deltas)
-        pred_boxes = _rescale_boxes(pred_boxes, inds, im_scale_factors)
+        pred_boxes = _rescale_boxes(pred_boxes, inds, cfg.TRAIN.SCALES)
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
     else:
         # Simply repeat the boxes, once for each class
         pred_boxes = np.tile(boxes, (1, scores.shape[1]))
-        pred_boxes = _rescale_boxes(pred_boxes, inds, im_scale_factors)
+        pred_boxes = _rescale_boxes(pred_boxes, inds, cfg.TRAIN.SCALES)
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
 
     # only select one aspect with the highest score
@@ -325,12 +322,12 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
         # Apply bounding-box regression deltas
         box_deltas = blobs_out['bbox_pred']
         pred_boxes = _bbox_pred(boxes, box_deltas)
-        pred_boxes = _rescale_boxes(pred_boxes, inds, im_scale_factors)
+        pred_boxes = _rescale_boxes(pred_boxes, inds, cfg.TRAIN.SCALES)
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
     else:
         # Simply repeat the boxes, once for each class
         pred_boxes = np.tile(boxes, (1, scores.shape[1]))
-        pred_boxes = _rescale_boxes(pred_boxes, inds, im_scale_factors)
+        pred_boxes = _rescale_boxes(pred_boxes, inds, cfg.TRAIN.SCALES)
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
 
     # select boxes
