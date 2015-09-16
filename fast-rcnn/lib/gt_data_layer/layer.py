@@ -78,7 +78,8 @@ class GtDataLayer(caffe.Layer):
 
         # data blob: holds a batch of N images, each with 3 channels
         # The height and width (100 x 100) are dummy values
-        top[0].reshape(1, 3, 100, 100)
+        num_scale_base = len(cfg.TRAIN.SCALES_BASE)
+        top[0].reshape(num_scale_base, 3, 100, 100)
 
         # info boxes blob
         top[1].reshape(1, 18)

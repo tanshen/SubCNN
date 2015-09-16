@@ -39,7 +39,7 @@ __C.TRAIN.SCALES_BASE = (0.25, 0.5, 1.0, 2.0, 4.0)
 
 # The number of scales per octave in the image pyramid 
 # An octave is the set of scales up to half of the initial scale
-__C.TRAIN.NUM_PER_OCTAVE = 8
+__C.TRAIN.NUM_PER_OCTAVE = 4
 
 # parameters for ROI generating
 __C.TRAIN.SPATIAL_SCALE = 0.0625
@@ -100,7 +100,7 @@ __C.TEST.SCALES_BASE = (0.25, 0.5, 1.0, 2.0, 4.0)
 
 # The number of scales per octave in the image pyramid 
 # An octave is the set of scales up to half of the initial scale
-__C.TEST.NUM_PER_OCTAVE = 8
+__C.TEST.NUM_PER_OCTAVE = 4
 
 # Aspect ratio to use during testing
 __C.TEST.ASPECTS = (1, 0.75, 0.5, 0.25)
