@@ -199,7 +199,7 @@ def _rescale_boxes(boxes, inds, scales):
     """Rescale grid boxes according to image rescaling."""
 
     for i in xrange(boxes.shape[0]):
-        boxes[i,:] = boxes[i,:] / scales[inds[i]]
+        boxes[i,:] = boxes[i,:] / scales[int(inds[i])]
 
     return boxes
 
@@ -338,7 +338,7 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
     print scores.shape
    
     # draw boxes
-    if 0:
+    if 1:
         # print scores, pred_boxes.shape
         import matplotlib.pyplot as plt
         plt.imshow(im)

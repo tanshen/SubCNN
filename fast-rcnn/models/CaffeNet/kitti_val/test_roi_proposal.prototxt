@@ -1,7 +1,7 @@
 name: "CaffeNet"
 input: "data"
 input_shape {
-  dim: 1
+  dim: 5
   dim: 3
   dim: 227
   dim: 227
