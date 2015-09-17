@@ -66,11 +66,11 @@ layer {
   bottom: "norm1"
   top: "conv2"
   param {
-    lr_mult: 1
+    lr_mult: 0.1
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 0.2
     decay_mult: 0
   }
   convolution_param {
@@ -115,11 +115,11 @@ layer {
   bottom: "norm2"
   top: "conv3"
   param {
-    lr_mult: 1
+    lr_mult: 0.1
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 0.2
     decay_mult: 0
   }
   convolution_param {
@@ -140,11 +140,11 @@ layer {
   bottom: "conv3"
   top: "conv4"
   param {
-    lr_mult: 1
+    lr_mult: 0.1
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 0.2
     decay_mult: 0
   }
   convolution_param {
@@ -166,11 +166,11 @@ layer {
   bottom: "conv4"
   top: "conv5"
   param {
-    lr_mult: 1
+    lr_mult: 0.1
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 0.2
     decay_mult: 0
   }
   convolution_param {
@@ -187,18 +187,29 @@ layer {
   top: "conv5"
 }
 layer {
+  name: 'feature'
+  type: 'FeatureExtrapolating'
+  bottom: 'conv5'
+  top: 'conv5_feature'
+  feature_extrapolating_param {
+    scale_string: "0.25 0.5 1.0 2.0 3.0"
+    num_scale_base: 5
+    num_per_octave: 4 
+  }
+}
+layer {
   name: "conv_sub"
   type: "Convolution"
-  bottom: "conv5"
+  bottom: "conv5_feature"
   top: "conv_sub"
   param {
     name: "conv_sub_w"
-    lr_mult: 0.1
+    lr_mult: 1
     decay_mult: 1
   }
   param {
     name: "conv_sub_b"
-    lr_mult: 0.2
+    lr_mult: 2
     decay_mult: 0
   }
   convolution_param {
@@ -214,26 +225,60 @@ layer {
   top: "conv_sub_prob"
 }
 layer {
-  name: 'roi'
-  type: 'Python'
+  name: 'heatmap'
+  type: 'HeatmapGenerating'
   bottom: 'conv_sub_prob'
+  top: 'heatmap'
+}
+#layer {
+#  name: 'roi'
+#  type: 'Python'
+#  bottom: 'conv_sub_prob'
+#  bottom: 'info_boxes'
+#  top: 'rois'
+#  top: 'rois_sub'
+#  top: 'labels'
+#  top: 'bbox_targets'
+#  top: 'bbox_loss_weights'
+#  top: 'sublabels'
+#  python_param {
+#    module: 'roi_generating_layer.layer'
+#    layer: 'RoIGeneratingLayer'
+#    param_str: "'num_classes': 2\n'kernel_size': 5\n'spatial_scale': 0.0625"
+#  }
+#}
+layer {
+  name: 'roi'
+  type: 'ROIGenerating'
+  bottom: 'heatmap'
   bottom: 'info_boxes'
-  top: 'rois'
+  bottom: 'parameters'
   top: 'rois_sub'
-  top: 'labels'
+  top: 'sublabels'
   top: 'bbox_targets'
   top: 'bbox_loss_weights'
-  top: 'sublabels'
-  python_param {
-    module: 'roi_generating_layer.layer'
-    layer: 'RoIGeneratingLayer'
-    param_str: "'num_classes': 2\n'kernel_size': 5\n'spatial_scale': 0.0625"
+  roi_generating_param {
+    flag_proposal_only: 1
+    batch_size: 64
+    num_classes: 2
+    fg_fraction: 0.25
+    spatial_scale: 0.0625 # 1/16
   }
 }
+#layer {
+#  name: 'roi_visualizing'
+#  type: 'Python'
+#  bottom: 'rois_sub'
+#  bottom: 'data'
+#  python_param {
+#    module: 'roi_visualizing_layer.layer'
+#    layer: 'RoIVisualizingLayer'
+#  }
+#}
 layer {
   name: "roi_pool5_sub"
   type: "ROIPooling"
-  bottom: "conv5"
+  bottom: "conv5_feature"
   bottom: "rois_sub"
   top: "pool5_sub"
   roi_pooling_param {
@@ -249,12 +294,12 @@ layer {
   top: "subcls_score"
   param {
     name: "conv_sub_w"
-    lr_mult: 0.1
+    lr_mult: 1
     decay_mult: 1
   }
   param {
     name: "conv_sub_b"
-    lr_mult: 0.2
+    lr_mult: 2
     decay_mult: 0
   }
   convolution_param {
@@ -268,113 +313,12 @@ layer {
   bottom: "subcls_score"
   bottom: "sublabels"
   top: "loss_subcls"
-  loss_weight: 0.5
-}
-layer {
-  name: "roi_pool5"
-  type: "ROIPooling"
-  bottom: "conv5"
-  bottom: "rois"
-  top: "pool5"
-  roi_pooling_param {
-    pooled_w: 6
-    pooled_h: 6
-    spatial_scale: 0.0625 # 1/16
-  }
-}
-layer {
-  name: "fc6"
-  type: "InnerProduct"
-  bottom: "pool5"
-  top: "fc6"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  inner_product_param {
-    num_output: 4096
-  }
-}
-layer {
-  name: "relu6"
-  type: "ReLU"
-  bottom: "fc6"
-  top: "fc6"
-}
-layer {
-  name: "drop6"
-  type: "Dropout"
-  bottom: "fc6"
-  top: "fc6"
-  dropout_param {
-    dropout_ratio: 0.5
-  }
-}
-layer {
-  name: "fc7"
-  type: "InnerProduct"
-  bottom: "fc6"
-  top: "fc7"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  inner_product_param {
-    num_output: 4096
-  }
-}
-layer {
-  name: "relu7"
-  type: "ReLU"
-  bottom: "fc7"
-  top: "fc7"
-}
-layer {
-  name: "drop7"
-  type: "Dropout"
-  bottom: "fc7"
-  top: "fc7"
-  dropout_param {
-    dropout_ratio: 0.5
-  }
-}
-layer {
-  name: "cls_score"
-  type: "InnerProduct"
-  bottom: "fc7"
-  top: "cls_score"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  inner_product_param {
-    num_output: 2
-    weight_filler {
-      type: "gaussian"
-      std: 0.01
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
-    }
-  }
+  loss_weight: 1
 }
 layer {
   name: "bbox_pred"
   type: "InnerProduct"
-  bottom: "fc7"
+  bottom: "pool5_sub"
   top: "bbox_pred"
   param {
     lr_mult: 1
@@ -395,14 +339,6 @@ layer {
       value: 0
     }
   }
-}
-layer {
-  name: "loss_cls"
-  type: "SoftmaxWithLoss"
-  bottom: "cls_score"
-  bottom: "labels"
-  top: "loss_cls"
-  loss_weight: 1
 }
 layer {
   name: "loss_bbox"

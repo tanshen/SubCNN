@@ -10,6 +10,7 @@
 import caffe
 from fast_rcnn.config import cfg
 import gt_data_layer.roidb as gdl_roidb
+import roi_data_layer.roidb as rdl_roidb
 from utils.timer import Timer
 import numpy as np
 import os
@@ -23,14 +24,15 @@ class SolverWrapper(object):
     use to unnormalize the learned bounding-box regression weights.
     """
 
-    def __init__(self, solver_prototxt, roidb, output_dir,
-                 pretrained_model=None):
+    def __init__(self, solver_prototxt, roidb, output_dir, pretrained_model=None):
         """Initialize the SolverWrapper."""
         self.output_dir = output_dir
 
         print 'Computing bounding-box regression targets...'
-        self.bbox_means, self.bbox_stds = \
-                gdl_roidb.add_bbox_regression_targets(roidb)
+        if cfg.IS_RPN:
+            self.bbox_means, self.bbox_stds = gdl_roidb.add_bbox_regression_targets(roidb)
+        else:
+            self.bbox_means, self.bbox_stds = rdl_roidb.add_bbox_regression_targets(roidb)
         print 'done'
 
         self.solver = caffe.SGDSolver(solver_prototxt)
@@ -108,16 +110,17 @@ def get_training_roidb(imdb):
         print 'done'
 
     print 'Preparing training data...'
-    gdl_roidb.prepare_roidb(imdb)
+    if cfg.IS_RPN:
+        gdl_roidb.prepare_roidb(imdb)
+    else:
+        rdl_roidb.prepare_roidb(imdb)
     print 'done'
 
     return imdb.roidb
 
-def train_net(solver_prototxt, roidb, output_dir,
-              pretrained_model=None, max_iters=40000):
+def train_net(solver_prototxt, roidb, output_dir, pretrained_model=None, max_iters=40000):
     """Train a Fast R-CNN network."""
-    sw = SolverWrapper(solver_prototxt, roidb, output_dir,
-                       pretrained_model=pretrained_model)
+    sw = SolverWrapper(solver_prototxt, roidb, output_dir, pretrained_model=pretrained_model)
 
     print 'Solving...'
     sw.train_model(max_iters)
