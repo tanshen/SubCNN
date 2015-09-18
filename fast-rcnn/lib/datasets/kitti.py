@@ -25,8 +25,10 @@ class kitti(datasets.imdb):
         self._image_ext = '.png'
         self._image_index = self._load_image_set_index()
         # Default to roidb handler
-        # self._roidb_handler = self.region_proposal_roidb
-        self._roidb_handler = self.gt_roidb
+        if cfg.IS_RPN:
+            self._roidb_handler = self.gt_roidb
+        else:
+            self._roidb_handler = self.region_proposal_roidb
 
         # num of subclasses
         if image_set == 'train' or image_set == 'val':
@@ -200,28 +202,29 @@ class kitti(datasets.imdb):
         subindexes = np.zeros((num_objs, self.num_classes), dtype=np.int32)
         subindexes_flipped = np.zeros((num_objs, self.num_classes), dtype=np.int32)
 
-        # compute overlaps between grid boxes and gt boxes in multi-scales
-        # rescale the gt boxes
-        boxes_all = np.zeros((0, 4), dtype=np.float32)
-        for scale in cfg.TRAIN.SCALES:
-            boxes_all = np.vstack((boxes_all, boxes * scale))
+        if cfg.IS_RPN:
+            # compute overlaps between grid boxes and gt boxes in multi-scales
+            # rescale the gt boxes
+            boxes_all = np.zeros((0, 4), dtype=np.float32)
+            for scale in cfg.TRAIN.SCALES:
+                boxes_all = np.vstack((boxes_all, boxes * scale))
 
-        # compute grid boxes
-        s = PIL.Image.open(self.image_path_from_index(index)).size
-        image_height = s[1]
-        image_width = s[0]
-        boxes_grid = self._get_boxes_grid(image_height, image_width)
+            # compute grid boxes
+            s = PIL.Image.open(self.image_path_from_index(index)).size
+            image_height = s[1]
+            image_width = s[0]
+            boxes_grid = self._get_boxes_grid(image_height, image_width)
 
-        # compute overlap
-        overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
+            # compute overlap
+            overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
 
-        # check how many gt boxes are covered by grids
-        if num_objs != 0:
-            index = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
-            max_overlaps = overlaps_grid.max(axis = 0)
-            fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
-            self._num_boxes_all += num_objs
-            self._num_boxes_covered += len(np.unique(index[fg_inds]))
+            # check how many gt boxes are covered by grids
+            if num_objs != 0:
+                index = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
+                max_overlaps = overlaps_grid.max(axis = 0)
+                fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
+                self._num_boxes_all += num_objs
+                self._num_boxes_covered += len(np.unique(index[fg_inds]))
 
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
@@ -292,28 +295,29 @@ class kitti(datasets.imdb):
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
 
-        # compute overlaps between grid boxes and gt boxes in multi-scales
-        # rescale the gt boxes
-        boxes_all = np.zeros((0, 4), dtype=np.float32)
-        for scale in cfg.TRAIN.SCALES:
-            boxes_all = np.vstack((boxes_all, boxes * scale))
+        if cfg.IS_RPN:
+            # compute overlaps between grid boxes and gt boxes in multi-scales
+            # rescale the gt boxes
+            boxes_all = np.zeros((0, 4), dtype=np.float32)
+            for scale in cfg.TRAIN.SCALES:
+                boxes_all = np.vstack((boxes_all, boxes * scale))
 
-        # compute grid boxes
-        s = PIL.Image.open(self.image_path_from_index(index)).size
-        image_height = s[1]
-        image_width = s[0]
-        boxes_grid = self._get_boxes_grid(image_height, image_width)
+            # compute grid boxes
+            s = PIL.Image.open(self.image_path_from_index(index)).size
+            image_height = s[1]
+            image_width = s[0]
+            boxes_grid = self._get_boxes_grid(image_height, image_width)
 
-        # compute overlap
-        overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
+            # compute overlap
+            overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
         
-        # check how many gt boxes are covered by grids
-        if num_objs != 0:
-            ind = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
-            max_overlaps = overlaps_grid.max(axis = 0)
-            fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
-            self._num_boxes_all += num_objs
-            self._num_boxes_covered += len(np.unique(ind[fg_inds]))
+            # check how many gt boxes are covered by grids
+            if num_objs != 0:
+                ind = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
+                max_overlaps = overlaps_grid.max(axis = 0)
+                fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
+                self._num_boxes_all += num_objs
+                self._num_boxes_covered += len(np.unique(ind[fg_inds]))
 
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
@@ -498,6 +502,24 @@ class kitti(datasets.imdb):
                         alpha = mapping[subcls, 2]
                         f.write('{:s} -1 -1 {:f} {:f} {:f} {:f} {:f} -1 -1 -1 -1 -1 -1 -1 {:.32f}\n'.format(\
                                  cls, alpha, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4]))
+
+    def evaluate_proposals(self, all_boxes, output_dir):
+        # for each image
+        for im_ind, index in enumerate(self.image_index):
+            filename = os.path.join(output_dir, index + '.txt')
+            print 'Writing KITTI results to file ' + filename
+            with open(filename, 'wt') as f:
+                # for each class
+                for cls_ind, cls in enumerate(self.classes):
+                    if cls == '__background__':
+                        continue
+                    dets = all_boxes[cls_ind][im_ind]
+                    if dets == []:
+                        continue
+                    for k in xrange(dets.shape[0]):
+                        f.write('{:f} {:f} {:f} {:f} {:.32f}\n'.format(\
+                                 dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4]))
+
 
 if __name__ == '__main__':
     d = datasets.kitti('train')

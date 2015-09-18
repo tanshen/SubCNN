@@ -28,6 +28,9 @@ __C = edict()
 #   from fast_rcnn_config import cfg
 cfg = __C
 
+# region proposal network (RPN) or not
+__C.IS_RPN = False;
+
 #
 # Training options
 #

@@ -34,16 +34,15 @@ def _get_image_blob(im):
     im_orig = im.astype(np.float32, copy=True)
     im_orig -= cfg.PIXEL_MEANS
 
-    im_shape = im_orig.shape
-    im_size_min = np.min(im_shape[0:2])
-    im_size_max = np.max(im_shape[0:2])
-
     processed_ims = []
     im_scale_factors = []
+    if cfg.IS_RPN:
+        scales = cfg.TEST.SCALES_BASE
+    else:
+        scales = cfg.TEST.SCALES
 
-    for im_scale in cfg.TEST.SCALES_BASE:
-        im = cv2.resize(im_orig, None, None, fx=im_scale, fy=im_scale,
-                        interpolation=cv2.INTER_LINEAR)
+    for im_scale in scales:
+        im = cv2.resize(im_orig, None, None, fx=im_scale, fy=im_scale, interpolation=cv2.INTER_LINEAR)
         im_scale_factors.append(im_scale)
         processed_ims.append(im)
 
@@ -140,11 +139,17 @@ def _project_im_rois(im_rois, scales):
 
     return rois, levels
 
-def _get_blobs(im, boxes_grid):
+def _get_blobs(im, rois):
     """Convert an image and RoIs within that image into network inputs."""
-    blobs = {'data' : None, 'boxes_grid' : None}
-    blobs['data'], im_scale_factors = _get_image_blob(im)
-    blobs['boxes_grid'] = boxes_grid
+    if cfg.IS_RPN:
+        blobs = {'data' : None, 'boxes_grid' : None}
+        blobs['data'], im_scale_factors = _get_image_blob(im)
+        blobs['boxes_grid'] = rois
+    else:
+        blobs = {'data' : None, 'rois' : None}
+        blobs['data'], im_scale_factors = _get_image_blob(im)
+        blobs['rois'] = _get_rois_blob(rois, im_scale_factors)
+
     return blobs, im_scale_factors
 
 def _bbox_pred(boxes, box_deltas):
@@ -196,7 +201,7 @@ def _clip_boxes(boxes, im_shape):
 
 
 def _rescale_boxes(boxes, inds, scales):
-    """Rescale grid boxes according to image rescaling."""
+    """Rescale boxes according to image rescaling."""
 
     for i in xrange(boxes.shape[0]):
         boxes[i,:] = boxes[i,:] / scales[int(inds[i])]
@@ -204,28 +209,43 @@ def _rescale_boxes(boxes, inds, scales):
     return boxes
 
 
-def im_detect(net, im, boxes_grid, num_classes, num_subclasses):
-    """Detect object classes in an image given boxes on grids.
-
+def im_detect(net, im, boxes, num_classes, num_subclasses):
+    """Detect object classes in an image given object proposals.
     Arguments:
         net (caffe.Net): Fast R-CNN network to use
         im (ndarray): color image to test (in BGR order)
-        boxes (ndarray): R x 4 array of boxes
-
+        boxes (ndarray): R x 4 array of object proposals
     Returns:
         scores (ndarray): R x K array of object class scores (K includes
             background as object category 0)
         boxes (ndarray): R x (4*K) array of predicted bounding boxes
     """
 
-    blobs, im_scale_factors = _get_blobs(im, boxes_grid)
+    if boxes.shape[0] == 0:
+        scores = np.zeros((0, num_classes))
+        pred_boxes = np.zeros((0, 4*num_classes))
+        scores_subcls = np.zeros((0, num_subclasses))
+        return scores, pred_boxes, scores_subcls
+
+    blobs, unused_im_scale_factors = _get_blobs(im, boxes)
+
+    # When mapping from image ROIs to feature map ROIs, there's some aliasing
+    # (some distinct image ROIs get mapped to the same feature ROI).
+    # Here, we identify duplicate feature ROIs, so we only compute features
+    # on the unique subset.
+    if cfg.DEDUP_BOXES > 0:
+        v = np.array([1, 1e3, 1e6, 1e9, 1e12])
+        hashes = np.round(blobs['rois'] * cfg.DEDUP_BOXES).dot(v)
+        _, index, inv_index = np.unique(hashes, return_index=True,
+                                        return_inverse=True)
+        blobs['rois'] = blobs['rois'][index, :]
+        boxes = boxes[index, :]
 
     # reshape network inputs
     net.blobs['data'].reshape(*(blobs['data'].shape))
-    net.blobs['boxes_grid'].reshape(*(blobs['boxes_grid'].shape))
+    net.blobs['rois'].reshape(*(blobs['rois'].shape))
     blobs_out = net.forward(data=blobs['data'].astype(np.float32, copy=False),
-                            boxes_grid=blobs['boxes_grid'].astype(np.float32, copy=False))
-
+                            rois=blobs['rois'].astype(np.float32, copy=False))
     if cfg.TEST.SVM:
         # use the raw scores before softmax under the assumption they
         # were trained as linear SVMs
@@ -240,49 +260,23 @@ def im_detect(net, im, boxes_grid, num_classes, num_subclasses):
         # just use class scores
         scores_subcls = scores
 
-    rois = net.blobs['rois'].data
-    inds = rois[:,0]
-    boxes = rois[:,1:]
     if cfg.TEST.BBOX_REG:
         # Apply bounding-box regression deltas
         box_deltas = blobs_out['bbox_pred']
         pred_boxes = _bbox_pred(boxes, box_deltas)
-        pred_boxes = _rescale_boxes(pred_boxes, inds, cfg.TRAIN.SCALES)
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
     else:
         # Simply repeat the boxes, once for each class
         pred_boxes = np.tile(boxes, (1, scores.shape[1]))
-        pred_boxes = _rescale_boxes(pred_boxes, inds, cfg.TRAIN.SCALES)
-        pred_boxes = _clip_boxes(pred_boxes, im.shape)
 
-    # only select one aspect with the highest score
-    num = boxes.shape[0]
-    num_aspect = len(cfg.TEST.ASPECTS)
-    inds = []
-    for i in xrange(num/num_aspect):
-        index = range(i*num_aspect, (i+1)*num_aspect)
-        max_scores = scores[index,1:].max(axis = 1)
-        ind_max = np.argmax(max_scores)
-        inds.append(index[ind_max])
-
-    scores = scores[inds]
-    pred_boxes = pred_boxes[inds]
-    scores_subcls = scores_subcls[inds]
-   
-    # draw boxes
-    if 0:
-        # print scores, pred_boxes.shape
-        import matplotlib.pyplot as plt
-        plt.imshow(im)
-        for j in xrange(pred_boxes.shape[0]):
-            roi = pred_boxes[j,4:]
-            plt.gca().add_patch(
-            plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
-                           roi[3] - roi[1], fill=False,
-                           edgecolor='g', linewidth=3))
-        plt.show()
+    if cfg.DEDUP_BOXES > 0:
+        # Map scores and predictions back to the original set of boxes
+        scores = scores[inv_index, :]
+        scores_subcls = scores_subcls[inv_index, :]
+        pred_boxes = pred_boxes[inv_index, :]
 
     return scores, pred_boxes, scores_subcls
+
 
 def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
     """Detect object classes in an image given boxes on grids.
@@ -329,6 +323,18 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
         pred_boxes = np.tile(boxes, (1, scores.shape[1]))
         pred_boxes = _rescale_boxes(pred_boxes, inds, cfg.TRAIN.SCALES)
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
+
+    # only select one aspect with the highest score
+    """
+    num = boxes.shape[0]
+    num_aspect = len(cfg.TEST.ASPECTS)
+    inds = []
+    for i in xrange(num/num_aspect):
+        index = range(i*num_aspect, (i+1)*num_aspect)
+        max_scores = scores[index,1:].max(axis = 1)
+        ind_max = np.argmax(max_scores)
+        inds.append(index[ind_max])
+    """
 
     # select boxes
     inds = np.where(scores[:,1] > cfg.TEST.ROI_THRESHOLD)[0]
@@ -411,11 +417,15 @@ def test_net(net, imdb):
         with open(det_file, 'rb') as fid:
             all_boxes = cPickle.load(fid)
         print 'Detections loaded from {}'.format(det_file)
-        # print 'Applying NMS to all detections'
-        nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
 
-        print 'Evaluating detections'
-        imdb.evaluate_detections(nms_dets, output_dir)
+        if cfg.IS_RPN:
+            print 'Evaluating detections'
+            imdb.evaluate_proposals(all_boxes, output_dir)
+        else:
+            print 'Applying NMS to all detections'
+            nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
+            print 'Evaluating detections'
+            imdb.evaluate_detections(nms_dets, output_dir)
         return
 
     """Test a Fast R-CNN network on an image database."""
@@ -440,18 +450,28 @@ def test_net(net, imdb):
     # timers
     _t = {'im_detect' : Timer(), 'misc' : Timer()}
 
+    if cfg.IS_RPN == False:
+        roidb = imdb.roidb
+
     for i in xrange(num_images):
         im = cv2.imread(imdb.image_path_at(i))
-        boxes_grid = _get_boxes_grid(im.shape[0], im.shape[1])
 
         _t['im_detect'].tic()
-        scores, boxes, scores_subcls = im_detect_proposal(net, im, boxes_grid, imdb.num_classes, imdb.num_subclasses)
+        if cfg.IS_RPN:
+            boxes_grid = _get_boxes_grid(im.shape[0], im.shape[1])
+            scores, boxes, scores_subcls = im_detect_proposal(net, im, boxes_grid, imdb.num_classes, imdb.num_subclasses)
+        else:
+            scores, boxes, scores_subcls = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes, imdb.num_subclasses)
         _t['im_detect'].toc()
 
         _t['misc'].tic()
         count = 0
         for j in xrange(1, imdb.num_classes):
-            inds = np.where(scores[:, j] > thresh[j])[0]
+            if cfg.IS_RPN:
+                inds = np.where(scores[:, j] > thresh[j])[0]
+            else:
+                inds = np.where((scores[:, j] > thresh[j]) & (roidb[i]['gt_classes'] == 0))[0]
+
             cls_scores = scores[inds, j]
             subcls_scores = scores_subcls[inds, 1:]
             cls_boxes = boxes[inds, j*4:(j+1)*4]
@@ -483,8 +503,7 @@ def test_net(net, imdb):
         _t['misc'].toc()
 
         print 'im_detect: {:d}/{:d} {:d} object detected {:.3f}s {:.3f}s' \
-              .format(i + 1, num_images, count, _t['im_detect'].average_time,
-                      _t['misc'].average_time)
+              .format(i + 1, num_images, count, _t['im_detect'].average_time, _t['misc'].average_time)
 
     for j in xrange(1, imdb.num_classes):
         for i in xrange(num_images):
@@ -495,9 +514,11 @@ def test_net(net, imdb):
     with open(det_file, 'wb') as f:
         cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
 
-    # print 'Applying NMS to all detections'
-    # nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
-
-    print 'Evaluating detections'
-    # imdb.evaluate_detections(nms_dets, output_dir)
-    imdb.evaluate_detections(all_boxes, output_dir)
+    if cfg.IS_RPN:
+        print 'Evaluating detections'
+        imdb.evaluate_proposals(all_boxes, output_dir)
+    else:
+        print 'Applying NMS to all detections'
+        nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
+        print 'Evaluating detections'
+        imdb.evaluate_detections(nms_dets, output_dir)
