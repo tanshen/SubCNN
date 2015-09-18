@@ -338,7 +338,7 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
     print scores.shape
    
     # draw boxes
-    if 1:
+    if 0:
         # print scores, pred_boxes.shape
         import matplotlib.pyplot as plt
         plt.imshow(im)
