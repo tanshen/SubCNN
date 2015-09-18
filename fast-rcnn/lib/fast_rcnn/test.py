@@ -420,7 +420,7 @@ def test_net(net, imdb):
 
         if cfg.IS_RPN:
             print 'Evaluating detections'
-            imdb.evaluate_detections(all_boxes, output_dir)
+            imdb.evaluate_proposals(all_boxes, output_dir)
         else:
             print 'Applying NMS to all detections'
             nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
@@ -516,7 +516,7 @@ def test_net(net, imdb):
 
     if cfg.IS_RPN:
         print 'Evaluating detections'
-        imdb.evaluate_detections(all_boxes, output_dir)
+        imdb.evaluate_proposals(all_boxes, output_dir)
     else:
         print 'Applying NMS to all detections'
         nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
