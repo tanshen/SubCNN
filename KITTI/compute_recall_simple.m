@@ -6,7 +6,7 @@ cls = 'car';
 MIN_HEIGHT = [40, 25, 25];     % minimum height for evaluated groundtruth/detections
 MAX_OCCLUSION = [0, 1, 2];     % maximum occlusion level of the groundtruth used for evaluation
 MAX_TRUNCATION = [0.15, 0.3, 0.5]; % maximum truncation level of the groundtruth used for evaluation
-MIN_OVERLAP = 0.5;
+MIN_OVERLAP = 0.7;
 
 % KITTI path
 opt = globals();
@@ -17,7 +17,7 @@ label_dir = fullfile(root_dir, [data_set '/label_' num2str(cam)]);
 
 % read ids of validation images
 object = load('kitti_ids_new.mat');
-ids = object.ids_val;
+ids = object.ids_train;
 M = numel(ids);
 
 % read ground truth
@@ -47,12 +47,12 @@ fprintf('load ground truth done\n');
 count = 0;
 detections = cell(1, M);
 for i = 1:M
-    filename = sprintf('/home/yuxiang/Projects/SLM/ACF/results_kitti_train/%06d.txt', ids(i));
+    filename = sprintf('region_proposals/%06d.txt', ids(i));
     disp(filename);
     fid = fopen(filename, 'r');
-    C = textscan(fid, '%s %f %d %f %f %f %f %f %f %f %f %f %f %f %f %f');   
+    C = textscan(fid, '%f %f %f %f %f');   
     fclose(fid);
-    det = double([C{5} C{6} C{7} C{8}]);
+    det = double([C{1} C{2} C{3} C{4}]);
     detections{i} = det;
     count = count + size(det, 1);
 end

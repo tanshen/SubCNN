@@ -347,14 +347,23 @@ class kitti(datasets.imdb):
         if self._image_set != 'test':
             gt_roidb = self.gt_roidb()
 
-            print 'Loading voxel pattern boxes...'
+            print 'Loading region proposal network boxes...'
             if self._image_set == 'trainval':
-                model = '3DVP_227'
+                model = 'RPN_227'
             else:
-                model = '3DVP_125/'
-            vp_roidb = self._load_voxel_pattern_roidb(gt_roidb, model)
-            print 'Voxel pattern boxes loaded'
-            roidb = datasets.imdb.merge_roidbs(vp_roidb, gt_roidb)
+                model = 'RPN_125/'
+            rpn_roidb = self._load_rpn_roidb(gt_roidb, model)
+            print 'Region proposal network boxes loaded'
+            roidb = datasets.imdb.merge_roidbs(rpn_roidb, gt_roidb)
+
+            # print 'Loading voxel pattern boxes...'
+            # if self._image_set == 'trainval':
+            #    model = '3DVP_227'
+            # else:
+            #    model = '3DVP_125/'
+            # vp_roidb = self._load_voxel_pattern_roidb(gt_roidb, model)
+            # print 'Voxel pattern boxes loaded'
+            # roidb = datasets.imdb.merge_roidbs(vp_roidb, gt_roidb)
 
             # print 'Loading selective search boxes...'
             # ss_roidb = self._load_selective_search_roidb(gt_roidb)
@@ -367,10 +376,15 @@ class kitti(datasets.imdb):
             # roidb = datasets.imdb.merge_roidbs(ss_roidb, gt_roidb)
             # roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
         else:
-            print 'Loading voxel pattern boxes...'
-            model = '3DVP_227/'
-            roidb = self._load_voxel_pattern_roidb(None, model)
-            print 'Voxel pattern boxes loaded'
+            print 'Loading region proposal network boxes...'
+            model = 'RPN_227/'
+            roidb = self._load_rpn_roidb(None, model)
+            print 'Region proposal network boxes loaded'
+
+            # print 'Loading voxel pattern boxes...'
+            # model = '3DVP_227/'
+            # roidb = self._load_voxel_pattern_roidb(None, model)
+            # print 'Voxel pattern boxes loaded'
 
             # print 'Loading selective search boxes...'
             # roidb = self._load_selective_search_roidb(None)
@@ -387,6 +401,26 @@ class kitti(datasets.imdb):
         print 'wrote roidb to {}'.format(cache_file)
 
         return roidb
+
+    def _load_rpn_roidb(self, gt_roidb, model):
+        # set the prefix
+        if self._image_set == 'test':
+            prefix = model + 'testing'
+        else:
+            prefix = model + 'training'
+
+        box_list = []
+        for index in self.image_index:
+            filename = os.path.join(self._kitti_path, 'region_proposals',  prefix, index + '.txt')
+            assert os.path.exists(filename), \
+                'RPN data not found at: {}'.format(filename)
+            raw_data = np.loadtxt(filename, usecols=(0,1,2,3), dtype=float)
+            if len(raw_data.shape) == 1:
+                if raw_data.size == 0:
+                    raw_data = raw_data.reshape((0, 4))
+                else:
+                    raw_data = raw_data.reshape((1, 4))
+            box_list.append(raw_data)
 
     def _load_voxel_pattern_roidb(self, gt_roidb, model):
         # set the prefix
