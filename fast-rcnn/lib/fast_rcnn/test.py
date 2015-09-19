@@ -36,10 +36,7 @@ def _get_image_blob(im):
 
     processed_ims = []
     im_scale_factors = []
-    if cfg.IS_RPN:
-        scales = cfg.TEST.SCALES_BASE
-    else:
-        scales = cfg.TEST.SCALES
+    scales = cfg.TEST.SCALES_BASE
 
     for im_scale in scales:
         im = cv2.resize(im_orig, None, None, fx=im_scale, fy=im_scale, interpolation=cv2.INTER_LINEAR)
