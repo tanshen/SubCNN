@@ -420,7 +420,16 @@ class kitti(datasets.imdb):
                     raw_data = raw_data.reshape((0, 4))
                 else:
                     raw_data = raw_data.reshape((1, 4))
+
+            x1 = raw_data[:, 0]
+            y1 = raw_data[:, 1]
+            x2 = raw_data[:, 2]
+            y2 = raw_data[:, 3]
+            inds = np.where((x2 > x1) & (y2 > y1))[0]
+            raw_data = raw_data[inds,:]
             box_list.append(raw_data)
+
+        return self.create_roidb_from_box_list(box_list, gt_roidb)
 
     def _load_voxel_pattern_roidb(self, gt_roidb, model):
         # set the prefix
