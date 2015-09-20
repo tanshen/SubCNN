@@ -41,6 +41,7 @@ class kitti(datasets.imdb):
         # statistics for computing recall
         self._num_boxes_all = 0
         self._num_boxes_covered = 0
+        self._num_boxes_proposal = 0
 
         assert os.path.exists(self._kitti_path), \
                 'KITTI path does not exist: {}'.format(self._kitti_path)
@@ -150,10 +151,11 @@ class kitti(datasets.imdb):
         gt_roidb = [self._load_kitti_voxel_exemplar_annotation(index)
                     for index in self.image_index]
 
-        # print out recall
-        print 'Total number of boxes {:d}'.format(self._num_boxes_all)
-        print 'Number of boxes covered {:d}'.format(self._num_boxes_covered)
-        print 'Recall {:f}'.format(float(self._num_boxes_covered) / float(self._num_boxes_all))
+        if cfg.IS_RPN:
+            # print out recall
+            print 'Total number of boxes {:d}'.format(self._num_boxes_all)
+            print 'Number of boxes covered {:d}'.format(self._num_boxes_covered)
+            print 'Recall {:f}'.format(float(self._num_boxes_covered) / float(self._num_boxes_all))
 
         with open(cache_file, 'wb') as fid:
             cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
@@ -395,6 +397,7 @@ class kitti(datasets.imdb):
             # print 'ACF boxes loaded'
 
             # roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
+        print '{} region proposals per image'.format(self._num_boxes_proposal / len(self.image_index))
 
         with open(cache_file, 'wb') as fid:
             cPickle.dump(roidb, fid, cPickle.HIGHEST_PROTOCOL)
@@ -414,19 +417,21 @@ class kitti(datasets.imdb):
             filename = os.path.join(self._kitti_path, 'region_proposals',  prefix, index + '.txt')
             assert os.path.exists(filename), \
                 'RPN data not found at: {}'.format(filename)
-            raw_data = np.loadtxt(filename, usecols=(0,1,2,3), dtype=float)
+            raw_data = np.loadtxt(filename, dtype=float)
             if len(raw_data.shape) == 1:
                 if raw_data.size == 0:
-                    raw_data = raw_data.reshape((0, 4))
+                    raw_data = raw_data.reshape((0, 5))
                 else:
-                    raw_data = raw_data.reshape((1, 4))
+                    raw_data = raw_data.reshape((1, 5))
 
             x1 = raw_data[:, 0]
             y1 = raw_data[:, 1]
             x2 = raw_data[:, 2]
             y2 = raw_data[:, 3]
-            inds = np.where((x2 > x1) & (y2 > y1))[0]
-            raw_data = raw_data[inds,:]
+            score = raw_data[:, 4]
+            inds = np.where((x2 > x1) & (y2 > y1) & (score > 0.03))[0]
+            raw_data = raw_data[inds,:4]
+            self._num_boxes_proposal += raw_data.shape[0]
             box_list.append(raw_data)
 
         return self.create_roidb_from_box_list(box_list, gt_roidb)
@@ -449,6 +454,7 @@ class kitti(datasets.imdb):
                     raw_data = raw_data.reshape((0, 4))
                 else:
                     raw_data = raw_data.reshape((1, 4))
+            self._num_boxes_proposal += raw_data.shape[0]
             box_list.append(raw_data)
 
         return self.create_roidb_from_box_list(box_list, gt_roidb)
