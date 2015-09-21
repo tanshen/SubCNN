@@ -27,14 +27,13 @@ class GtDataLayer(caffe.Layer):
 
     def _get_next_minibatch_inds(self):
         """Return the roidb indices for the next minibatch."""
-        """
         if self._cur + cfg.TRAIN.IMS_PER_BATCH >= len(self._roidb):
             self._shuffle_roidb_inds()
 
         db_inds = self._perm[self._cur:self._cur + cfg.TRAIN.IMS_PER_BATCH]
         self._cur += cfg.TRAIN.IMS_PER_BATCH
-        """
 
+        """
         # sample images with gt objects
         db_inds = np.zeros((cfg.TRAIN.IMS_PER_BATCH), dtype=np.int32)
         i = 0
@@ -47,7 +46,8 @@ class GtDataLayer(caffe.Layer):
 
             self._cur += 1
             if self._cur >= len(self._roidb):
-                self._shuffle_roidb_inds()        
+                self._shuffle_roidb_inds()
+        """
 
         return db_inds
 
