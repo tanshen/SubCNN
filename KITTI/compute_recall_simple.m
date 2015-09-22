@@ -53,8 +53,9 @@ for i = 1:M
     C = textscan(fid, '%f %f %f %f %f');   
     fclose(fid);
     det = double([C{1} C{2} C{3} C{4}]);
-    detections{i} = det;
-    count = count + size(det, 1);
+    ind = (det(:,3) > det(:,1)) & (det(:,4) > det(:,2));
+    detections{i} = det(ind,:);
+    count = count + size(detections{i}, 1);
 end
 
 fprintf('load detection done\n');
