@@ -201,6 +201,7 @@ def _project_im_rois_multiscale(im_rois, scales):
         levels (list): image pyramid levels used by each projected RoI
     """
     im_rois = im_rois.astype(np.float, copy=False)
+    scales = np.array(scales)
 
     if len(scales) > 1:
         widths = im_rois[:, 2] - im_rois[:, 0] + 1
