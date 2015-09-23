@@ -397,7 +397,7 @@ def apply_nms(all_boxes, thresh):
             if dets == []:
                 continue
 
-            keep = nms(dets, thresh)
+            keep = nms_new(dets, thresh)
             if len(keep) == 0:
                 continue
             nms_boxes[cls_ind][im_ind] = dets[keep, :].copy()
