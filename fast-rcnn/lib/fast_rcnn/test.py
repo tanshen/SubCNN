@@ -13,7 +13,7 @@ from utils.timer import Timer
 import numpy as np
 import cv2
 import caffe
-from utils.cython_nms import nms
+from utils.cython_nms import nms, nms_new
 import cPickle
 import heapq
 from utils.blob import im_list_to_blob
