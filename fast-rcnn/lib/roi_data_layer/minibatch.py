@@ -46,8 +46,8 @@ def get_minibatch(roidb, num_classes):
         # rois = _project_im_rois(im_rois, im_scales[im_i])
         # batch_ind = im_i * np.ones((rois.shape[0], 1))
 
-        rois, levels = _project_im_rois_multiscale(im_rois, cfg.TRAIN.SCALES_BASE)
-        batch_ind = im_i * len(cfg.TRAIN.SCALES_BASE) + levels
+        rois, levels = _project_im_rois_multiscale(im_rois, cfg.TRAIN.SCALES)
+        batch_ind = im_i * len(cfg.TRAIN.SCALES) + levels
 
         rois_blob_this_image = np.hstack((batch_ind, rois))
         rois_blob = np.vstack((rois_blob, rois_blob_this_image))
