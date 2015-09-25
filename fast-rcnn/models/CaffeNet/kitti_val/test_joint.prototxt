@@ -1,7 +1,7 @@
 name: "CaffeNet"
 input: "data"
 input_shape {
-  dim: 1
+  dim: 5
   dim: 3
   dim: 227
   dim: 227
@@ -66,11 +66,11 @@ layer {
   bottom: "norm1"
   top: "conv2"
   param {
-    lr_mult: 1
+    lr_mult: 0.1
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 0.2
     decay_mult: 0
   }
   convolution_param {
@@ -115,11 +115,11 @@ layer {
   bottom: "norm2"
   top: "conv3"
   param {
-    lr_mult: 1
+    lr_mult: 0.1
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 0.2
     decay_mult: 0
   }
   convolution_param {
@@ -140,11 +140,11 @@ layer {
   bottom: "conv3"
   top: "conv4"
   param {
-    lr_mult: 1
+    lr_mult: 0.1
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 0.2
     decay_mult: 0
   }
   convolution_param {
@@ -166,11 +166,11 @@ layer {
   bottom: "conv4"
   top: "conv5"
   param {
-    lr_mult: 1
+    lr_mult: 0.1
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 0.2
     decay_mult: 0
   }
   convolution_param {
@@ -187,18 +187,29 @@ layer {
   top: "conv5"
 }
 layer {
+  name: 'feature'
+  type: 'FeatureExtrapolating'
+  bottom: 'conv5'
+  top: 'conv5_feature'
+  feature_extrapolating_param {
+    scale_string: "0.25 0.5 1.0 2.0 3.0"
+    num_scale_base: 5
+    num_per_octave: 4 
+  }
+}
+layer {
   name: "conv_sub"
   type: "Convolution"
-  bottom: "conv5"
+  bottom: "conv5_feature"
   top: "conv_sub"
   param {
     name: "conv_sub_w"
-    lr_mult: 0.1
+    lr_mult: 1
     decay_mult: 1
   }
   param {
     name: "conv_sub_b"
-    lr_mult: 0.2
+    lr_mult: 2
     decay_mult: 0
   }
   convolution_param {
@@ -236,7 +247,7 @@ layer {
 layer {
   name: "roi_pool5_sub"
   type: "ROIPooling"
-  bottom: "conv5"
+  bottom: "conv5_feature"
   bottom: "rois_sub"
   top: "pool5_sub"
   roi_pooling_param {
@@ -252,12 +263,12 @@ layer {
   top: "subcls_score"
   param {
     name: "conv_sub_w"
-    lr_mult: 0.1
+    lr_mult: 1
     decay_mult: 1
   }
   param {
     name: "conv_sub_b"
-    lr_mult: 0.2
+    lr_mult: 2
     decay_mult: 0
   }
   convolution_param {
@@ -272,9 +283,34 @@ layer {
   top: "subcls_prob"
 }
 layer {
+  name: "bbox_pred"
+  type: "InnerProduct"
+  bottom: "pool5_sub"
+  top: "bbox_pred"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 8 
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
   name: "roi_pool5"
   type: "ROIPooling"
-  bottom: "conv5"
+  bottom: "conv5_feature"
   bottom: "rois"
   top: "pool5"
   roi_pooling_param {
@@ -365,31 +401,6 @@ layer {
     weight_filler {
       type: "gaussian"
       std: 0.01
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
-    }
-  }
-}
-layer {
-  name: "bbox_pred"
-  type: "InnerProduct"
-  bottom: "fc7"
-  top: "bbox_pred"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  inner_product_param {
-    num_output: 8
-    weight_filler {
-      type: "gaussian"
-      std: 0.001
     }
     bias_filler {
       type: "constant"
