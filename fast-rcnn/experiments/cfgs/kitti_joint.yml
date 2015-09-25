@@ -1,0 +1,23 @@
+EXP_DIR: kitti
+IS_RPN: True
+IS_JOINT: True
+TRAIN:
+  SCALES_BASE: !!python/tuple [0.25, 0.5, 1.0, 2.0, 3.0]
+  NUM_PER_OCTAVE: 4
+  ASPECTS: !!python/tuple [1.0, 0.75, 0.5, 0.25]
+  IMS_PER_BATCH: 1
+  BATCH_SIZE: 64
+  FG_THRESH: 0.7
+  BG_THRESH_HI: 0.7
+  BG_THRESH_LO: 0.0
+  BBOX_THRESH: 0.7
+  SNAPSHOT_INFIX: kitti
+  BBOX_REG: True
+  SNAPSHOT_ITERS: 5000
+TEST:
+  SCALES_BASE: !!python/tuple [0.25, 0.5, 1.0, 2.0, 3.0]
+  NUM_PER_OCTAVE: 4
+  ASPECTS: !!python/tuple [1.0, 0.75, 0.5, 0.25]
+  NMS: 0.5
+  ROI_THRESHOLD: 0.02
+  BBOX_REG: True

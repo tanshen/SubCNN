@@ -300,11 +300,16 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
     scores_subcls = blobs_out['subcls_prob']
     print scores_subcls.shape
 
-    # build scores
+    # build max_scores
     tmp = np.reshape(scores_subcls, (scores_subcls.shape[0], scores_subcls.shape[1]))
-    scores = np.zeros((scores_subcls.shape[0], num_classes))
-    scores[:,0] = tmp[:,0]
-    scores[:,1] = tmp[:,1:].max(axis = 1)
+    max_scores = np.zeros((scores_subcls.shape[0], num_classes))
+    max_scores[:,0] = tmp[:,0]
+    max_scores[:,1] = tmp[:,1:].max(axis = 1)
+
+    if cfg.IS_JOINT:
+        scores = blobs_out['cls_prob']
+    else:
+        scores = max_scores
 
     rois = net.blobs['rois_sub'].data
     inds = rois[:,0]
@@ -334,7 +339,7 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
     """
 
     # select boxes
-    inds = np.where(scores[:,1] > cfg.TEST.ROI_THRESHOLD)[0]
+    inds = np.where(max_scores[:,1] > cfg.TEST.ROI_THRESHOLD)[0]
     scores = scores[inds]
     pred_boxes = pred_boxes[inds]
     scores_subcls = scores_subcls[inds]
@@ -415,7 +420,7 @@ def test_net(net, imdb):
             all_boxes = cPickle.load(fid)
         print 'Detections loaded from {}'.format(det_file)
 
-        if cfg.IS_RPN:
+        if cfg.IS_RPN and cfg.IS_JOINT == False:
             print 'Evaluating detections'
             imdb.evaluate_proposals(all_boxes, output_dir)
         else:
@@ -511,7 +516,7 @@ def test_net(net, imdb):
     with open(det_file, 'wb') as f:
         cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
 
-    if cfg.IS_RPN:
+    if cfg.IS_RPN and cfg.IS_JOINT == False:
         print 'Evaluating detections'
         imdb.evaluate_proposals(all_boxes, output_dir)
     else:
