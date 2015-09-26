@@ -40,9 +40,13 @@ fprintf('load ground truth done\n');
 % end
 
 % result_dir = 'kitti_train_ap_125';
-% filename = sprintf('../SLM/ACF/%s/car_3d_aps_125_combined_test.mat', result_dir);
+% filename = sprintf('/home/yuxiang/Projects/SLM/ACF/%s/car_3d_aps_125_combined_test.mat', result_dir);
 % object = load(filename);
 % detections = object.dets;
+% count = 0;
+% for i = 1:M
+%     count = count + size(detections{i}, 1);
+% end
 
 count = 0;
 detections = cell(1, M);
@@ -135,7 +139,11 @@ for difficulty = 1:3
             end
 
             box_gt = [gt(j).x1 gt(j).y1 gt(j).x2 gt(j).y2];
-            overlap = boxoverlap(det, box_gt);
+            if num_det == 0
+                overlap = 0;
+            else
+                overlap = boxoverlap(det, box_gt);
+            end
             % disp(max(overlap));
             if max(overlap) >= MIN_OVERLAP
                 tp = tp + 1;

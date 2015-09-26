@@ -204,12 +204,12 @@ layer {
   top: "conv_sub"
   param {
     name: "conv_sub_w"
-    lr_mult: 1
+    lr_mult: 0.1
     decay_mult: 1
   }
   param {
     name: "conv_sub_b"
-    lr_mult: 2
+    lr_mult: 0.2
     decay_mult: 0
   }
   convolution_param {
@@ -279,12 +279,12 @@ layer {
   top: "subcls_score"
   param {
     name: "conv_sub_w"
-    lr_mult: 1
+    lr_mult: 0.1
     decay_mult: 1
   }
   param {
     name: "conv_sub_b"
-    lr_mult: 2
+    lr_mult: 0.2
     decay_mult: 0
   }
   convolution_param {
@@ -298,7 +298,7 @@ layer {
   bottom: "subcls_score"
   bottom: "sublabels"
   top: "loss_subcls"
-  loss_weight: 1
+  loss_weight: 0.1
 }
 layer {
   name: "bbox_pred"
@@ -306,11 +306,11 @@ layer {
   bottom: "pool5_sub"
   top: "bbox_pred"
   param {
-    lr_mult: 1
+    lr_mult: 0.1
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 0.2
     decay_mult: 0
   }
   inner_product_param {
@@ -332,7 +332,7 @@ layer {
   bottom: "bbox_targets"
   bottom: "bbox_loss_weights"
   top: "loss_bbox"
-  loss_weight: 1
+  loss_weight: 0.1
 }
 layer {
   name: "roi_pool5"
@@ -361,6 +361,14 @@ layer {
   }
   inner_product_param {
     num_output: 4096
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
   }
 }
 layer {
@@ -393,6 +401,14 @@ layer {
   }
   inner_product_param {
     num_output: 4096
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
   }
 }
 layer {
