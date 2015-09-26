@@ -120,6 +120,7 @@ def _project_im_rois(im_rois, scales):
         levels (list): image pyramid levels used by each projected RoI
     """
     im_rois = im_rois.astype(np.float, copy=False)
+    scales = np.array(scales)
 
     if len(scales) > 1:
         widths = im_rois[:, 2] - im_rois[:, 0] + 1
@@ -402,7 +403,7 @@ def apply_nms(all_boxes, thresh):
             if dets == []:
                 continue
 
-            keep = nms(dets, thresh)
+            keep = nms_new(dets, thresh)
             if len(keep) == 0:
                 continue
             nms_boxes[cls_ind][im_ind] = dets[keep, :].copy()
@@ -499,8 +500,8 @@ def test_net(net, imdb):
                     .astype(np.float32, copy=False)
             count = count + len(cls_scores)
 
-            if 1:
-                keep = nms(all_boxes[j][i], cfg.TEST.NMS)
+            if 0:
+                keep = nms_new(all_boxes[j][i], cfg.TEST.NMS)
                 vis_detections(im, imdb.classes[j], all_boxes[j][i][keep, :])
         _t['misc'].toc()
 
