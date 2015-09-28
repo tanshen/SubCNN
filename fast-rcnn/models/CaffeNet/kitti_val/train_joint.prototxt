@@ -244,7 +244,7 @@ layer {
   top: 'labels'
   roi_generating_param {
     flag_proposal_only: 0
-    batch_size: 64
+    batch_size: 128
     num_classes: 2
     fg_fraction: 0.25
     spatial_scale: 0.0625 # 1/16
