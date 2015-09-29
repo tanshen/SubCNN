@@ -30,7 +30,6 @@ cfg = __C
 
 # region proposal network (RPN) or not
 __C.IS_RPN = False;
-__C.IS_JOINT = False;
 
 #
 # Training options
