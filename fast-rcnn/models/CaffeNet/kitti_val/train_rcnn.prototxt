@@ -213,7 +213,7 @@ layer {
 layer {
   name: "roi_pool5"
   type: "ROIPooling"
-  bottom: "conv5_feature"
+  bottom: "conv5"
   bottom: "rois"
   top: "pool5"
   roi_pooling_param {
