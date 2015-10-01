@@ -18,12 +18,12 @@ echo Logging output to "$LOG"
 #  --iters 20000
 
 # train the joint network
-#time ./tools/train_net.py --gpu $1 \
-#  --solver models/CaffeNet/kitti_val/solver_joint.prototxt \
-#  --weights output/kitti/kitti_train/caffenet_fast_rcnn_rpn_kitti_iter_20000.caffemodel \
-#  --imdb kitti_train \
-#  --cfg experiments/cfgs/kitti_joint.yml \
-#  --iters 40000
+time ./tools/train_net.py --gpu $1 \
+  --solver models/CaffeNet/kitti_val/solver_joint.prototxt \
+  --weights output/kitti/kitti_train/caffenet_fast_rcnn_rpn_kitti_iter_20000.caffemodel \
+  --imdb kitti_train \
+  --cfg experiments/cfgs/kitti_joint.yml \
+  --iters 40000
 
 # test the joint network
 time ./tools/test_net.py --gpu $1 \
