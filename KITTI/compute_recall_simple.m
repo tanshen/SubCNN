@@ -17,7 +17,8 @@ label_dir = fullfile(root_dir, [data_set '/label_' num2str(cam)]);
 
 % read ids of validation images
 object = load('kitti_ids_new.mat');
-ids = object.ids_val;
+% ids = object.ids_train;
+ids = sort([object.ids_train, object.ids_val]);
 M = numel(ids);
 
 % read ground truth
@@ -57,7 +58,7 @@ for i = 1:M
     C = textscan(fid, '%f %f %f %f %f');   
     fclose(fid);
     det = double([C{1} C{2} C{3} C{4}]);
-    ind = (det(:,3) > det(:,1)) & (det(:,4) > det(:,2)) & C{5} > 0.02;
+    ind = (det(:,3) > det(:,1)) & (det(:,4) > det(:,2)); % & C{5} > 0.02;
     detections{i} = det(ind,:);
     count = count + size(detections{i}, 1);
 end
