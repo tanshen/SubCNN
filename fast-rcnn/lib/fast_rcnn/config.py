@@ -92,6 +92,9 @@ __C.TRAIN.USE_PREFETCH = False
 # Train using subclasses
 __C.TRAIN.SUBCLS = True
 
+# Threshold of ROIs in training RCNN
+__C.TRAIN.ROI_THRESHOLD = 0.1
+
 #
 # Testing options
 #

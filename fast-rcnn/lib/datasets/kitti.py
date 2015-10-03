@@ -351,7 +351,7 @@ class kitti(datasets.imdb):
 
             print 'Loading region proposal network boxes...'
             if self._image_set == 'trainval':
-                model = 'RPN_227'
+                model = 'RPN_227/'
             else:
                 model = 'RPN_125/'
             rpn_roidb = self._load_rpn_roidb(gt_roidb, model)
@@ -429,7 +429,7 @@ class kitti(datasets.imdb):
             x2 = raw_data[:, 2]
             y2 = raw_data[:, 3]
             score = raw_data[:, 4]
-            inds = np.where((x2 > x1) & (y2 > y1) & (score > 0.02))[0]
+            inds = np.where((x2 > x1) & (y2 > y1) & (score > cfg.TRAIN.ROI_THRESHOLD))[0]
             raw_data = raw_data[inds,:4]
             self._num_boxes_proposal += raw_data.shape[0]
             box_list.append(raw_data)

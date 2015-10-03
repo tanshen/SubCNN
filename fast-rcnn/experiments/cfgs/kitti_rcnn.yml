@@ -6,6 +6,7 @@ TRAIN:
   FG_THRESH: 0.7
   BG_THRESH_HI: 0.7
   BBOX_THRESH: 0.7
+  ROI_THRESHOLD: 0.01
   SNAPSHOT_INFIX: kitti
 TEST:
   SCALES_BASE: !!python/tuple [1.0, 2.0, 3.0, 4.0]

@@ -16,14 +16,14 @@ echo Logging output to "$LOG"
 #  --cfg experiments/cfgs/kitti_rpn.yml \
 #  --iters 40000
 
-time ./tools/test_net.py --gpu $1 \
-  --def models/CaffeNet/kitti_test/test_rpn.prototxt \
-  --net output/kitti/kitti_trainval/caffenet_fast_rcnn_rpn_kitti_iter_40000.caffemodel \
-  --imdb kitti_trainval \
-  --cfg experiments/cfgs/kitti_rpn.yml
-
 #time ./tools/test_net.py --gpu $1 \
 #  --def models/CaffeNet/kitti_test/test_rpn.prototxt \
 #  --net output/kitti/kitti_trainval/caffenet_fast_rcnn_rpn_kitti_iter_40000.caffemodel \
-#  --imdb kitti_test \
+#  --imdb kitti_trainval \
 #  --cfg experiments/cfgs/kitti_rpn.yml
+
+time ./tools/test_net.py --gpu $1 \
+  --def models/CaffeNet/kitti_test/test_rpn.prototxt \
+  --net output/kitti/kitti_trainval/caffenet_fast_rcnn_rpn_kitti_iter_40000.caffemodel \
+  --imdb kitti_test \
+  --cfg experiments/cfgs/kitti_rpn.yml
