@@ -25,10 +25,10 @@ def get_minibatch(roidb, num_classes):
 
     # Get the input image blob, formatted for caffe
     # Sample random scales to use for each image in this batch
-    random_scale_inds = npr.randint(0, high=len(cfg.TRAIN.SCALES_BASE), size=num_images)
-    im_blob, im_scales = _get_image_blob(roidb, random_scale_inds)
+    # random_scale_inds = npr.randint(0, high=len(cfg.TRAIN.SCALES_BASE), size=num_images)
+    # im_blob, im_scales = _get_image_blob(roidb, random_scale_inds)
 
-    # im_blob, im_scales = _get_image_blob_multiscale(roidb)
+    im_blob, im_scales = _get_image_blob_multiscale(roidb)
 
     # Now, build the region of interest and label blobs
     rois_blob = np.zeros((0, 5), dtype=np.float32)
@@ -43,11 +43,11 @@ def get_minibatch(roidb, num_classes):
                            num_classes)
 
         # Add to RoIs blob
-        rois = _project_im_rois(im_rois, im_scales[im_i])
-        batch_ind = im_i * np.ones((rois.shape[0], 1))
+        # rois = _project_im_rois(im_rois, im_scales[im_i])
+        # batch_ind = im_i * np.ones((rois.shape[0], 1))
 
-        # rois, levels = _project_im_rois_multiscale(im_rois, cfg.TRAIN.SCALES_BASE)
-        # batch_ind = im_i * len(cfg.TRAIN.SCALES_BASE) + levels
+        rois, levels = _project_im_rois_multiscale(im_rois, cfg.TRAIN.SCALES)
+        batch_ind = im_i * len(cfg.TRAIN.SCALES) + levels
 
         rois_blob_this_image = np.hstack((batch_ind, rois))
         rois_blob = np.vstack((rois_blob, rois_blob_this_image))
