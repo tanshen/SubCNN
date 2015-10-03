@@ -351,7 +351,7 @@ class kitti(datasets.imdb):
 
             print 'Loading region proposal network boxes...'
             if self._image_set == 'trainval':
-                model = 'RPN_227'
+                model = 'RPN_227/'
             else:
                 model = 'RPN_125/'
             rpn_roidb = self._load_rpn_roidb(gt_roidb, model)
