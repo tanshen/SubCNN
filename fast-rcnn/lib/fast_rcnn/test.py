@@ -305,7 +305,14 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
     tmp = np.reshape(scores_subcls, (scores_subcls.shape[0], scores_subcls.shape[1]))
     max_scores = np.zeros((scores_subcls.shape[0], num_classes))
     max_scores[:,0] = tmp[:,0]
-    max_scores[:,1] = tmp[:,1:].max(axis = 1)
+    assert (num_classes == 2 or num_classes == 4), 'The number of classes is not supported!'
+    if num_classes == 2:
+        max_scores[:,1] = tmp[:,1:].max(axis = 1)
+    else:
+        max_scores[:,1] = tmp[:,1:num_subclasses-48].max(axis = 1)
+        max_scores[:,2] = tmp[:,num_subclasses-48:num_subclasses-24].max(axis = 1)
+        max_scores[:,3] = tmp[:,num_subclasses-24:].max(axis = 1)
+
     scores = max_scores
 
     rois = net.blobs['rois_sub'].data
@@ -336,7 +343,8 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
     """
 
     # select boxes
-    inds = np.where(max_scores[:,1] > cfg.TEST.ROI_THRESHOLD)[0]
+    max_scores = scores[:,1:].max(axis = 1)
+    inds = np.where(max_scores > cfg.TEST.ROI_THRESHOLD)[0]
     scores = scores[inds]
     pred_boxes = pred_boxes[inds]
     scores_subcls = scores_subcls[inds]
@@ -436,10 +444,14 @@ def test_net(net, imdb):
     max_per_image = 10000
     # detection thresold for each class (this is adaptively set based on the
     # max_per_set constraint)
-    thresh = -np.inf * np.ones(imdb.num_classes)
-    # top_scores will hold one minheap of scores per class (used to enforce
-    # the max_per_set constraint)
-    top_scores = [[] for _ in xrange(imdb.num_classes)]
+
+    if cfg.IS_RPN:
+        thresh = cfg.TEST.ROI_THRESHOLD * np.ones(imdb.num_classes)
+    else:
+        thresh = -np.inf * np.ones(imdb.num_classes)
+        # top_scores will hold one minheap of scores per class (used to enforce the max_per_set constraint)
+        top_scores = [[] for _ in xrange(imdb.num_classes)]
+
     # all detections are collected into:
     #    all_boxes[cls][image] = N x 5 array of detections in
     #    (x1, y1, x2, y2, score)
@@ -479,15 +491,17 @@ def test_net(net, imdb):
             cls_scores = cls_scores[top_inds]
             subcls_scores = subcls_scores[top_inds, :]
             cls_boxes = cls_boxes[top_inds, :]
-            # push new scores onto the minheap
-            for val in cls_scores:
-                heapq.heappush(top_scores[j], val)
-            # if we've collected more than the max number of detection,
-            # then pop items off the minheap and update the class threshold
-            if len(top_scores[j]) > max_per_set:
-                while len(top_scores[j]) > max_per_set:
-                    heapq.heappop(top_scores[j])
-                thresh[j] = top_scores[j][0]
+
+            if cfg.IS_RPN == False:
+                # push new scores onto the minheap
+                for val in cls_scores:
+                    heapq.heappush(top_scores[j], val)
+                # if we've collected more than the max number of detection,
+                # then pop items off the minheap and update the class threshold
+                if len(top_scores[j]) > max_per_set:
+                    while len(top_scores[j]) > max_per_set:
+                        heapq.heappop(top_scores[j])
+                    thresh[j] = top_scores[j][0]
 
             sub_classes = np.reshape(subcls_scores.argmax(axis=1), -1)
 
