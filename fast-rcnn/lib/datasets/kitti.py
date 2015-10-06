@@ -20,7 +20,7 @@ class kitti(datasets.imdb):
         self._kitti_path = self._get_default_path() if kitti_path is None \
                             else kitti_path
         self._data_path = os.path.join(self._kitti_path, 'data_object_image_2')
-        self._classes = ('__background__', 'Car')
+        self._classes = ('__background__', 'Car', 'Pedestrian', 'Cyclist')
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
         self._image_ext = '.png'
         self._image_index = self._load_image_set_index()
@@ -32,16 +32,16 @@ class kitti(datasets.imdb):
 
         # num of subclasses
         if image_set == 'train' or image_set == 'val':
-            self._num_subclasses = 125 + 1
+            self._num_subclasses = 125 + 24 + 24 + 1
         else:
-            self._num_subclasses = 227 + 1
+            self._num_subclasses = 227 + 24 + 24 + 1
 
         self.config = {'top_k': 100000}
 
         # statistics for computing recall
-        self._num_boxes_all = 0
-        self._num_boxes_covered = 0
-        self._num_boxes_proposal = 0
+        self._num_boxes_all = np.zeros(self.num_classes, dtype=np.int)
+        self._num_boxes_covered = np.zeros(self.num_classes, dtype=np.int)
+        self._num_boxes_proposal = np.zeros(self.num_classes, dtype=np.int)
 
         assert os.path.exists(self._kitti_path), \
                 'KITTI path does not exist: {}'.format(self._kitti_path)
@@ -153,9 +153,10 @@ class kitti(datasets.imdb):
 
         if cfg.IS_RPN:
             # print out recall
-            print 'Total number of boxes {:d}'.format(self._num_boxes_all)
-            print 'Number of boxes covered {:d}'.format(self._num_boxes_covered)
-            print 'Recall {:f}'.format(float(self._num_boxes_covered) / float(self._num_boxes_all))
+            for i in xrange(1, self.num_classes):
+                print '{}: Total number of boxes {:d}'.format(self.classes[i], self._num_boxes_all[i])
+                print '{}: Number of boxes covered {:d}'.format(self.classes[i], self._num_boxes_covered[i])
+                print '{}: Recall {:f}'.format(self.classes[i], float(self._num_boxes_covered[i]) / float(self._num_boxes_all[i]))
 
         with open(cache_file, 'wb') as fid:
             cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
@@ -225,8 +226,11 @@ class kitti(datasets.imdb):
                 index = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
                 max_overlaps = overlaps_grid.max(axis = 0)
                 fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
-                self._num_boxes_all += num_objs
-                self._num_boxes_covered += len(np.unique(index[fg_inds]))
+                index_covered = np.unique(index[fg_inds])
+
+                for i in xrange(self.num_classes):
+                    self._num_boxes_all[i] += len(np.where(gt_classes == i)[0])
+                    self._num_boxes_covered[i] += len(np.where(gt_classes[index_covered] == i)[0])
 
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
@@ -258,8 +262,8 @@ class kitti(datasets.imdb):
         with open(filename) as f:
             for line in f:
                 words = line.split()
-                subcls = int(words[0])
-                is_flip = int(words[1])
+                subcls = int(words[1])
+                is_flip = int(words[2])
                 if subcls != -1:
                     if is_flip == 0:
                         lines.append(line)
@@ -274,7 +278,7 @@ class kitti(datasets.imdb):
         
         for ix, line in enumerate(lines_flipped):
             words = line.split()
-            subcls = int(words[0])
+            subcls = int(words[1])
             gt_subclasses_flipped[ix] = subcls
 
         boxes = np.zeros((num_objs, 4), dtype=np.float32)
@@ -286,9 +290,9 @@ class kitti(datasets.imdb):
 
         for ix, line in enumerate(lines):
             words = line.split()
-            cls = self._class_to_ind['Car']
-            subcls = int(words[0])
-            boxes[ix, :] = [float(n) for n in words[2:6]]
+            cls = self._class_to_ind[words[0]]
+            subcls = int(words[1])
+            boxes[ix, :] = [float(n) for n in words[3:7]]
             gt_classes[ix] = cls
             gt_subclasses[ix] = subcls
             overlaps[ix, cls] = 1.0
@@ -315,11 +319,14 @@ class kitti(datasets.imdb):
         
             # check how many gt boxes are covered by grids
             if num_objs != 0:
-                ind = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
+                index = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
                 max_overlaps = overlaps_grid.max(axis = 0)
                 fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
-                self._num_boxes_all += num_objs
-                self._num_boxes_covered += len(np.unique(ind[fg_inds]))
+                index_covered = np.unique(index[fg_inds])
+
+                for i in xrange(self.num_classes):
+                    self._num_boxes_all[i] += len(np.where(gt_classes == i)[0])
+                    self._num_boxes_covered[i] += len(np.where(gt_classes[index_covered] == i)[0])
 
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
