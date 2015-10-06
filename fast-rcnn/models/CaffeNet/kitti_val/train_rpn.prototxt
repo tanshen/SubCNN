@@ -192,8 +192,8 @@ layer {
   bottom: 'conv5'
   top: 'conv5_feature'
   feature_extrapolating_param {
-    scale_string: "0.25 0.5 1.0 2.0 3.0 4.0"
-    num_scale_base: 6
+    scale_string: "0.25 0.5 1.0 2.0 3.0"
+    num_scale_base: 5
     num_per_octave: 4 
   }
 }
