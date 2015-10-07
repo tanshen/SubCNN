@@ -2,6 +2,7 @@ EXP_DIR: kitti
 IS_RPN: False
 TRAIN:
   SCALES_BASE: !!python/tuple [1.0, 2.0, 3.0, 4.0]
+  NUM_PER_OCTAVE: 4
   IMS_PER_BATCH: 2
   FG_THRESH: 0.7
   BG_THRESH_HI: 0.7
@@ -10,4 +11,5 @@ TRAIN:
   SNAPSHOT_INFIX: kitti
 TEST:
   SCALES_BASE: !!python/tuple [1.0, 2.0, 3.0, 4.0]
+  NUM_PER_OCTAVE: 4
   NMS: 0.6

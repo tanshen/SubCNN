@@ -1,12 +1,15 @@
 function recall_all = compute_recall_simple
 
-cls = 'car';
+% cls = 'car';
+cls = 'pedestrian';
+% cls = 'cyclist';
+MIN_OVERLAP = 0.5;
 
 % evaluation parameter
 MIN_HEIGHT = [40, 25, 25];     % minimum height for evaluated groundtruth/detections
 MAX_OCCLUSION = [0, 1, 2];     % maximum occlusion level of the groundtruth used for evaluation
 MAX_TRUNCATION = [0.15, 0.3, 0.5]; % maximum truncation level of the groundtruth used for evaluation
-MIN_OVERLAP = 0.7;
+
 
 % KITTI path
 opt = globals();
@@ -17,8 +20,8 @@ label_dir = fullfile(root_dir, [data_set '/label_' num2str(cam)]);
 
 % read ids of validation images
 object = load('kitti_ids_new.mat');
-% ids = object.ids_train;
-ids = sort([object.ids_train, object.ids_val]);
+ids = object.ids_val;
+% ids = sort([object.ids_train, object.ids_val]);
 M = numel(ids);
 
 % read ground truth
