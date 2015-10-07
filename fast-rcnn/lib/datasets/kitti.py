@@ -41,7 +41,7 @@ class kitti(datasets.imdb):
         # statistics for computing recall
         self._num_boxes_all = np.zeros(self.num_classes, dtype=np.int)
         self._num_boxes_covered = np.zeros(self.num_classes, dtype=np.int)
-        self._num_boxes_proposal = np.zeros(self.num_classes, dtype=np.int)
+        self._num_boxes_proposal = 0
 
         assert os.path.exists(self._kitti_path), \
                 'KITTI path does not exist: {}'.format(self._kitti_path)
