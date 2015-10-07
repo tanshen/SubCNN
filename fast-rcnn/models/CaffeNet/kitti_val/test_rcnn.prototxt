@@ -187,20 +187,9 @@ layer {
   top: "conv5"
 }
 layer {
-  name: 'feature'
-  type: 'FeatureExtrapolating'
-  bottom: 'conv5'
-  top: 'conv5_feature'
-  feature_extrapolating_param {
-    scale_string: "1.0 2.0 3.0 4.0"
-    num_scale_base: 4 
-    num_per_octave: 4 
-  }
-}
-layer {
   name: "roi_pool5"
   type: "ROIPooling"
-  bottom: "conv5_feature"
+  bottom: "conv5"
   bottom: "rois"
   top: "pool5"
   roi_pooling_param {

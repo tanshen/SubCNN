@@ -31,6 +31,9 @@ cfg = __C
 # region proposal network (RPN) or not
 __C.IS_RPN = False;
 
+# multiscale training and testing
+__C.IS_MULTISCALE = True;
+
 #
 # Training options
 #
