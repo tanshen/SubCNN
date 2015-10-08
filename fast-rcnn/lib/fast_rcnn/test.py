@@ -410,7 +410,7 @@ def apply_nms(all_boxes, thresh):
             if dets == []:
                 continue
 
-            keep = nms_new(dets, thresh)
+            keep = nms(dets, thresh)
             if len(keep) == 0:
                 continue
             nms_boxes[cls_ind][im_ind] = dets[keep, :].copy()
@@ -514,7 +514,7 @@ def test_net(net, imdb):
             count = count + len(cls_scores)
 
             if 0:
-                keep = nms_new(all_boxes[j][i], cfg.TEST.NMS)
+                keep = nms(all_boxes[j][i], cfg.TEST.NMS)
                 vis_detections(im, imdb.classes[j], all_boxes[j][i][keep, :])
         _t['misc'].toc()
 
