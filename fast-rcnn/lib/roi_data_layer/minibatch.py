@@ -91,6 +91,7 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     fg_inds = []
     for i in xrange(1, num_classes):
         fg_inds.extend(np.where((labels == i) & (overlaps >= cfg.TRAIN.FG_THRESH[i-1]))[0])
+    fg_inds = np.array(fg_inds)
 
     # Guard against the case when an image has fewer than fg_rois_per_image
     # foreground RoIs
@@ -100,19 +101,23 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
         fg_inds = npr.choice(fg_inds, size=fg_rois_per_this_image,
                              replace=False)
 
+    bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
     # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
     bg_inds = []
     for i in xrange(1, num_classes):
         bg_inds.extend( np.where((labels == i) & (overlaps < cfg.TRAIN.BG_THRESH_HI[i-1]) &
                         (overlaps >= cfg.TRAIN.BG_THRESH_LO[i-1]))[0] )
 
-    if bg_inds.size == 0:
+    if len(bg_inds) < bg_rois_per_this_image:
         for i in xrange(1, num_classes):
             bg_inds.extend( np.where((labels == i) & (overlaps < cfg.TRAIN.BG_THRESH_HI[i-1]))[0] )
 
+    if len(bg_inds) < bg_rois_per_this_image:
+        bg_inds.extend( np.where(overlaps < cfg.TRAIN.BG_THRESH_HI[i-1])[0] )
+    bg_inds = np.array(bg_inds, dtype=np.int32)
+
     # Compute number of background RoIs to take from this image (guarding
     # against there being fewer than desired)
-    bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
     bg_rois_per_this_image = np.minimum(bg_rois_per_this_image,
                                         bg_inds.size)
     # Sample foreground regions without replacement
@@ -121,7 +126,7 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
                              replace=False)
 
     # The indices that we're selecting (both fg and bg)
-    keep_inds = np.append(fg_inds, bg_inds)
+    keep_inds = np.append(fg_inds, bg_inds).astype(int)
     # print '{} foregrounds and {} backgrounds'.format(fg_inds.size, bg_inds.size)
     # Select sampled values from various arrays:
     labels = labels[keep_inds]

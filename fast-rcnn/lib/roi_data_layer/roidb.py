@@ -57,7 +57,7 @@ def add_bbox_regression_targets(roidb):
         max_overlaps = roidb[im_i]['max_overlaps']
         max_classes = roidb[im_i]['max_classes']
         roidb[im_i]['bbox_targets'] = \
-                _compute_targets(rois, max_overlaps, max_classes)
+                _compute_targets(rois, max_overlaps, max_classes, num_classes)
 
     # Compute values needed for means and stds
     # var(x) = E(x^2) - E(x)^2
@@ -89,7 +89,7 @@ def add_bbox_regression_targets(roidb):
     # (the predicts will need to be unnormalized and uncentered)
     return means.ravel(), stds.ravel()
 
-def _compute_targets(rois, overlaps, labels):
+def _compute_targets(rois, overlaps, labels, num_classes):
     """Compute bounding-box regression targets for an image."""
     # Ensure ROIs are floats
     rois = rois.astype(np.float, copy=False)
