@@ -88,7 +88,10 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     sublabels = roidb['max_subclasses']
 
     # Select foreground RoIs as those with >= FG_THRESH overlap
-    fg_inds = np.where(overlaps >= cfg.TRAIN.FG_THRESH)[0]
+    fg_inds = []
+    for i in xrange(1, num_classes):
+        fg_inds.extend(np.where((labels == i) & (overlaps >= cfg.TRAIN.FG_THRESH[i-1]))[0])
+
     # Guard against the case when an image has fewer than fg_rois_per_image
     # foreground RoIs
     fg_rois_per_this_image = np.minimum(fg_rois_per_image, fg_inds.size)
@@ -98,11 +101,14 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
                              replace=False)
 
     # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
-    bg_inds = np.where((overlaps < cfg.TRAIN.BG_THRESH_HI) &
-                       (overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
+    bg_inds = []
+    for i in xrange(1, num_classes):
+        bg_inds.extend( np.where((labels == i) & (overlaps < cfg.TRAIN.BG_THRESH_HI[i-1]) &
+                        (overlaps >= cfg.TRAIN.BG_THRESH_LO[i-1]))[0] )
 
     if bg_inds.size == 0:
-        bg_inds = np.where(overlaps < cfg.TRAIN.BG_THRESH_HI)[0]
+        for i in xrange(1, num_classes):
+            bg_inds.extend( np.where((labels == i) & (overlaps < cfg.TRAIN.BG_THRESH_HI[i-1]))[0] )
 
     # Compute number of background RoIs to take from this image (guarding
     # against there being fewer than desired)
