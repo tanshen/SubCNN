@@ -97,7 +97,9 @@ def _compute_targets(rois, overlaps, labels):
     # Indices of ground-truth ROIs
     gt_inds = np.where(overlaps == 1)[0]
     # Indices of examples for which we try to make predictions
-    ex_inds = np.where(overlaps >= cfg.TRAIN.BBOX_THRESH)[0]
+    ex_inds = []
+    for i in xrange(1, num_classes):
+        ex_inds.extend( np.where((labels == i) & (overlaps >= cfg.TRAIN.BBOX_THRESH[i-1]))[0] )
 
     # Get IoU overlap between each ex ROI and gt ROI
     ex_gt_overlaps = utils.cython_bbox.bbox_overlaps(rois[ex_inds, :],
