@@ -99,12 +99,18 @@ def prepare_roidb(imdb):
         # for each scale
         for scale_ind, scale in enumerate(cfg.TRAIN.SCALES):
             boxes_rescaled = boxes * scale
+
             # compute overlap
             overlaps = bbox_overlaps(boxes_grid.astype(np.float), boxes_rescaled.astype(np.float))
             max_overlaps = overlaps.max(axis = 1)
             argmax_overlaps = overlaps.argmax(axis = 1)
+            max_classes = labels[argmax_overlaps]
+
             # select positive boxes
-            fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
+            fg_inds = []
+            for k in xrange(1, imdb.num_classes):
+                fg_inds.extend(np.where((max_classes == k) & (max_overlaps >= cfg.TRAIN.FG_THRESH[k-1]))[0])
+
             if len(fg_inds) > 0:
                 gt_inds = argmax_overlaps[fg_inds]
                 # bounding box regression targets

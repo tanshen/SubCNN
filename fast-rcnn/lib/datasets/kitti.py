@@ -211,6 +211,7 @@ class kitti(datasets.imdb):
             boxes_all = np.zeros((0, 4), dtype=np.float32)
             for scale in cfg.TRAIN.SCALES:
                 boxes_all = np.vstack((boxes_all, boxes * scale))
+            gt_classes_all = np.tile(gt_classes, len(cfg.TRAIN.SCALES))
 
             # compute grid boxes
             s = PIL.Image.open(self.image_path_from_index(index)).size
@@ -225,7 +226,9 @@ class kitti(datasets.imdb):
             if num_objs != 0:
                 index = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
                 max_overlaps = overlaps_grid.max(axis = 0)
-                fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
+                fg_inds = []
+                for k in xrange(1, self.num_classes):
+                    fg_inds.extend(np.where((gt_classes_all == k) & (max_overlaps >= cfg.TRAIN.FG_THRESH[k-1]))[0])
                 index_covered = np.unique(index[fg_inds])
 
                 for i in xrange(self.num_classes):
@@ -307,6 +310,7 @@ class kitti(datasets.imdb):
             boxes_all = np.zeros((0, 4), dtype=np.float32)
             for scale in cfg.TRAIN.SCALES:
                 boxes_all = np.vstack((boxes_all, boxes * scale))
+            gt_classes_all = np.tile(gt_classes, len(cfg.TRAIN.SCALES))
 
             # compute grid boxes
             s = PIL.Image.open(self.image_path_from_index(index)).size
@@ -321,7 +325,9 @@ class kitti(datasets.imdb):
             if num_objs != 0:
                 index = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
                 max_overlaps = overlaps_grid.max(axis = 0)
-                fg_inds = np.where(max_overlaps > cfg.TRAIN.FG_THRESH)[0]
+                fg_inds = []
+                for k in xrange(1, self.num_classes):
+                    fg_inds.extend(np.where((gt_classes_all == k) & (max_overlaps >= cfg.TRAIN.FG_THRESH[k-1]))[0])
                 index_covered = np.unique(index[fg_inds])
 
                 for i in xrange(self.num_classes):
