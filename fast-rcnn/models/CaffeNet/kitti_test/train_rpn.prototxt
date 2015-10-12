@@ -8,7 +8,7 @@ layer {
   python_param {
     module: 'gt_data_layer.layer'
     layer: 'GtDataLayer'
-    param_str: "'num_classes': 2"
+    param_str: "'num_classes': 4"
   }
 }
 layer {
@@ -213,7 +213,7 @@ layer {
     decay_mult: 0
   }
   convolution_param {
-    num_output: 228
+    num_output: 300  # 227 + 36 + 36 + 1
     kernel_size: 5
     pad: 2
   }
@@ -244,7 +244,7 @@ layer {
 #  python_param {
 #    module: 'roi_generating_layer.layer'
 #    layer: 'RoIGeneratingLayer'
-#    param_str: "'num_classes': 2\n'kernel_size': 5\n'spatial_scale': 0.0625"
+#    param_str: "'num_classes': 4\n'kernel_size': 5\n'spatial_scale': 0.0625"
 #  }
 #}
 layer {
@@ -260,8 +260,8 @@ layer {
   roi_generating_param {
     flag_proposal_only: 1
     batch_size: 128
-    num_classes: 2
-    fg_fraction: 0.25
+    num_classes: 4
+    fg_fraction: 0.5
     spatial_scale: 0.0625 # 1/16
   }
 }
@@ -303,7 +303,7 @@ layer {
     decay_mult: 0
   }
   convolution_param {
-    num_output: 228
+    num_output: 300  # 227 + 36 + 36 + 1
     kernel_size: 5 
   }
 }
@@ -329,7 +329,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 8 
+    num_output: 16 
     weight_filler {
       type: "gaussian"
       std: 0.001

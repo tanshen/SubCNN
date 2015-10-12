@@ -213,7 +213,7 @@ layer {
     decay_mult: 0
   }
   convolution_param {
-    num_output: 174  # 125 + 24 + 24 + 1
+    num_output: 196  # 125 + 36 + 34 + 1
     kernel_size: 5
     pad: 2
   }
@@ -272,7 +272,7 @@ layer {
     decay_mult: 0
   }
   convolution_param {
-    num_output: 174  # 125 + 24 + 24 + 1
+    num_output: 196  # 125 + 36 + 34 + 1
     kernel_size: 5 
   }
 }

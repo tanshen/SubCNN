@@ -1,15 +1,18 @@
 name: "CaffeNet"
-input: "data"
-input_shape {
-  dim: 1
-  dim: 3
-  dim: 227
-  dim: 227
-}
-input: "rois"
-input_shape {
-  dim: 1 # to be changed on-the-fly to num ROIs
-  dim: 5 # [batch ind, x1, y1, x2, y2] zero-based indexing
+layer {
+  name: 'data'
+  type: 'Python'
+  top: 'data'
+  top: 'rois'
+  top: 'labels'
+  top: 'bbox_targets'
+  top: 'bbox_loss_weights'
+  top: 'sublabels'
+  python_param {
+    module: 'roi_data_layer.layer'
+    layer: 'RoIDataLayer'
+    param_str: "'num_classes': 4"
+  }
 }
 layer {
   name: "conv1"
@@ -193,7 +196,7 @@ layer {
   top: 'conv5_feature'
   feature_extrapolating_param {
     scale_string: "1.0 2.0 3.0 4.0"
-    num_scale_base: 4 
+    num_scale_base: 4
     num_per_octave: 4 
   }
 }
@@ -287,7 +290,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 228 
+    num_output: 300  # 227 + 36 + 36 + 1
     weight_filler {
       type: "gaussian"
       std: 0.01
@@ -299,10 +302,12 @@ layer {
   }
 }
 layer {
-  name: "subcls_prob"
-  type: "Softmax"
+  name: "loss_subcls"
+  type: "SoftmaxWithLoss"
   bottom: "subcls_score"
-  top: "subcls_prob"
+  bottom: "sublabels"
+  top: "loss_subcls"
+  loss_weight: 1.2
 }
 layer {
   name: "cls_score"
@@ -318,7 +323,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 2 
+    num_output: 4
     weight_filler {
       type: "gaussian"
       std: 0.01
@@ -343,7 +348,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 8
+    num_output: 16 
     weight_filler {
       type: "gaussian"
       std: 0.001
@@ -355,8 +360,19 @@ layer {
   }
 }
 layer {
-  name: "cls_prob"
-  type: "Softmax"
+  name: "loss_cls"
+  type: "SoftmaxWithLoss"
   bottom: "cls_score"
-  top: "cls_prob"
+  bottom: "labels"
+  top: "loss_cls"
+  loss_weight: 1
+}
+layer {
+  name: "loss_bbox"
+  type: "SmoothL1Loss"
+  bottom: "bbox_pred"
+  bottom: "bbox_targets"
+  bottom: "bbox_loss_weights"
+  top: "loss_bbox"
+  loss_weight: 1
 }

@@ -213,7 +213,7 @@ layer {
     decay_mult: 0
   }
   convolution_param {
-    num_output: 228
+    num_output: 300  # 227 + 36 + 36 + 1
     kernel_size: 5
     pad: 2
   }
@@ -241,7 +241,7 @@ layer {
   python_param {
     module: 'roi_testing_layer.layer'
     layer: 'RoITestingLayer'
-    param_str: "'num_classes': 2\n'kernel_size': 5\n'spatial_scale': 0.0625"
+    param_str: "'num_classes': 4\n'kernel_size': 5\n'spatial_scale': 0.0625"
   }
 }
 layer {
@@ -272,7 +272,7 @@ layer {
     decay_mult: 0
   }
   convolution_param {
-    num_output: 228
+    num_output: 300  # 227 + 36 + 36 + 1
     kernel_size: 5 
   }
 }
@@ -296,7 +296,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 8 
+    num_output: 16 
     weight_filler {
       type: "gaussian"
       std: 0.001

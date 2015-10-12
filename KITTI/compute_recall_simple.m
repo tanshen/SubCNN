@@ -1,15 +1,12 @@
 function recall_all = compute_recall_simple
 
-% cls = 'car';
-cls = 'pedestrian';
-% cls = 'cyclist';
-MIN_OVERLAP = 0.5;
+classes = {'car', 'pedestrian', 'cyclist'};
+MIN_OVERLAPS = [0.7, 0.5, 0.5];
 
 % evaluation parameter
 MIN_HEIGHT = [40, 25, 25];     % minimum height for evaluated groundtruth/detections
 MAX_OCCLUSION = [0, 1, 2];     % maximum occlusion level of the groundtruth used for evaluation
 MAX_TRUNCATION = [0.15, 0.3, 0.5]; % maximum truncation level of the groundtruth used for evaluation
-
 
 % KITTI path
 opt = globals();
@@ -20,7 +17,7 @@ label_dir = fullfile(root_dir, [data_set '/label_' num2str(cam)]);
 
 % read ids of validation images
 object = load('kitti_ids_new.mat');
-ids = object.ids_val;
+ids = object.ids_train;
 % ids = sort([object.ids_train, object.ids_val]);
 M = numel(ids);
 
@@ -60,109 +57,117 @@ for i = 1:M
     fid = fopen(filename, 'r');
     C = textscan(fid, '%f %f %f %f %f');   
     fclose(fid);
-    det = double([C{1} C{2} C{3} C{4}]);
-    ind = (det(:,3) > det(:,1)) & (det(:,4) > det(:,2)); % & C{5} > 0.02;
-    detections{i} = det(ind,:);
+    
+    det = double([C{1} C{2} C{3} C{4} C{5}]);
+    ind = (det(:,3) > det(:,1)) & (det(:,4) > det(:,2)) & (det(:,5) > 0.01);
+    det = det(ind,1:4);
+
+    detections{i} = det;
     count = count + size(detections{i}, 1);
 end
 
 fprintf('load detection done\n');
 fprintf('%f detections per image\n', count / M);
+    
+for k = 1:numel(classes)
+    cls = classes{k};
+    MIN_OVERLAP = MIN_OVERLAPS(k);    
 
-recall_all = cell(1, 3);
+    recall_all = cell(1, 3);
 
-for difficulty = 1:3
-    % for each image
-    ignored_gt_all = cell(1, M);
-    dontcare_gt_all = cell(1, M);
-    for i = 1:M
-        gt = groundtruths{i};
-        num = numel(gt);
-        % clean data
-        % extract ground truth bounding boxes for current evaluation class
-        ignored_gt = zeros(1, num);
-        n_gt = 0;
-        dontcare_gt = zeros(1, num);
-        n_dc = 0;
-        for j = 1:num
-            if strcmpi(cls, gt(j).type) == 1
-                valid_class = 1;
-            elseif strcmpi('van', gt(j).type) == 1
-                valid_class = 0;
-            else
-                valid_class = -1;
+    for difficulty = 1:3
+        % for each image
+        ignored_gt_all = cell(1, M);
+        dontcare_gt_all = cell(1, M);
+        for i = 1:M
+            gt = groundtruths{i};
+            num = numel(gt);
+            % clean data
+            % extract ground truth bounding boxes for current evaluation class
+            ignored_gt = zeros(1, num);
+            n_gt = 0;
+            dontcare_gt = zeros(1, num);
+            n_dc = 0;
+            for j = 1:num
+                if strcmpi(cls, gt(j).type) == 1
+                    valid_class = 1;
+                elseif strcmpi('van', gt(j).type) == 1
+                    valid_class = 0;
+                else
+                    valid_class = -1;
+                end
+
+                height = gt(j).y2 - gt(j).y1;    
+                if(gt(j).occlusion > MAX_OCCLUSION(difficulty) || ...
+                    gt(j).truncation > MAX_TRUNCATION(difficulty) || ...
+                    height < MIN_HEIGHT(difficulty))
+                    ignore = true;            
+                else
+                    ignore = false;
+                end
+
+                if valid_class == 1 && ignore == false
+                    ignored_gt(j) = 0;
+                    n_gt = n_gt + 1;
+                elseif valid_class == 0 || (valid_class == 1 && ignore == true) 
+                    ignored_gt(j) = 1;
+                else
+                    ignored_gt(j) = -1;
+                end
+
+                if strcmp('DontCare', gt(j).type) == 1
+                    dontcare_gt(j) = 1;
+                    n_dc = n_dc + 1;
+                end
             end
-            
-            height = gt(j).y2 - gt(j).y1;    
-            if(gt(j).occlusion > MAX_OCCLUSION(difficulty) || ...
-                gt(j).truncation > MAX_TRUNCATION(difficulty) || ...
-                height < MIN_HEIGHT(difficulty))
-                ignore = true;            
-            else
-                ignore = false;
-            end
-            
-            if valid_class == 1 && ignore == false
-                ignored_gt(j) = 0;
-                n_gt = n_gt + 1;
-            elseif valid_class == 0 || (valid_class == 1 && ignore == true) 
-                ignored_gt(j) = 1;
-            else
-                ignored_gt(j) = -1;
-            end
-            
-            if strcmp('DontCare', gt(j).type) == 1
-                dontcare_gt(j) = 1;
-                n_dc = n_dc + 1;
+
+            ignored_gt_all{i} = ignored_gt;
+            dontcare_gt_all{i} = dontcare_gt;
+        end
+
+        fn = 0;
+        tp = 0;
+
+        % for each image
+        for i = 1:M
+            gt = groundtruths{i};
+            num = numel(gt);
+            ignored_gt = ignored_gt_all{i};
+
+            det = detections{i};
+            det = truncate_detections(det);    
+            num_det = size(det, 1);
+
+            % compute statistics
+            assigned_detection = zeros(1, num_det);
+            % for each ground truth
+            for j = 1:num
+                if ignored_gt(j) == -1 || ignored_gt(j) == 1
+                    continue;
+                end
+
+                box_gt = [gt(j).x1 gt(j).y1 gt(j).x2 gt(j).y2];
+                if num_det == 0
+                    overlap = 0;
+                else
+                    overlap = boxoverlap(det, box_gt);
+                end
+                % disp(max(overlap));
+                if max(overlap) >= MIN_OVERLAP
+                    tp = tp + 1;
+                else
+                    fn = fn + 1;
+                end
+
             end
         end
-        
-        ignored_gt_all{i} = ignored_gt;
-        dontcare_gt_all{i} = dontcare_gt;
-    end
-    
-    fn = 0;
-    tp = 0;
-    
-    % for each image
-    for i = 1:M
-        gt = groundtruths{i};
-        num = numel(gt);
-        ignored_gt = ignored_gt_all{i};
-        
-        det = detections{i};
-        det = truncate_detections(det);    
-        num_det = size(det, 1);
-        
-        % compute statistics
-        assigned_detection = zeros(1, num_det);
-        % for each ground truth
-        for j = 1:num
-            if ignored_gt(j) == -1 || ignored_gt(j) == 1
-                continue;
-            end
 
-            box_gt = [gt(j).x1 gt(j).y1 gt(j).x2 gt(j).y2];
-            if num_det == 0
-                overlap = 0;
-            else
-                overlap = boxoverlap(det, box_gt);
-            end
-            % disp(max(overlap));
-            if max(overlap) >= MIN_OVERLAP
-                tp = tp + 1;
-            else
-                fn = fn + 1;
-            end
+        % compute recall and precision
+        recall = tp / (tp + fn);
 
-        end
+        recall_all{difficulty} = recall;
+        fprintf('%s difficulty %d, tp %d, fn %d, recall %f\n', cls, difficulty, tp, fn, recall);
     end
-    
-    % compute recall and precision
-    recall = tp / (tp + fn);
-    
-    recall_all{difficulty} = recall;
-    fprintf('difficulty %d, tp %d, fn %d, recall %f\n', difficulty, tp, fn, recall);
 end
 
 
