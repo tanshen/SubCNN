@@ -73,6 +73,8 @@ if __name__ == '__main__':
     imdb = get_imdb(args.imdb_name)
     imdb.competition_mode(args.comp_mode)
 
+    cfg.GPU_ID = args.gpu_id
+
     if cfg.IS_RPN == True and cfg.IS_MULTISCALE == False:
         test_rpn_msr_net(net, imdb)
     else:
