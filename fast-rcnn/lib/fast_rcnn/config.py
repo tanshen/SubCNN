@@ -197,6 +197,9 @@ __C.ROOT_DIR = osp.abspath(osp.join(osp.dirname(__file__), '..', '..'))
 # Place outputs under an experiments directory
 __C.EXP_DIR = 'default'
 
+# Use GPU implementation of non-maximum suppression
+__C.USE_GPU_NMS = True
+
 def get_output_dir(imdb, net):
     """Return the directory where experimental artifacts are placed.
 
