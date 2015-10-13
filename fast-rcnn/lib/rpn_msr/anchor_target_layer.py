@@ -79,13 +79,13 @@ class AnchorTargetLayer(caffe.Layer):
         # im_info
         im_info = bottom[2].data[0, :]
 
-        if 0 and DEBUG:
+        if DEBUG:
             print ''
             print 'im_size: ({}, {})'.format(im_info[0], im_info[1])
             print 'scale: {}'.format(im_info[2])
             print 'height, width: ({}, {})'.format(height, width)
-            #print 'rpn: gt_boxes.shape', gt_boxes.shape
-            #print 'rpn: gt_boxes', gt_boxes
+            print 'rpn: gt_boxes.shape', gt_boxes.shape
+            print 'rpn: gt_boxes', gt_boxes
 
         # 1. Generate proposals from bbox deltas and shifted anchors
         shift_x = np.arange(0, width) * self._feat_stride
@@ -195,7 +195,10 @@ class AnchorTargetLayer(caffe.Layer):
         bbox_inside_weights = _unmap(bbox_inside_weights, total_anchors, inds_inside, fill=0)
 
         if DEBUG:
-            print 'rpn: max max_overlap', np.max(max_overlaps)
+            if gt_boxes.shape[0] != 0:
+                print 'rpn: max max_overlap', np.max(max_overlaps)
+            else:
+                print 'rpn: max max_overlap', 0
             print 'rpn: num_positive', np.sum(labels == 1)
             print 'rpn: num_negative', np.sum(labels == 0)
             self._fg_sum += np.sum(labels == 1)
