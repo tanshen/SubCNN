@@ -124,6 +124,10 @@ __C.TRAIN.RPN_BBOX_INSIDE_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
 # Set to -1.0 to use uniform example weighting
 __C.TRAIN.RPN_POSITIVE_WEIGHT = -1.0
 
+__C.TRAIN.RPN_BASE_SIZE = 16
+__C.TRAIN.RPN_ASPECTS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3]
+__C.TRAIN.RPN_SCALSE = 2**np.arange(1, 6, 0.5)
+
 #
 # Testing options
 #

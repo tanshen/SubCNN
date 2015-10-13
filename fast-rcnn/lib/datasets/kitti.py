@@ -12,6 +12,7 @@ import subprocess
 import cPickle
 from fast_rcnn.config import cfg
 import math
+from rpn_msr.generate_anchors import generate_anchors
 
 class kitti(datasets.imdb):
     def __init__(self, image_set, kitti_path=None):
@@ -206,34 +207,88 @@ class kitti(datasets.imdb):
         subindexes_flipped = np.zeros((num_objs, self.num_classes), dtype=np.int32)
 
         if cfg.IS_RPN:
-            # compute overlaps between grid boxes and gt boxes in multi-scales
-            # rescale the gt boxes
-            boxes_all = np.zeros((0, 4), dtype=np.float32)
-            for scale in cfg.TRAIN.SCALES:
-                boxes_all = np.vstack((boxes_all, boxes * scale))
-            gt_classes_all = np.tile(gt_classes, len(cfg.TRAIN.SCALES))
+            if cfg.IS_MULTISCALE:
+                # compute overlaps between grid boxes and gt boxes in multi-scales
+                # rescale the gt boxes
+                boxes_all = np.zeros((0, 4), dtype=np.float32)
+                for scale in cfg.TRAIN.SCALES:
+                    boxes_all = np.vstack((boxes_all, boxes * scale))
+                gt_classes_all = np.tile(gt_classes, len(cfg.TRAIN.SCALES))
 
-            # compute grid boxes
-            s = PIL.Image.open(self.image_path_from_index(index)).size
-            image_height = s[1]
-            image_width = s[0]
-            boxes_grid = self._get_boxes_grid(image_height, image_width)
+                # compute grid boxes
+                s = PIL.Image.open(self.image_path_from_index(index)).size
+                image_height = s[1]
+                image_width = s[0]
+                boxes_grid = self._get_boxes_grid(image_height, image_width)
 
-            # compute overlap
-            overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
+                # compute overlap
+                overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
+        
+                # check how many gt boxes are covered by grids
+                if num_objs != 0:
+                    index = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
+                    max_overlaps = overlaps_grid.max(axis = 0)
+                    fg_inds = []
+                    for k in xrange(1, self.num_classes):
+                        fg_inds.extend(np.where((gt_classes_all == k) & (max_overlaps >= cfg.TRAIN.FG_THRESH[k-1]))[0])
+                    index_covered = np.unique(index[fg_inds])
 
-            # check how many gt boxes are covered by grids
-            if num_objs != 0:
-                index = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
-                max_overlaps = overlaps_grid.max(axis = 0)
-                fg_inds = []
-                for k in xrange(1, self.num_classes):
-                    fg_inds.extend(np.where((gt_classes_all == k) & (max_overlaps >= cfg.TRAIN.FG_THRESH[k-1]))[0])
-                index_covered = np.unique(index[fg_inds])
+                    for i in xrange(self.num_classes):
+                        self._num_boxes_all[i] += len(np.where(gt_classes == i)[0])
+                        self._num_boxes_covered[i] += len(np.where(gt_classes[index_covered] == i)[0])
+            else:
+                assert len(cfg.TRAIN.SCALES_BASE) == 1
+                scale = cfg.TRAIN.SCALES_BASE[0]
+                feat_stride = 16
+                # faster rcnn region proposal
+                anchors = generate_anchors()
+                num_anchors = anchors.shape[0]
 
-                for i in xrange(self.num_classes):
-                    self._num_boxes_all[i] += len(np.where(gt_classes == i)[0])
-                    self._num_boxes_covered[i] += len(np.where(gt_classes[index_covered] == i)[0])
+                # image size
+                s = PIL.Image.open(self.image_path_from_index(index)).size
+                image_height = s[1]
+                image_width = s[0]
+
+                # height and width of the heatmap
+                height = np.round((image_height * scale - 1) / 4.0 + 1)
+                height = np.floor((height - 1) / 2 + 1 + 0.5)
+                height = np.floor((height - 1) / 2 + 1 + 0.5)
+
+                width = np.round((image_width * scale - 1) / 4.0 + 1)
+                width = np.floor((width - 1) / 2.0 + 1 + 0.5)
+                width = np.floor((width - 1) / 2.0 + 1 + 0.5)
+
+                # gt boxes
+                gt_boxes = boxes * scale
+
+                # 1. Generate proposals from bbox deltas and shifted anchors
+                shift_x = np.arange(0, width) * feat_stride
+                shift_y = np.arange(0, height) * feat_stride
+                shift_x, shift_y = np.meshgrid(shift_x, shift_y)
+                shifts = np.vstack((shift_x.ravel(), shift_y.ravel(),
+                            shift_x.ravel(), shift_y.ravel())).transpose()
+                # add A anchors (1, A, 4) to
+                # cell K shifts (K, 1, 4) to get
+                # shift anchors (K, A, 4)
+                # reshape to (K*A, 4) shifted anchors
+                A = num_anchors
+                K = shifts.shape[0]
+                all_anchors = (anchors.reshape((1, A, 4)) + shifts.reshape((1, K, 4)).transpose((1, 0, 2)))
+                all_anchors = all_anchors.reshape((K * A, 4))
+
+                # compute overlap
+                overlaps_grid = bbox_overlaps(all_anchors.astype(np.float), gt_boxes.astype(np.float))
+        
+                # check how many gt boxes are covered by anchors
+                if num_objs != 0:
+                    max_overlaps = overlaps_grid.max(axis = 0)
+                    fg_inds = []
+                    for k in xrange(1, self.num_classes):
+                        fg_inds.extend(np.where((gt_classes == k) & (max_overlaps >= cfg.TRAIN.FG_THRESH[k-1]))[0])
+
+                    for i in xrange(self.num_classes):
+                        self._num_boxes_all[i] += len(np.where(gt_classes == i)[0])
+                        self._num_boxes_covered[i] += len(np.where(gt_classes[fg_inds] == i)[0])
 
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
@@ -305,34 +360,91 @@ class kitti(datasets.imdb):
         overlaps = scipy.sparse.csr_matrix(overlaps)
 
         if cfg.IS_RPN:
-            # compute overlaps between grid boxes and gt boxes in multi-scales
-            # rescale the gt boxes
-            boxes_all = np.zeros((0, 4), dtype=np.float32)
-            for scale in cfg.TRAIN.SCALES:
-                boxes_all = np.vstack((boxes_all, boxes * scale))
-            gt_classes_all = np.tile(gt_classes, len(cfg.TRAIN.SCALES))
+            if cfg.IS_MULTISCALE:
+                # compute overlaps between grid boxes and gt boxes in multi-scales
+                # rescale the gt boxes
+                boxes_all = np.zeros((0, 4), dtype=np.float32)
+                for scale in cfg.TRAIN.SCALES:
+                    boxes_all = np.vstack((boxes_all, boxes * scale))
+                gt_classes_all = np.tile(gt_classes, len(cfg.TRAIN.SCALES))
 
-            # compute grid boxes
-            s = PIL.Image.open(self.image_path_from_index(index)).size
-            image_height = s[1]
-            image_width = s[0]
-            boxes_grid = self._get_boxes_grid(image_height, image_width)
+                # compute grid boxes
+                s = PIL.Image.open(self.image_path_from_index(index)).size
+                image_height = s[1]
+                image_width = s[0]
+                boxes_grid = self._get_boxes_grid(image_height, image_width)
 
-            # compute overlap
-            overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
+                # compute overlap
+                overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
         
-            # check how many gt boxes are covered by grids
-            if num_objs != 0:
-                index = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
-                max_overlaps = overlaps_grid.max(axis = 0)
-                fg_inds = []
-                for k in xrange(1, self.num_classes):
-                    fg_inds.extend(np.where((gt_classes_all == k) & (max_overlaps >= cfg.TRAIN.FG_THRESH[k-1]))[0])
-                index_covered = np.unique(index[fg_inds])
+                # check how many gt boxes are covered by grids
+                if num_objs != 0:
+                    index = np.tile(range(num_objs), len(cfg.TRAIN.SCALES))
+                    max_overlaps = overlaps_grid.max(axis = 0)
+                    fg_inds = []
+                    for k in xrange(1, self.num_classes):
+                        fg_inds.extend(np.where((gt_classes_all == k) & (max_overlaps >= cfg.TRAIN.FG_THRESH[k-1]))[0])
+                    index_covered = np.unique(index[fg_inds])
 
-                for i in xrange(self.num_classes):
-                    self._num_boxes_all[i] += len(np.where(gt_classes == i)[0])
-                    self._num_boxes_covered[i] += len(np.where(gt_classes[index_covered] == i)[0])
+                    for i in xrange(self.num_classes):
+                        self._num_boxes_all[i] += len(np.where(gt_classes == i)[0])
+                        self._num_boxes_covered[i] += len(np.where(gt_classes[index_covered] == i)[0])
+            else:
+                assert len(cfg.TRAIN.SCALES_BASE) == 1
+                scale = cfg.TRAIN.SCALES_BASE[0]
+                feat_stride = 16
+                # faster rcnn region proposal
+                base_size = 16
+                ratios = [3.0, 2.0, 1.5, 1.0, 0.75, 0.5, 0.25]
+                scales = 2**np.arange(1, 6, 0.5)
+                anchors = generate_anchors(base_size, ratios, scales)
+                num_anchors = anchors.shape[0]
+
+                # image size
+                s = PIL.Image.open(self.image_path_from_index(index)).size
+                image_height = s[1]
+                image_width = s[0]
+
+                # height and width of the heatmap
+                height = np.round((image_height * scale - 1) / 4.0 + 1)
+                height = np.floor((height - 1) / 2 + 1 + 0.5)
+                height = np.floor((height - 1) / 2 + 1 + 0.5)
+
+                width = np.round((image_width * scale - 1) / 4.0 + 1)
+                width = np.floor((width - 1) / 2.0 + 1 + 0.5)
+                width = np.floor((width - 1) / 2.0 + 1 + 0.5)
+
+                # gt boxes
+                gt_boxes = boxes * scale
+
+                # 1. Generate proposals from bbox deltas and shifted anchors
+                shift_x = np.arange(0, width) * feat_stride
+                shift_y = np.arange(0, height) * feat_stride
+                shift_x, shift_y = np.meshgrid(shift_x, shift_y)
+                shifts = np.vstack((shift_x.ravel(), shift_y.ravel(),
+                            shift_x.ravel(), shift_y.ravel())).transpose()
+                # add A anchors (1, A, 4) to
+                # cell K shifts (K, 1, 4) to get
+                # shift anchors (K, A, 4)
+                # reshape to (K*A, 4) shifted anchors
+                A = num_anchors
+                K = shifts.shape[0]
+                all_anchors = (anchors.reshape((1, A, 4)) + shifts.reshape((1, K, 4)).transpose((1, 0, 2)))
+                all_anchors = all_anchors.reshape((K * A, 4))
+
+                # compute overlap
+                overlaps_grid = bbox_overlaps(all_anchors.astype(np.float), gt_boxes.astype(np.float))
+        
+                # check how many gt boxes are covered by anchors
+                if num_objs != 0:
+                    max_overlaps = overlaps_grid.max(axis = 0)
+                    fg_inds = []
+                    for k in xrange(1, self.num_classes):
+                        fg_inds.extend(np.where((gt_classes == k) & (max_overlaps >= cfg.TRAIN.FG_THRESH[k-1]))[0])
+
+                    for i in xrange(self.num_classes):
+                        self._num_boxes_all[i] += len(np.where(gt_classes == i)[0])
+                        self._num_boxes_covered[i] += len(np.where(gt_classes[fg_inds] == i)[0])
 
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
