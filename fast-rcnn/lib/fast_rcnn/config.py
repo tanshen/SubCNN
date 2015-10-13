@@ -200,6 +200,9 @@ __C.EXP_DIR = 'default'
 # Use GPU implementation of non-maximum suppression
 __C.USE_GPU_NMS = True
 
+# Default GPU device id
+__C.GPU_ID = 0
+
 def get_output_dir(imdb, net):
     """Return the directory where experimental artifacts are placed.
 
