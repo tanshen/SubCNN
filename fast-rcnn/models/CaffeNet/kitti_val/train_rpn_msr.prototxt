@@ -254,7 +254,6 @@ layer {
   top: 'rpn_labels'
   top: 'rpn_bbox_targets'
   top: 'rpn_bbox_inside_weights'
-  top: 'rpn_bbox_outside_weights'
   python_param {
     module: 'rpn_msr.anchor_target_layer'
     layer: 'AnchorTargetLayer'
@@ -266,8 +265,6 @@ layer {
   type: "SoftmaxWithLoss"
   bottom: "rpn_cls_score_reshape"
   bottom: "rpn_labels"
-  propagate_down: 1
-  propagate_down: 0
   top: "rpn_cls_loss"
   loss_weight: 1
   loss_param {
@@ -281,8 +278,6 @@ layer {
   bottom: "rpn_bbox_pred"
   bottom: "rpn_bbox_targets"
   bottom: "rpn_bbox_inside_weights"
-  bottom: "rpn_bbox_outside_weights"
   top: "rpn_loss_bbox"
   loss_weight: 1
-  smooth_l1_loss_param { sigma: 3.0 }
 }
