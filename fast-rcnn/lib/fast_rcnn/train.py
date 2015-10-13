@@ -29,10 +29,11 @@ class SolverWrapper(object):
         self.output_dir = output_dir
 
         print 'Computing bounding-box regression targets...'
-        if cfg.IS_RPN:
-            self.bbox_means, self.bbox_stds = gdl_roidb.add_bbox_regression_targets(roidb)
-        else:
-            self.bbox_means, self.bbox_stds = rdl_roidb.add_bbox_regression_targets(roidb)
+        if cfg.TRAIN.BBOX_REG:
+            if cfg.IS_RPN:
+                self.bbox_means, self.bbox_stds = gdl_roidb.add_bbox_regression_targets(roidb)
+            else:
+                self.bbox_means, self.bbox_stds = rdl_roidb.add_bbox_regression_targets(roidb)
         print 'done'
 
         self.solver = caffe.SGDSolver(solver_prototxt)
@@ -53,7 +54,7 @@ class SolverWrapper(object):
         """
         net = self.solver.net
 
-        if cfg.TRAIN.BBOX_REG:
+        if cfg.TRAIN.BBOX_REG and net.params.has_key('bbox_pred'):
             # save original values
             orig_0 = net.params['bbox_pred'][0].data.copy()
             orig_1 = net.params['bbox_pred'][1].data.copy()
@@ -78,7 +79,7 @@ class SolverWrapper(object):
         net.save(str(filename))
         print 'Wrote snapshot to: {:s}'.format(filename)
 
-        if cfg.TRAIN.BBOX_REG:
+        if cfg.TRAIN.BBOX_REG and net.params.has_key('bbox_pred'):
             # restore net to original state
             net.params['bbox_pred'][0].data[...] = orig_0
             net.params['bbox_pred'][1].data[...] = orig_1
@@ -111,7 +112,10 @@ def get_training_roidb(imdb):
 
     print 'Preparing training data...'
     if cfg.IS_RPN:
-        gdl_roidb.prepare_roidb(imdb)
+        if cfg.IS_MULTISCALE:
+            gdl_roidb.prepare_roidb(imdb)
+        else:
+            rdl_roidb.prepare_roidb(imdb)
     else:
         rdl_roidb.prepare_roidb(imdb)
     print 'done'

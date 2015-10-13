@@ -19,6 +19,7 @@ import heapq
 from utils.blob import im_list_to_blob
 import os
 import math
+from rpn_msr.generate import imdb_proposals_det
 
 def _get_image_blob(im):
     """Converts an image into a network input.
@@ -538,3 +539,30 @@ def test_net(net, imdb):
         nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
         print 'Evaluating detections'
         imdb.evaluate_detections(nms_dets, output_dir)
+
+
+def test_rpn_msr_net(net, imdb):
+
+    output_dir = get_output_dir(imdb, net)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    det_file = os.path.join(output_dir, 'detections.pkl')
+    if os.path.exists(det_file):
+        with open(det_file, 'rb') as fid:
+            all_boxes = cPickle.load(fid)
+        print 'Detections loaded from {}'.format(det_file)
+
+        print 'Evaluating detections'
+        imdb.evaluate_proposals_msr(all_boxes, output_dir)
+        return
+
+    # Generate proposals on the imdb
+    all_boxes = imdb_proposals_det(net, imdb)
+
+    det_file = os.path.join(output_dir, 'detections.pkl')
+    with open(det_file, 'wb') as f:
+        cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
+
+    print 'Evaluating detections'
+    imdb.evaluate_proposals_msr(all_boxes, output_dir)

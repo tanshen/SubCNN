@@ -1,0 +1,12 @@
+EXP_DIR: kitti
+IS_RPN: True
+IS_MULTISCALE: False
+TRAIN:
+  SCALES_BASE: !!python/tuple [1.0]
+  SNAPSHOT_INFIX: kitti
+  BBOX_REG: False
+  SNAPSHOT_ITERS: 5000
+TEST:
+  SCALES_BASE: !!python/tuple [1.0]
+  NMS: 0.5
+  BBOX_REG: False

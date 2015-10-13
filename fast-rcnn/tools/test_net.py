@@ -10,7 +10,7 @@
 """Test a Fast R-CNN network on an image database."""
 
 import _init_paths
-from fast_rcnn.test import test_net
+from fast_rcnn.test import test_net, test_rpn_msr_net
 from fast_rcnn.config import cfg, cfg_from_file
 from datasets.factory import get_imdb
 import caffe
@@ -73,4 +73,7 @@ if __name__ == '__main__':
     imdb = get_imdb(args.imdb_name)
     imdb.competition_mode(args.comp_mode)
 
-    test_net(net, imdb)
+    if cfg.IS_RPN == True and cfg.IS_MULTISCALE == False:
+        test_rpn_msr_net(net, imdb)
+    else:
+        test_net(net, imdb)

@@ -582,6 +582,18 @@ class kitti(datasets.imdb):
                         f.write('{:f} {:f} {:f} {:f} {:.32f}\n'.format(\
                                  dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4]))
 
+    def evaluate_proposals_msr(self, all_boxes, output_dir):
+        # for each image
+        for im_ind, index in enumerate(self.image_index):
+            filename = os.path.join(output_dir, index + '.txt')
+            print 'Writing KITTI results to file ' + filename
+            with open(filename, 'wt') as f:
+                dets = all_boxes[im_ind]
+                if dets == []:
+                    continue
+                for k in xrange(dets.shape[0]):
+                    f.write('{:f} {:f} {:f} {:f} {:.32f}\n'.format(dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4]))
+
 
 if __name__ == '__main__':
     d = datasets.kitti('train')
