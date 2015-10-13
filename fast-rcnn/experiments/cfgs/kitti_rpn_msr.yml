@@ -3,6 +3,7 @@ IS_RPN: True
 IS_MULTISCALE: False
 TRAIN:
   SCALES_BASE: !!python/tuple [1.0]
+  IMS_PER_BATCH: 1
   SNAPSHOT_INFIX: kitti
   BBOX_REG: False
   SNAPSHOT_ITERS: 5000

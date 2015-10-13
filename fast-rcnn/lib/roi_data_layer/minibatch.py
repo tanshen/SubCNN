@@ -31,6 +31,8 @@ def get_minibatch(roidb, num_classes):
         random_scale_inds = npr.randint(0, high=len(cfg.TRAIN.SCALES_BASE), size=num_images)
         im_blob, im_scales = _get_image_blob(roidb, random_scale_inds)
 
+    blobs = {'data': im_blob}
+
     if cfg.IS_RPN:
         assert len(im_scales) == 1, "Single batch only"
         assert len(roidb) == 1, "Single batch only"
@@ -77,9 +79,8 @@ def get_minibatch(roidb, num_classes):
         # For debug visualizations
         # _vis_minibatch(im_blob, rois_blob, labels_blob, all_overlaps, sublabels_blob)
 
-        blobs = {'data': im_blob,
-                 'rois': rois_blob,
-                 'labels': labels_blob}
+        blobs['rois'] = rois_blob
+        blobs['labels'] = labels_blob
 
         if cfg.TRAIN.BBOX_REG:
             blobs['bbox_targets'] = bbox_targets_blob
