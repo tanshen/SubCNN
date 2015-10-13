@@ -214,7 +214,7 @@ layer {
   bottom: "rpn_conv1"
   top: "rpn_cls_score"
   convolution_param {
-    num_output: 18   # 2(bg/fg) * 9(anchors)
+    num_output: 140   # 2(bg/fg) * 70(anchors)
     kernel_size: 1 pad: 0 stride: 1
   }
 }
@@ -224,7 +224,7 @@ layer {
   bottom: "rpn_conv1"
   top: "rpn_bbox_pred"
   convolution_param {
-    num_output: 36   # 4 * 9(anchors)
+    num_output: 280   # 4 * 70(anchors)
     kernel_size: 1 pad: 0 stride: 1
   }
 }
