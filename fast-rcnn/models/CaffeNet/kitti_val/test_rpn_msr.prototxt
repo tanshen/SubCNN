@@ -248,7 +248,7 @@ layer {
   type: 'Reshape'
   bottom: 'rpn_cls_prob'
   top: 'rpn_cls_prob_reshape'
-  reshape_param { shape { dim: 0 dim: 18 dim: -1 dim: 0 } }
+  reshape_param { shape { dim: 0 dim: 140 dim: -1 dim: 0 } }
 }
 layer {
   name: 'proposal'
