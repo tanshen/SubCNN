@@ -254,6 +254,7 @@ layer {
   top: 'rpn_labels'
   top: 'rpn_bbox_targets'
   top: 'rpn_bbox_inside_weights'
+  top: 'rpn_bbox_outside_weights'
   python_param {
     module: 'rpn_msr.anchor_target_layer'
     layer: 'AnchorTargetLayer'
@@ -278,6 +279,8 @@ layer {
   bottom: "rpn_bbox_pred"
   bottom: "rpn_bbox_targets"
   bottom: "rpn_bbox_inside_weights"
+  bottom: "rpn_bbox_outside_weights"
   top: "rpn_loss_bbox"
   loss_weight: 1
+  smooth_l1_loss_param { sigma: 3.0 }
 }

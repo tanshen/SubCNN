@@ -127,10 +127,14 @@ class RoIDataLayer(caffe.Layer):
                 self._name_to_top_map['bbox_targets'] = idx
                 idx += 1
 
-                # bbox_loss_weights blob: At most 4 targets per roi are active;
-                # thisbinary vector sepcifies the subset of active targets
+                # bbox_inside_weights blob: At most 4 targets per roi are active;
+                # this binary vector sepcifies the subset of active targets
                 top[idx].reshape(1, self._num_classes * 4)
-                self._name_to_top_map['bbox_loss_weights'] = idx
+                self._name_to_top_map['bbox_inside_weights'] = idx
+                idx += 1
+
+                top[idx].reshape(1, self._num_classes * 4)
+                self._name_to_top_map['bbox_outside_weights'] = idx
                 idx += 1
 
             # add subclass labels

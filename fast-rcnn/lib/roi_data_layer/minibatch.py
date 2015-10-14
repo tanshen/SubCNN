@@ -51,10 +51,10 @@ def get_minibatch(roidb, num_classes):
         labels_blob = np.zeros((0), dtype=np.float32)
         sublabels_blob = np.zeros((0), dtype=np.float32)
         bbox_targets_blob = np.zeros((0, 4 * num_classes), dtype=np.float32)
-        bbox_loss_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
+        bbox_inside_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
         # all_overlaps = []
         for im_i in xrange(num_images):
-            labels, overlaps, im_rois, bbox_targets, bbox_loss, sublabels \
+            labels, overlaps, im_rois, bbox_targets, bbox_inside_weights, sublabels \
                 = _sample_rois(roidb[im_i], fg_rois_per_image, rois_per_image,
                            num_classes)
 
@@ -73,7 +73,7 @@ def get_minibatch(roidb, num_classes):
             labels_blob = np.hstack((labels_blob, labels))
             sublabels_blob = np.hstack((sublabels_blob, sublabels))
             bbox_targets_blob = np.vstack((bbox_targets_blob, bbox_targets))
-            bbox_loss_blob = np.vstack((bbox_loss_blob, bbox_loss))
+            bbox_inside_blob = np.vstack((bbox_inside_blob, bbox_inside_weights))
             # all_overlaps = np.hstack((all_overlaps, overlaps))
 
         # For debug visualizations
@@ -84,7 +84,8 @@ def get_minibatch(roidb, num_classes):
 
         if cfg.TRAIN.BBOX_REG:
             blobs['bbox_targets'] = bbox_targets_blob
-            blobs['bbox_loss_weights'] = bbox_loss_blob
+            blobs['bbox_inside_weights'] = bbox_inside_blob
+            blobs['bbox_outside_weights'] = np.array(bbox_inside_blob > 0).astype(np.float32)
 
         if cfg.TRAIN.SUBCLS:
             blobs['sublabels'] = sublabels_blob
