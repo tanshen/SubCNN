@@ -194,8 +194,8 @@ layer {
   type: "Convolution"
   bottom: "conv5"
   top: "rpn_conv1"
-  param { lr_mult: 1.0 }
-  param { lr_mult: 2.0 }
+  param { lr_mult: 0.1 }
+  param { lr_mult: 0.2 }
   convolution_param {
     num_output: 256
     kernel_size: 3 pad: 1 stride: 1

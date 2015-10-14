@@ -15,7 +15,7 @@ from generate_anchors import generate_anchors
 from utils.cython_bbox import bbox_overlaps
 from fast_rcnn.bbox_transform import bbox_transform
 
-DEBUG = False
+DEBUG = False 
 
 class AnchorTargetLayer(caffe.Layer):
     """
