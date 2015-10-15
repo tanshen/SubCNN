@@ -18,7 +18,7 @@ time ./tools/train_net.py --gpu $1 \
 
 time ./tools/test_net.py --gpu $1 \
   --def models/CaffeNet/kitti_val/test_rpn_msr.prototxt \
-  --net output/kitti/kitti_train/caffenet_fast_rcnn_rpn_msr_kitti_iter_20000.caffemodel \
+  --net output/kitti/kitti_train/caffenet_fast_rcnn_rpn_msr_kitti_iter_40000.caffemodel \
   --imdb kitti_val \
   --cfg experiments/cfgs/kitti_rpn_msr.yml
 
