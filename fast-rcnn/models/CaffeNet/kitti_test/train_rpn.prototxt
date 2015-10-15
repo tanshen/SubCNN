@@ -230,23 +230,6 @@ layer {
   bottom: 'conv_sub_prob'
   top: 'heatmap'
 }
-#layer {
-#  name: 'roi'
-#  type: 'Python'
-#  bottom: 'conv_sub_prob'
-#  bottom: 'info_boxes'
-#  top: 'rois'
-#  top: 'rois_sub'
-#  top: 'labels'
-#  top: 'bbox_targets'
-#  top: 'bbox_loss_weights'
-#  top: 'sublabels'
-#  python_param {
-#    module: 'roi_generating_layer.layer'
-#    layer: 'RoIGeneratingLayer'
-#    param_str: "'num_classes': 4\n'kernel_size': 5\n'spatial_scale': 0.0625"
-#  }
-#}
 layer {
   name: 'roi'
   type: 'ROIGenerating'
@@ -256,7 +239,8 @@ layer {
   top: 'rois_sub'
   top: 'sublabels'
   top: 'bbox_targets'
-  top: 'bbox_loss_weights'
+  top: 'bbox_inside_weights'
+  top: 'bbox_outside_weights'
   roi_generating_param {
     flag_proposal_only: 1
     batch_size: 128
@@ -345,7 +329,8 @@ layer {
   type: "SmoothL1Loss"
   bottom: "bbox_pred"
   bottom: "bbox_targets"
-  bottom: "bbox_loss_weights"
+  bottom: "bbox_inside_weights"
+  bottom: "bbox_outside_weights"
   top: "loss_bbox"
   loss_weight: 1
 }
