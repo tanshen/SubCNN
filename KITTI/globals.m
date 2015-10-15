@@ -17,4 +17,4 @@ opt.path_kitti_root = [opt.path_kitti '/data_object_image_2'];
 addpath(opt.path_kitti_devkit);
 
 % add selective search path
-addpath(genpath('3rd_party/SelectiveSearchCodeIJCV'));
+addpath(genpath('../3rd_party/SelectiveSearchCodeIJCV'));
