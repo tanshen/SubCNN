@@ -145,6 +145,7 @@ class ProposalLayer(caffe.Layer):
             keep = keep[:post_nms_topN]
         proposals = proposals[keep, :]
         scores = scores[keep]
+        print scores.shape
 
         # Output rois blob
         # Our RPN implementation only supports a single input image, so all
