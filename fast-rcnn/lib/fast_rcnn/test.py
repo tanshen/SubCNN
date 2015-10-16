@@ -452,7 +452,7 @@ def test_net(net, imdb):
     # max_per_set constraint)
 
     if cfg.IS_RPN:
-        thresh = cfg.TEST.ROI_THRESHOLD * np.ones(imdb.num_classes)
+        thresh = -np.inf * np.ones(imdb.num_classes)
     else:
         thresh = -np.inf * np.ones(imdb.num_classes)
         # top_scores will hold one minheap of scores per class (used to enforce the max_per_set constraint)
