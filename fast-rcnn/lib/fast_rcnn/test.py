@@ -348,7 +348,9 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
 
     # select boxes
     max_scores = scores[:,1:].max(axis = 1)
-    inds = np.where(max_scores > cfg.TEST.ROI_THRESHOLD)[0]
+    order = max_scores.ravel().argsort()[::-1]
+    # inds = np.where(max_scores > cfg.TEST.ROI_THRESHOLD)[0]
+    inds = order[:cfg.TEST.ROI_NUM]
     scores = scores[inds]
     pred_boxes = pred_boxes[inds]
     scores_subcls = scores_subcls[inds]

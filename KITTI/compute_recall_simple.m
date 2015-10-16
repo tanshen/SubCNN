@@ -30,14 +30,27 @@ for i = 1:M
 end
 fprintf('load ground truth done\n');
 
+count = 0;
+
 % read detection results
-% object = load('KITTI_training');
+object = load('KITTI_training');
+boxes = object.boxes;
+detections = cell(1, M);
+for i = 1:M
+    ind = ids(i) + 1;
+    det = [boxes{ind}(:,2) boxes{ind}(:,1) boxes{ind}(:,4) boxes{ind}(:,3)];
+    detections{i} = det;
+    count = count + size(detections{i}, 1);
+end
+
+% object = load('KITTI_training_edgeboxes.mat');
 % boxes = object.boxes;
 % detections = cell(1, M);
 % for i = 1:M
 %     ind = ids(i) + 1;
-%     det = [boxes{ind}(:,2) boxes{ind}(:,1) boxes{ind}(:,4) boxes{ind}(:,3)];
+%     det = [boxes{ind}(:,1) boxes{ind}(:,2) boxes{ind}(:,1)+boxes{ind}(:,3) boxes{ind}(:,2)+boxes{ind}(:,4)];
 %     detections{i} = det;
+%     count = count + size(detections{i}, 1);
 % end
 
 % result_dir = 'kitti_train_ap_125';
@@ -49,22 +62,21 @@ fprintf('load ground truth done\n');
 %     count = count + size(detections{i}, 1);
 % end
 
-count = 0;
-detections = cell(1, M);
-for i = 1:M
-    filename = sprintf('region_proposals/%06d.txt', ids(i));
-    disp(filename);
-    fid = fopen(filename, 'r');
-    C = textscan(fid, '%f %f %f %f %f');   
-    fclose(fid);
-    
-    det = double([C{1} C{2} C{3} C{4} C{5}]);
-    ind = (det(:,3) > det(:,1)) & (det(:,4) > det(:,2)) & (det(:,5) > 0.01);
-    det = det(ind,1:4);
-
-    detections{i} = det;
-    count = count + size(detections{i}, 1);
-end
+% detections = cell(1, M);
+% for i = 1:M
+%     filename = sprintf('region_proposals/%06d.txt', ids(i));
+%     disp(filename);
+%     fid = fopen(filename, 'r');
+%     C = textscan(fid, '%f %f %f %f %f');   
+%     fclose(fid);
+%     
+%     det = double([C{1} C{2} C{3} C{4} C{5}]);
+%     ind = (det(:,3) > det(:,1)) & (det(:,4) > det(:,2)) & (det(:,5) > 0.01);
+%     det = det(ind,1:4);
+% 
+%     detections{i} = det;
+%     count = count + size(detections{i}, 1);
+% end
 
 fprintf('load detection done\n');
 fprintf('%f detections per image\n', count / M);

@@ -463,7 +463,7 @@ class kitti(datasets.imdb):
         This function loads/saves from/to a cache file to speed up future calls.
         """
         cache_file = os.path.join(self.cache_path,
-                                  self.name + '_region_proposal_roidb.pkl')
+                                  self.name + '_' + cfg.REGION_PROPOSAL + '_region_proposal_roidb.pkl')
 
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
@@ -476,9 +476,9 @@ class kitti(datasets.imdb):
 
             print 'Loading region proposal network boxes...'
             if self._image_set == 'trainval':
-                model = 'RPN_227/'
+                model = cfg.REGION_PROPOSAL + '_227/'
             else:
-                model = 'RPN_125/'
+                model = cfg.REGION_PROPOSAL + '_125/'
             rpn_roidb = self._load_rpn_roidb(gt_roidb, model)
             print 'Region proposal network boxes loaded'
             roidb = datasets.imdb.merge_roidbs(rpn_roidb, gt_roidb)
@@ -504,7 +504,7 @@ class kitti(datasets.imdb):
             # roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
         else:
             print 'Loading region proposal network boxes...'
-            model = 'RPN_227/'
+            model = cfg.REGION_PROPOSAL + '_227/'
             roidb = self._load_rpn_roidb(None, model)
             print 'Region proposal network boxes loaded'
 
