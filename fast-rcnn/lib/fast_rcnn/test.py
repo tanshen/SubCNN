@@ -348,12 +348,14 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
 
     # select boxes
     max_scores = scores[:,1:].max(axis = 1)
+    labels = scores[:,1:].argmax(axis = 1) + 1
     order = max_scores.ravel().argsort()[::-1]
     # inds = np.where(max_scores > cfg.TEST.ROI_THRESHOLD)[0]
     inds = order[:cfg.TEST.ROI_NUM]
     scores = scores[inds]
     pred_boxes = pred_boxes[inds]
     scores_subcls = scores_subcls[inds]
+    labels = labels[inds]
     print scores.shape
    
     # draw boxes
@@ -369,7 +371,7 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses):
                            edgecolor='g', linewidth=3))
         plt.show()
 
-    return scores, pred_boxes, scores_subcls
+    return scores, pred_boxes, scores_subcls, labels
 
 def vis_detections(im, class_name, dets, thresh=0.1):
     """Visual debugging of detections."""
@@ -476,7 +478,7 @@ def test_net(net, imdb):
         _t['im_detect'].tic()
         if cfg.IS_RPN:
             boxes_grid = _get_boxes_grid(im.shape[0], im.shape[1])
-            scores, boxes, scores_subcls = im_detect_proposal(net, im, boxes_grid, imdb.num_classes, imdb.num_subclasses)
+            scores, boxes, scores_subcls, labels = im_detect_proposal(net, im, boxes_grid, imdb.num_classes, imdb.num_subclasses)
         else:
             scores, boxes, scores_subcls = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes, imdb.num_subclasses)
         _t['im_detect'].toc()
@@ -485,7 +487,8 @@ def test_net(net, imdb):
         count = 0
         for j in xrange(1, imdb.num_classes):
             if cfg.IS_RPN:
-                inds = np.where(scores[:, j] > thresh[j])[0]
+                # inds = np.where(scores[:, j] > thresh[j])[0]
+                inds = np.where(labels == j)[0]
             else:
                 inds = np.where((scores[:, j] > thresh[j]) & (roidb[i]['gt_classes'] == 0))[0]
 
