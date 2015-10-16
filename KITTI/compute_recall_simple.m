@@ -17,7 +17,7 @@ label_dir = fullfile(root_dir, [data_set '/label_' num2str(cam)]);
 
 % read ids of validation images
 object = load('kitti_ids_new.mat');
-ids = object.ids_val;
+ids = object.ids_train;
 % ids = sort([object.ids_train, object.ids_val]);
 M = numel(ids);
 
@@ -33,15 +33,15 @@ fprintf('load ground truth done\n');
 count = 0;
 
 % read detection results
-object = load('KITTI_training');
-boxes = object.boxes;
-detections = cell(1, M);
-for i = 1:M
-    ind = ids(i) + 1;
-    det = [boxes{ind}(:,2) boxes{ind}(:,1) boxes{ind}(:,4) boxes{ind}(:,3)];
-    detections{i} = det;
-    count = count + size(detections{i}, 1);
-end
+% object = load('KITTI_training');
+% boxes = object.boxes;
+% detections = cell(1, M);
+% for i = 1:M
+%     ind = ids(i) + 1;
+%     det = [boxes{ind}(:,2) boxes{ind}(:,1) boxes{ind}(:,4) boxes{ind}(:,3)];
+%     detections{i} = det;
+%     count = count + size(detections{i}, 1);
+% end
 
 % object = load('KITTI_training_edgeboxes.mat');
 % boxes = object.boxes;
@@ -62,21 +62,24 @@ end
 %     count = count + size(detections{i}, 1);
 % end
 
-% detections = cell(1, M);
-% for i = 1:M
-%     filename = sprintf('region_proposals/%06d.txt', ids(i));
-%     disp(filename);
-%     fid = fopen(filename, 'r');
-%     C = textscan(fid, '%f %f %f %f %f');   
-%     fclose(fid);
-%     
-%     det = double([C{1} C{2} C{3} C{4} C{5}]);
-%     ind = (det(:,3) > det(:,1)) & (det(:,4) > det(:,2)) & (det(:,5) > 0.01);
-%     det = det(ind,1:4);
-% 
-%     detections{i} = det;
-%     count = count + size(detections{i}, 1);
-% end
+detections = cell(1, M);
+min_score = inf;
+for i = 1:M
+    filename = sprintf('region_proposals/%06d.txt', ids(i));
+    disp(filename);
+    fid = fopen(filename, 'r');
+    C = textscan(fid, '%f %f %f %f %f');   
+    fclose(fid);
+    
+    det = double([C{1} C{2} C{3} C{4} C{5}]);
+    min_score = min(min_score, min(C{5}));
+    ind = (det(:,3) > det(:,1)) & (det(:,4) > det(:,2)); % & (det(:,5) > 0.01);
+    det = det(ind,1:4);
+
+    detections{i} = det;
+    count = count + size(detections{i}, 1);
+end
+disp(min_score);
 
 fprintf('load detection done\n');
 fprintf('%f detections per image\n', count / M);
