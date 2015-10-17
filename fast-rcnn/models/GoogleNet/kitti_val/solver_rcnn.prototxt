@@ -1,4 +1,4 @@
-train_net: "models/GoogleNet/kitti_val/train_rpn.prototxt"
+train_net: "models/GoogleNet/kitti_val/train_rcnn.prototxt"
 base_lr: 0.001
 lr_policy: "step"
 gamma: 0.1
@@ -11,5 +11,5 @@ weight_decay: 0.0005
 # function
 snapshot: 0
 # We still use the snapshot prefix, though
-snapshot_prefix: "googlenet_fast_rcnn_rpn"
+snapshot_prefix: "googlenet_fast_rcnn"
 #debug_info: true
