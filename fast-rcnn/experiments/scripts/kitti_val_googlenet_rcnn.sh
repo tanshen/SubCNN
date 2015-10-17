@@ -13,7 +13,8 @@ time ./tools/train_net.py --gpu $1 \
   --solver models/GoogleNet/kitti_val/solver_rcnn.prototxt \
   --weights data/imagenet_models/bvlc_googlenet.caffemodel \
   --imdb kitti_train \
-  --cfg experiments/cfgs/kitti_rcnn.yml
+  --cfg experiments/cfgs/kitti_rcnn.yml \
+  --iters 40000
 
 time ./tools/test_net.py --gpu $1 \
   --def models/GoogleNet/kitti_val/test_rcnn.prototxt \
