@@ -300,7 +300,7 @@ layer {
   loss_weight: 1
 }
 layer {
-  name: "bbox_pred"
+  name: "bbox_pred_fix"
   type: "InnerProduct"
   bottom: "pool5_sub"
   top: "bbox_pred"
