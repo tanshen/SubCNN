@@ -410,7 +410,8 @@ def apply_nms(all_boxes, thresh):
             y1 = dets[:, 1]
             x2 = dets[:, 2]
             y2 = dets[:, 3]
-            inds = np.where((x2 > x1) & (y2 > y1))[0]
+            scores = dets[:, 4]
+            inds = np.where((x2 > x1) & (y2 > y1) & (scores > cfg.TEST.DET_THRESHOLD))[0]
             dets = dets[inds,:]
             if dets == []:
                 continue
@@ -456,7 +457,7 @@ def test_net(net, imdb):
     if cfg.IS_RPN:
         thresh = -np.inf * np.ones(imdb.num_classes)
     else:
-        thresh = -np.inf * np.ones(imdb.num_classes)
+        thresh = cfg.TEST.DET_THRESHOLD * np.ones(imdb.num_classes)
         # top_scores will hold one minheap of scores per class (used to enforce the max_per_set constraint)
         top_scores = [[] for _ in xrange(imdb.num_classes)]
 

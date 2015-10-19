@@ -168,6 +168,7 @@ __C.TEST.SUBCLS = True
 # Threshold of ROIs in testing
 __C.TEST.ROI_THRESHOLD = 0.1
 __C.TEST.ROI_NUM = 2000
+__C.TEST.DET_THRESHOLD = 0.0001
 
 ## NMS threshold used on RPN proposals
 __C.TEST.RPN_NMS_THRESH = 0.7
