@@ -11,7 +11,7 @@ echo Logging output to "$LOG"
 
 time ./tools/train_net.py --gpu $1 \
   --solver models/CaffeNet/kitti_val/solver_rcnn_msr_fix.prototxt \
-  --weights output/kitti/kitti_train/caffenet_fast_rpn_msr_fix_kitti_iter_40000.caffemodel \
+  --weights output/kitti/kitti_train/caffenet_fast_rcnn_rpn_msr_fix_kitti_iter_40000.caffemodel \
   --imdb kitti_train \
   --cfg experiments/cfgs/kitti_rcnn_msr_fix.yml
 
