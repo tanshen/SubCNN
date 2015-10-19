@@ -17,7 +17,7 @@ label_dir = fullfile(root_dir, [data_set '/label_' num2str(cam)]);
 
 % read ids of validation images
 object = load('kitti_ids_new.mat');
-ids = object.ids_train;
+ids = object.ids_val;
 % ids = sort([object.ids_train, object.ids_val]);
 M = numel(ids);
 
