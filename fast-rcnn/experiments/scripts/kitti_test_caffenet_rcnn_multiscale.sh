@@ -17,6 +17,6 @@ time ./tools/train_net.py --gpu $1 \
 
 time ./tools/test_net.py --gpu $1 \
   --def models/CaffeNet/kitti_test/test_rcnn_multiscale.prototxt \
-  --net output/kitti/kitti_trainval/caffenet_fast_rcnn_kitti_iter_40000.caffemodel \
+  --net output/kitti/kitti_trainval/caffenet_fast_rcnn_multiscale_kitti_iter_40000.caffemodel \
   --imdb kitti_test \
   --cfg experiments/cfgs/kitti_rcnn_multiscale.yml
