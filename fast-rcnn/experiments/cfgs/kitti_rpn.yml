@@ -13,7 +13,7 @@ TRAIN:
   BBOX_THRESH: !!python/tuple [0.7, 0.7, 0.7]
   SNAPSHOT_INFIX: kitti
   BBOX_REG: True
-  SNAPSHOT_ITERS: 5000
+  SNAPSHOT_ITERS: 10000
 TEST:
   SCALES_BASE: !!python/tuple [0.25, 0.5, 1.0, 2.0, 3.0]
   NUM_PER_OCTAVE: 4

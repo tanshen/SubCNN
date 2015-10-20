@@ -284,3 +284,49 @@ layer {
   loss_weight: 1
   smooth_l1_loss_param { sigma: 3.0 }
 }
+
+#========= RCNN ============
+# Dummy layers so that initial parameters are saved into the output net
+
+layer {
+  name: "dummy_roi_pool_conv5"
+  type: "DummyData"
+  top: "dummy_roi_pool_conv5"
+  dummy_data_param {
+    shape { dim: 1 dim: 9216 }
+    data_filler { type: "gaussian" std: 0.01 }
+  }
+}
+layer {
+  name: "fc6"
+  type: "InnerProduct"
+  bottom: "dummy_roi_pool_conv5"
+  top: "fc6"
+  param { lr_mult: 0 decay_mult: 0 }
+  param { lr_mult: 0 decay_mult: 0 }
+  inner_product_param {
+    num_output: 4096
+  }
+}
+layer {
+  name: "relu6"
+  type: "ReLU"
+  bottom: "fc6"
+  top: "fc6"
+}
+layer {
+  name: "fc7"
+  type: "InnerProduct"
+  bottom: "fc6"
+  top: "fc7"
+  param { lr_mult: 0 decay_mult: 0 }
+  param { lr_mult: 0 decay_mult: 0 }
+  inner_product_param {
+    num_output: 4096
+  }
+}
+layer {
+  name: "silence_fc7"
+  type: "Silence"
+  bottom: "fc7"
+}

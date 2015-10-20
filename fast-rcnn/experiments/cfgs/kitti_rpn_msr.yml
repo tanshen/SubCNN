@@ -7,7 +7,7 @@ TRAIN:
   FG_THRESH: !!python/tuple [0.7, 0.7, 0.7]
   SNAPSHOT_INFIX: kitti
   BBOX_REG: False
-  SNAPSHOT_ITERS: 5000
+  SNAPSHOT_ITERS: 10000
 TEST:
   SCALES_BASE: !!python/tuple [3.0]
   NMS: 0.5
