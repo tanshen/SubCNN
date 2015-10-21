@@ -186,24 +186,13 @@ layer {
   bottom: "conv5"
   top: "conv5"
 }
-layer {
-  name: 'feature'
-  type: 'FeatureExtrapolating'
-  bottom: 'conv5'
-  top: 'conv5_feature'
-  feature_extrapolating_param {
-    scale_string: "0.25 0.5 1.0 2.0 3.0"
-    num_scale_base: 5
-    num_per_octave: 4 
-  }
-}
 
 #========= RPN ============
 
 layer {
   name: "rpn_conv1"
   type: "Convolution"
-  bottom: "conv5_feature"
+  bottom: "conv5"
   top: "rpn_conv1"
   param { lr_mult: 1 }
   param { lr_mult: 2 }
@@ -221,9 +210,20 @@ layer {
   top: "rpn_conv1"
 }
 layer {
+  name: 'feature'
+  type: 'FeatureExtrapolating'
+  bottom: 'rpn_conv1'
+  top: 'rpn_feature'
+  feature_extrapolating_param {
+    scale_string: "0.25 0.5 1.0 2.0 3.0"
+    num_scale_base: 5
+    num_per_octave: 4 
+  }
+}
+layer {
   name: "conv_sub"
   type: "Convolution"
-  bottom: "rpn_conv1"
+  bottom: "rpn_feature"
   top: "conv_sub"
   param {
     name: "conv_sub_w"
@@ -270,7 +270,7 @@ layer {
 layer {
   name: "roi_pool5_sub"
   type: "ROIPooling"
-  bottom: "rpn_conv1"
+  bottom: "rpn_feature"
   bottom: "rois_sub"
   top: "pool5_sub"
   roi_pooling_param {
