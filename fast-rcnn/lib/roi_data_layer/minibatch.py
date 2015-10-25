@@ -60,8 +60,12 @@ def get_minibatch(roidb, num_classes):
 
             # Add to RoIs blob
             if cfg.IS_MULTISCALE:
-                rois, levels = _project_im_rois_multiscale(im_rois, cfg.TRAIN.SCALES)
-                batch_ind = im_i * len(cfg.TRAIN.SCALES) + levels
+                if cfg.IS_EXTRAPOLATING:
+                    rois, levels = _project_im_rois_multiscale(im_rois, cfg.TRAIN.SCALES)
+                    batch_ind = im_i * len(cfg.TRAIN.SCALES) + levels
+                else:
+                    rois, levels = _project_im_rois_multiscale(im_rois, cfg.TRAIN.SCALES_BASE)
+                    batch_ind = im_i * len(cfg.TRAIN.SCALES_BASE) + levels
             else:
                 rois = _project_im_rois(im_rois, im_scales[im_i])
                 batch_ind = im_i * np.ones((rois.shape[0], 1))

@@ -148,7 +148,10 @@ def _get_blobs(im, rois):
         blobs = {'data' : None, 'rois' : None}
         blobs['data'], im_scale_factors = _get_image_blob(im)
         if cfg.IS_MULTISCALE:
-            blobs['rois'] = _get_rois_blob(rois, cfg.TEST.SCALES)
+            if cfg.IS_EXTRAPOLATING:
+                blobs['rois'] = _get_rois_blob(rois, cfg.TEST.SCALES)
+            else:
+                blobs['rois'] = _get_rois_blob(rois, cfg.TEST.SCALES_BASE)
         else:
             blobs['rois'] = _get_rois_blob(rois, cfg.TEST.SCALES_BASE)
 

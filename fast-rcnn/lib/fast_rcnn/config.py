@@ -33,6 +33,7 @@ __C.IS_RPN = False;
 
 # multiscale training and testing
 __C.IS_MULTISCALE = True;
+__C.IS_EXTRAPOLATING = True;
 
 #
 __C.REGION_PROPOSAL = 'RPN'
