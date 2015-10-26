@@ -296,7 +296,7 @@ layer {
 layer {
   name: "cls_score"
   type: "InnerProduct"
-  bottom: "subcls_score"
+  bottom: "fc7"
   top: "cls_score"
   param {
     lr_mult: 1
@@ -321,7 +321,7 @@ layer {
 layer {
   name: "bbox_pred_fix"
   type: "InnerProduct"
-  bottom: "subcls_score"
+  bottom: "fc7"
   top: "bbox_pred"
   param {
     lr_mult: 1
