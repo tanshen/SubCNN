@@ -21,6 +21,7 @@ class imdb(object):
         self._name = name
         self._num_classes = 0
         self._num_subclasses = 0
+        self._subclass_mapping = []
         self._classes = []
         self._image_index = []
         self._obj_proposer = 'selective_search'
@@ -40,6 +41,10 @@ class imdb(object):
     @property
     def num_subclasses(self):
         return self._num_subclasses
+
+    @property
+    def subclass_mapping(self):
+        return self._subclass_mapping
 
     @property
     def classes(self):

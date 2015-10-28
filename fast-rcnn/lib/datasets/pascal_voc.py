@@ -48,6 +48,19 @@ class pascal_voc(datasets.imdb):
         # num of subclasses
         self._num_subclasses = 240 + 1
 
+        # load the mapping for subcalss to class
+        filename = os.path.join(self._pascal_path, 'subcategory_exemplars', 'mapping.txt')
+        assert os.path.exists(filename), 'Path does not exist: {}'.format(filename)
+        
+        mapping = np.zeros(self._num_subclasses, dtype=np.int)
+        with open(filename) as f:
+            for line in f:
+                words = line.split()
+                subcls = int(words[0])
+                mapping[subcls] = self._class_to_ind[words[1]]
+        self._subclass_mapping = mapping
+
+
         # PASCAL specific config options
         self.config = {'cleanup'  : True,
                        'use_salt' : True,
