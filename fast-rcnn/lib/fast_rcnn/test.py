@@ -315,11 +315,7 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses, subclas
     assert (num_classes == 2 or num_classes == 4 or num_classes == 21), 'The number of classes is not supported!'
     if num_classes == 2:
         max_scores[:,1] = tmp[:,1:].max(axis = 1)
-    elif num_classes == 4:
-        max_scores[:,1] = tmp[:,1:num_subclasses-48].max(axis = 1)
-        max_scores[:,2] = tmp[:,num_subclasses-48:num_subclasses-24].max(axis = 1)
-        max_scores[:,3] = tmp[:,num_subclasses-24:].max(axis = 1)
-    elif num_classes == 21:
+    else:
         for i in xrange(1, num_classes):
             index = np.where(subclass_mapping == i)[0]
             max_scores[:,i] = tmp[:,index].max(axis = 1)

@@ -34,8 +34,22 @@ class kitti(datasets.imdb):
         # num of subclasses
         if image_set == 'train' or image_set == 'val':
             self._num_subclasses = 125 + 24 + 24 + 1
+            prefix = 'validation'
         else:
-            self._num_subclasses = 227 + 24 + 24 + 1
+            self._num_subclasses = 227 + 36 + 36 + 1
+            prefix = 'test'
+
+        # load the mapping for subcalss to class
+        filename = os.path.join(self._kitti_path, 'voxel_exemplars', prefix, 'mapping.txt')
+        assert os.path.exists(filename), 'Path does not exist: {}'.format(filename)
+        
+        mapping = np.zeros(self._num_subclasses, dtype=np.int)
+        with open(filename) as f:
+            for line in f:
+                words = line.split()
+                subcls = int(words[0])
+                mapping[subcls] = self._class_to_ind[words[1]]
+        self._subclass_mapping = mapping
 
         self.config = {'top_k': 100000}
 
@@ -657,7 +671,12 @@ class kitti(datasets.imdb):
         assert os.path.exists(filename), \
                 'Path does not exist: {}'.format(filename)
 
-        mapping = np.loadtxt(filename)
+        mapping = np.zeros(self._num_subclasses, dtype=np.float)
+        with open(filename) as f:
+            for line in f:
+                words = line.split()
+                subcls = int(words[0])
+                mapping[subcls] = float(words[3])
 
         # for each image
         for im_ind, index in enumerate(self.image_index):
@@ -673,7 +692,7 @@ class kitti(datasets.imdb):
                         continue
                     for k in xrange(dets.shape[0]):
                         subcls = int(dets[k, 5])
-                        alpha = mapping[subcls, 2]
+                        alpha = mapping[subcls]
                         f.write('{:s} -1 -1 {:f} {:f} {:f} {:f} {:f} -1 -1 -1 -1 -1 -1 -1 {:.32f}\n'.format(\
                                  cls, alpha, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4]))
 
