@@ -38,6 +38,15 @@ for top_k in np.arange(1000, 11000, 1000):
             __sets[name] = (lambda split=split, year=year, top_k=top_k:
                     _selective_search_IJCV_top_k(split, year, top_k))
 """
+
+# Set up voc_<year>_<split> using selective search "fast" mode
+for year in ['2007']:
+    for split in ['train', 'val', 'trainval', 'test']:
+        name = 'voc_{}_{}'.format(year, split)
+        print name
+        __sets[name] = (lambda split=split, year=year:
+                datasets.pascal_voc(split, year))
+
 # KITTI dataset
 for split in ['train', 'val', 'trainval', 'test']:
     name = 'kitti_{}'.format(split)
