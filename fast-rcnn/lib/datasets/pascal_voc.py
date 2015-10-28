@@ -60,7 +60,6 @@ class pascal_voc(datasets.imdb):
                 mapping[subcls] = self._class_to_ind[words[1]]
         self._subclass_mapping = mapping
 
-
         # PASCAL specific config options
         self.config = {'cleanup'  : True,
                        'use_salt' : True,
@@ -118,11 +117,11 @@ class pascal_voc(datasets.imdb):
         """
 
         # height and width of the heatmap
-        height = np.round((image_height * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
-        height = np.floor((height - 1) / 2 + 1 + 0.5)
-        height = np.floor((height - 1) / 2 + 1 + 0.5)
+        height = np.floor((image_height * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
+        height = np.floor((height - 1) / 2.0 + 1 + 0.5)
+        height = np.floor((height - 1) / 2.0 + 1 + 0.5)
 
-        width = np.round((image_width * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
+        width = np.floor((image_width * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
         width = np.floor((width - 1) / 2.0 + 1 + 0.5)
         width = np.floor((width - 1) / 2.0 + 1 + 0.5)
 
