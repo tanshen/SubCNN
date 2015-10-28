@@ -514,13 +514,13 @@ class pascal_voc(datasets.imdb):
     def _load_rpn_roidb(self, gt_roidb, model):
         # set the prefix
         if self._image_set == 'test':
-            prefix = model + 'testing'
+            prefix = model + '/testing'
         else:
-            prefix = model + 'training'
+            prefix = model + '/training'
 
         box_list = []
         for index in self.image_index:
-            filename = os.path.join(self._kitti_path, 'region_proposals',  prefix, index + '.txt')
+            filename = os.path.join(self._pascal_path, 'region_proposals',  prefix, index + '.txt')
             assert os.path.exists(filename), \
                 'RPN data not found at: {}'.format(filename)
             raw_data = np.loadtxt(filename, dtype=float)
@@ -650,7 +650,7 @@ class pascal_voc(datasets.imdb):
                     # the VOCdevkit expects 1-based indices
                     for k in xrange(dets.shape[0]):
                         f.write('{:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
-                                format(index, dets[k, -1],
+                                format(index, dets[k, 4],
                                        dets[k, 0] + 1, dets[k, 1] + 1,
                                        dets[k, 2] + 1, dets[k, 3] + 1))
         return comp_id
@@ -669,6 +669,7 @@ class pascal_voc(datasets.imdb):
         print('Running:\n{}'.format(cmd))
         status = subprocess.call(cmd, shell=True)
 
+    # evaluate detection results
     def evaluate_detections(self, all_boxes, output_dir):
         comp_id = self._write_voc_results_file(all_boxes)
         self._do_matlab_eval(comp_id, output_dir)
