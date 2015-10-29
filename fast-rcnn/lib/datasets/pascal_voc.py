@@ -21,6 +21,7 @@ from utils.cython_bbox import bbox_overlaps
 from fast_rcnn.config import cfg
 import math
 from rpn_msr.generate_anchors import generate_anchors
+import sys
 
 class pascal_voc(datasets.imdb):
     def __init__(self, image_set, year, pascal_path=None):
