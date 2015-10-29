@@ -642,6 +642,7 @@ class pascal_voc(datasets.imdb):
                 continue
             print 'Writing {} VOC results file'.format(cls)
             filename = path + 'det_' + self._image_set + '_' + cls + '.txt'
+            print filename
             with open(filename, 'wt') as f:
                 for im_ind, index in enumerate(self.image_index):
                     dets = all_boxes[cls_ind][im_ind]

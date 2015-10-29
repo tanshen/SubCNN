@@ -451,11 +451,15 @@ def test_net(net, imdb):
     num_images = len(imdb.image_index)
     # heuristic: keep an average of 40 detections per class per images prior
     # to NMS
-    max_per_set = np.inf
-    # heuristic: keep at most 100 detection per class per image prior to NMS
-    max_per_image = 10000
-    # detection thresold for each class (this is adaptively set based on the
-    # max_per_set constraint)
+    if 'voc' in imdb.name:
+        max_per_set = 40 * num_images
+        max_per_image = 100
+    else:
+        max_per_set = np.inf
+        # heuristic: keep at most 100 detection per class per image prior to NMS
+        max_per_image = 10000
+        # detection thresold for each class (this is adaptively set based on the
+        # max_per_set constraint)
 
     if cfg.IS_RPN:
         thresh = -np.inf * np.ones(imdb.num_classes)
