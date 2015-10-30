@@ -2,7 +2,7 @@ EXP_DIR: pascal2007
 IS_RPN: True
 TRAIN:
   SCALES_BASE: !!python/tuple [0.25, 0.5, 1.0, 2.0]
-  NUM_PER_OCTAVE: 4 
+  NUM_PER_OCTAVE: 5
   ASPECTS: !!python/tuple [3.0, 2.0, 1.0, 0.5, 0.25]
   IMS_PER_BATCH: 1
   BATCH_SIZE: 128
@@ -16,8 +16,9 @@ TRAIN:
   SNAPSHOT_ITERS: 10000
 TEST:
   SCALES_BASE: !!python/tuple [0.25, 0.5, 1.0, 2.0]
-  NUM_PER_OCTAVE: 4
+  NUM_PER_OCTAVE: 5
   ASPECTS: !!python/tuple [3.0, 2.0, 1.0, 0.5, 0.25]
   NMS: 0.5
-  ROI_THRESHOLD: 0.01
+  ROI_THRESHOLD: 0.005
+  ROI_NUM: 2000
   BBOX_REG: True

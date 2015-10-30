@@ -451,7 +451,7 @@ def test_net(net, imdb):
     num_images = len(imdb.image_index)
     # heuristic: keep an average of 40 detections per class per images prior
     # to NMS
-    if 'voc' in imdb.name:
+    if 'voc' in imdb.name and cfg.IS_RPN == False:
         max_per_set = 40 * num_images
         max_per_image = 100
     else:

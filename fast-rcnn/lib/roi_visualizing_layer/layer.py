@@ -25,12 +25,16 @@ class RoIVisualizingLayer(caffe.Layer):
         # parse input
         rois_blob = bottom[0].data
         im_blob = bottom[1].data
+        sublabels = bottom[2].data
 
         num_scale_base = len(cfg.TRAIN.SCALES_BASE)
         num_scale = len(cfg.TRAIN.SCALES)
         
         # show image
         for i in xrange(rois_blob.shape[0]):
+            if sublabels[i] == 0:
+                break
+
             batch_id = int(rois_blob[i,0])
 
             index_image = batch_id / num_scale

@@ -193,8 +193,8 @@ layer {
   top: 'conv5_feature'
   feature_extrapolating_param {
     scale_string: "0.25 0.5 1.0 2.0"
-    num_scale_base: 4
-    num_per_octave: 4 
+    num_scale_base: 4 
+    num_per_octave: 5 
   }
 }
 layer {
@@ -249,16 +249,17 @@ layer {
     spatial_scale: 0.0625 # 1/16
   }
 }
-#layer {
-#  name: 'roi_visualizing'
-#  type: 'Python'
-#  bottom: 'rois_sub'
-#  bottom: 'data'
-#  python_param {
-#    module: 'roi_visualizing_layer.layer'
-#    layer: 'RoIVisualizingLayer'
-#  }
-#}
+layer {
+  name: 'roi_visualizing'
+  type: 'Python'
+  bottom: 'rois_sub'
+  bottom: 'data'
+  bottom: 'sublabels'
+  python_param {
+    module: 'roi_visualizing_layer.layer'
+    layer: 'RoIVisualizingLayer'
+  }
+}
 layer {
   name: "roi_pool5_sub"
   type: "ROIPooling"
