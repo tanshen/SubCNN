@@ -249,17 +249,17 @@ layer {
     spatial_scale: 0.0625 # 1/16
   }
 }
-layer {
-  name: 'roi_visualizing'
-  type: 'Python'
-  bottom: 'rois_sub'
-  bottom: 'data'
-  bottom: 'sublabels'
-  python_param {
-    module: 'roi_visualizing_layer.layer'
-    layer: 'RoIVisualizingLayer'
-  }
-}
+#layer {
+#  name: 'roi_visualizing'
+#  type: 'Python'
+#  bottom: 'rois_sub'
+#  bottom: 'data'
+#  bottom: 'sublabels'
+#  python_param {
+#    module: 'roi_visualizing_layer.layer'
+#    layer: 'RoIVisualizingLayer'
+#  }
+#}
 layer {
   name: "roi_pool5_sub"
   type: "ROIPooling"
