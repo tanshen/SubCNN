@@ -538,7 +538,7 @@ layer {
   type: "DummyData"
   top: "dummy_roi_pool_conv5"
   dummy_data_param {
-    shape { dim: 1 dim: 9216 }
+    shape { dim: 1 dim: 25088 }
     data_filler { type: "gaussian" std: 0.01 }
   }
 }
