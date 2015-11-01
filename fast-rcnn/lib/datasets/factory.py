@@ -54,6 +54,13 @@ for split in ['train', 'val', 'trainval', 'test']:
     __sets[name] = (lambda split=split:
             datasets.kitti(split))
 
+# PASCAL3D+ dataset
+for split in ['train', 'val']:
+    name = 'pascal3d_{}'.format(split)
+    print name
+    __sets[name] = (lambda split=split:
+            datasets.pascal3d(split))
+
 
 def get_imdb(name):
     """Get an imdb (image database) by name."""
