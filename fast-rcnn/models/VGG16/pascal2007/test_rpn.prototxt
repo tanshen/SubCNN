@@ -1,4 +1,4 @@
-name: "CaffeNet"
+name: "VGG16"
 input: "data"
 input_shape {
   dim: 5

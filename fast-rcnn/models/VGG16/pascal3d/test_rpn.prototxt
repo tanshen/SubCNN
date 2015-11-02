@@ -1,4 +1,4 @@
-name: "CaffeNet"
+name: "VGG16"
 input: "data"
 input_shape {
   dim: 5
@@ -383,7 +383,7 @@ layer {
 layer {
   name: 'feature'
   type: 'FeatureExtrapolating'
-  bottom: 'conv5'
+  bottom: 'conv5_3'
   top: 'conv5_feature'
   feature_extrapolating_param {
     scale_string: "0.25 0.5 1.0 2.0"

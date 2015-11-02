@@ -1,4 +1,4 @@
-name: "CaffeNet"
+name: "VGG16"
 layer {
   name: 'data'
   type: 'Python'

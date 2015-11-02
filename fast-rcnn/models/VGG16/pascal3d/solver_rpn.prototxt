@@ -2,7 +2,7 @@ train_net: "models/VGG16/pascal3d/train_rpn.prototxt"
 base_lr: 0.001
 lr_policy: "step"
 gamma: 0.1
-stepsize: 60000
+stepsize: 30000
 display: 20
 average_loss: 100
 momentum: 0.9
