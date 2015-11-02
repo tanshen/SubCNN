@@ -18,6 +18,7 @@ import utils.cython_bbox
 import cPickle
 import subprocess
 from utils.cython_bbox import bbox_overlaps
+from utils.boxes_grid import get_boxes_grid
 from fast_rcnn.config import cfg
 import math
 from rpn_msr.generate_anchors import generate_anchors
@@ -111,52 +112,6 @@ class pascal3d(datasets.imdb):
         """
         return os.path.join(datasets.ROOT_DIR, 'data', 'PASCAL3D')
 
-    def _get_boxes_grid(self, image_height, image_width):
-        """
-        Return the boxes on image grid.
-        """
-
-        # height and width of the heatmap
-        height = np.floor((image_height * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
-        height = np.floor((height - 1) / 2.0 + 1 + 0.5)
-        height = np.floor((height - 1) / 2.0 + 1 + 0.5)
-
-        width = np.floor((image_width * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
-        width = np.floor((width - 1) / 2.0 + 1 + 0.5)
-        width = np.floor((width - 1) / 2.0 + 1 + 0.5)
-
-        # compute the grid box centers
-        h = np.arange(height)
-        w = np.arange(width)
-        y, x = np.meshgrid(h, w, indexing='ij') 
-        centers = np.dstack((x, y))
-        centers = np.reshape(centers, (-1, 2))
-        num = centers.shape[0]
-
-        # compute width and height of grid box
-        area = cfg.TRAIN.KERNEL_SIZE * cfg.TRAIN.KERNEL_SIZE
-        aspect = cfg.TRAIN.ASPECTS  # height / width
-        num_aspect = len(aspect)
-        widths = np.zeros((1, num_aspect), dtype=np.float32)
-        heights = np.zeros((1, num_aspect), dtype=np.float32)
-        for i in xrange(num_aspect):
-            widths[0,i] = math.sqrt(area / aspect[i])
-            heights[0,i] = widths[0,i] * aspect[i]
-
-        # construct grid boxes
-        centers = np.repeat(centers, num_aspect, axis=0)
-        widths = np.tile(widths, num).transpose()
-        heights = np.tile(heights, num).transpose()
-
-        x1 = np.reshape(centers[:,0], (-1, 1)) - widths * 0.5
-        x2 = np.reshape(centers[:,0], (-1, 1)) + widths * 0.5
-        y1 = np.reshape(centers[:,1], (-1, 1)) - heights * 0.5
-        y2 = np.reshape(centers[:,1], (-1, 1)) + heights * 0.5
-    
-        boxes_grid = np.hstack((x1, y1, x2, y2)) / cfg.TRAIN.SPATIAL_SCALE
-
-        return boxes_grid
-
     def gt_roidb(self):
         """
         Return the database of ground-truth regions of interest.
@@ -238,7 +193,7 @@ class pascal3d(datasets.imdb):
                 s = PIL.Image.open(self.image_path_from_index(index)).size
                 image_height = s[1]
                 image_width = s[0]
-                boxes_grid = self._get_boxes_grid(image_height, image_width)
+                boxes_grid = get_boxes_grid(image_height, image_width)
 
                 # compute overlap
                 overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
@@ -390,7 +345,7 @@ class pascal3d(datasets.imdb):
                 s = PIL.Image.open(self.image_path_from_index(index)).size
                 image_height = s[1]
                 image_width = s[0]
-                boxes_grid = self._get_boxes_grid(image_height, image_width)
+                boxes_grid = get_boxes_grid(image_height, image_width)
 
                 # compute overlap
                 overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))

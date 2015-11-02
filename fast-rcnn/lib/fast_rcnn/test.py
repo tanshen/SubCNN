@@ -14,6 +14,7 @@ import numpy as np
 import cv2
 import caffe
 from utils.cython_nms import nms, nms_new
+from utils.boxes_grid import get_boxes_grid
 import cPickle
 import heapq
 from utils.blob import im_list_to_blob
@@ -48,62 +49,6 @@ def _get_image_blob(im):
     blob = im_list_to_blob(processed_ims)
 
     return blob, np.array(im_scale_factors)
-
-def _get_boxes_grid(image_height, image_width):
-    """
-    Return the boxes on image grid.
-    """
-
-    # height and width of the heatmap
-    # height = np.floor((image_height * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
-    # height = np.floor((height - 1) / 2.0 + 1 + 0.5)
-    # height = np.floor((height - 1) / 2.0 + 1 + 0.5)
-
-    # width = np.floor((image_width * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
-    # width = np.floor((width - 1) / 2.0 + 1 + 0.5)
-    # width = np.floor((width - 1) / 2.0 + 1 + 0.5)
-
-    height = np.floor(image_height * max(cfg.TRAIN.SCALES) / 2.0 + 0.5)
-    height = np.floor(height / 2.0 + 0.5)
-    height = np.floor(height / 2.0 + 0.5)
-    height = np.floor(height / 2.0 + 0.5)
-
-    width = np.floor(image_width * max(cfg.TRAIN.SCALES) / 2.0 + 0.5)
-    width = np.floor(width / 2.0 + 0.5)
-    width = np.floor(width / 2.0 + 0.5)
-    width = np.floor(width / 2.0 + 0.5)
-
-    # compute the grid box centers
-    h = np.arange(height)
-    w = np.arange(width)
-    y, x = np.meshgrid(h, w, indexing='ij') 
-    centers = np.dstack((x, y))
-    centers = np.reshape(centers, (-1, 2))
-    num = centers.shape[0]
-
-    # compute width and height of grid box
-    area = cfg.TRAIN.KERNEL_SIZE * cfg.TRAIN.KERNEL_SIZE
-    aspect = cfg.TRAIN.ASPECTS  # height / width
-    num_aspect = len(aspect)
-    widths = np.zeros((1, num_aspect), dtype=np.float32)
-    heights = np.zeros((1, num_aspect), dtype=np.float32)
-    for i in xrange(num_aspect):
-        widths[0,i] = math.sqrt(area / aspect[i])
-        heights[0,i] = widths[0,i] * aspect[i]
-
-    # construct grid boxes
-    centers = np.repeat(centers, num_aspect, axis=0)
-    widths = np.tile(widths, num).transpose()
-    heights = np.tile(heights, num).transpose()
-
-    x1 = np.reshape(centers[:,0], (-1, 1)) - widths * 0.5
-    x2 = np.reshape(centers[:,0], (-1, 1)) + widths * 0.5
-    y1 = np.reshape(centers[:,1], (-1, 1)) - heights * 0.5
-    y2 = np.reshape(centers[:,1], (-1, 1)) + heights * 0.5
-    
-    boxes_grid = np.hstack((x1, y1, x2, y2)) / cfg.TRAIN.SPATIAL_SCALE
-
-    return boxes_grid
 
 def _get_rois_blob(im_rois, im_scale_factors):
     """Converts RoIs into network inputs.
@@ -495,7 +440,7 @@ def test_net(net, imdb):
 
         _t['im_detect'].tic()
         if cfg.IS_RPN:
-            boxes_grid = _get_boxes_grid(im.shape[0], im.shape[1])
+            boxes_grid = get_boxes_grid(im.shape[0], im.shape[1])
             scores, boxes, scores_subcls, labels = im_detect_proposal(net, im, boxes_grid, imdb.num_classes, imdb.num_subclasses, imdb.subclass_mapping)
         else:
             scores, boxes, scores_subcls = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes, imdb.num_subclasses)

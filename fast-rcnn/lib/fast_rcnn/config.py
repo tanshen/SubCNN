@@ -38,6 +38,8 @@ __C.IS_EXTRAPOLATING = True;
 #
 __C.REGION_PROPOSAL = 'RPN'
 
+__C.NET_NAME = 'CaffeNet'
+
 #
 # Training options
 #
