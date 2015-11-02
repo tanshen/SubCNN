@@ -55,13 +55,23 @@ def _get_boxes_grid(image_height, image_width):
     """
 
     # height and width of the heatmap
-    height = np.floor((image_height * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
-    height = np.floor((height - 1) / 2.0 + 1 + 0.5)
-    height = np.floor((height - 1) / 2.0 + 1 + 0.5)
+    # height = np.floor((image_height * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
+    # height = np.floor((height - 1) / 2.0 + 1 + 0.5)
+    # height = np.floor((height - 1) / 2.0 + 1 + 0.5)
 
-    width = np.floor((image_width * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
-    width = np.floor((width - 1) / 2.0 + 1 + 0.5)
-    width = np.floor((width - 1) / 2.0 + 1 + 0.5)
+    # width = np.floor((image_width * max(cfg.TRAIN.SCALES) - 1) / 4.0 + 1)
+    # width = np.floor((width - 1) / 2.0 + 1 + 0.5)
+    # width = np.floor((width - 1) / 2.0 + 1 + 0.5)
+
+    height = np.floor(image_height * max(cfg.TRAIN.SCALES) / 2.0 + 0.5)
+    height = np.floor(height / 2.0 + 0.5)
+    height = np.floor(height / 2.0 + 0.5)
+    height = np.floor(height / 2.0 + 0.5)
+
+    width = np.floor(image_width * max(cfg.TRAIN.SCALES) / 2.0 + 0.5)
+    width = np.floor(width / 2.0 + 0.5)
+    width = np.floor(width / 2.0 + 0.5)
+    width = np.floor(width / 2.0 + 0.5)
 
     # compute the grid box centers
     h = np.arange(height)
