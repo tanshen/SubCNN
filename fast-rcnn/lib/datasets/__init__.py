@@ -7,6 +7,7 @@
 
 from .imdb import imdb
 from .pascal_voc import pascal_voc
+from .pascal3d import pascal3d
 from .kitti import kitti
 from . import factory
 
