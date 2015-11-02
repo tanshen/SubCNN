@@ -440,7 +440,7 @@ def test_net(net, imdb):
 
         _t['im_detect'].tic()
         if cfg.IS_RPN:
-            boxes_grid = get_boxes_grid(im.shape[0], im.shape[1])
+            boxes_grid, _, _ = get_boxes_grid(im.shape[0], im.shape[1])
             scores, boxes, scores_subcls, labels = im_detect_proposal(net, im, boxes_grid, imdb.num_classes, imdb.num_subclasses, imdb.subclass_mapping)
         else:
             scores, boxes, scores_subcls = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes, imdb.num_subclasses)

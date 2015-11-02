@@ -6,6 +6,7 @@
 # --------------------------------------------------------
 
 import numpy as np
+import math
 from fast_rcnn.config import cfg
 
 def get_boxes_grid(image_height, image_width):

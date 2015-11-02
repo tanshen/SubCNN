@@ -195,7 +195,7 @@ class pascal_voc(datasets.imdb):
                 s = PIL.Image.open(self.image_path_from_index(index)).size
                 image_height = s[1]
                 image_width = s[0]
-                boxes_grid = get_boxes_grid(image_height, image_width)
+                boxes_grid, _, _ = get_boxes_grid(image_height, image_width)
 
                 # compute overlap
                 overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
@@ -346,7 +346,7 @@ class pascal_voc(datasets.imdb):
                 s = PIL.Image.open(self.image_path_from_index(index)).size
                 image_height = s[1]
                 image_width = s[0]
-                boxes_grid = get_boxes_grid(image_height, image_width)
+                boxes_grid, _, _ = get_boxes_grid(image_height, image_width)
 
                 # compute overlap
                 overlaps_grid = bbox_overlaps(boxes_grid.astype(np.float), boxes_all.astype(np.float))
