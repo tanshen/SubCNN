@@ -20,6 +20,6 @@ TEST:
   NUM_PER_OCTAVE: 5
   ASPECTS: !!python/tuple [3.0, 2.0, 1.0, 0.5, 0.25]
   NMS: 0.5
-  ROI_THRESHOLD: 0.005
+  ROI_THRESHOLD: 0.001
   ROI_NUM: 2000
   BBOX_REG: True

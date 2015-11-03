@@ -19,11 +19,12 @@ time ./tools/train_net.py --gpu $1 \
 time ./tools/test_net.py --gpu $1 \
   --def models/VGG16/pascal3d/test_rpn.prototxt \
   --net output/pascal3d/pascal3d_train/vgg16_fast_rcnn_rpn_pascal3d_iter_40000.caffemodel \
-  --imdb pascal3d_train \
+  --imdb pascal3d_val \
   --cfg experiments/cfgs/pascal3d_rpn_vgg16.yml
 
 time ./tools/test_net.py --gpu $1 \
   --def models/VGG16/pascal3d/test_rpn.prototxt \
   --net output/pascal3d/pascal3d_train/vgg16_fast_rcnn_rpn_pascal3d_iter_40000.caffemodel \
-  --imdb pascal3d_val \
+  --imdb pascal3d_train \
   --cfg experiments/cfgs/pascal3d_rpn_vgg16.yml
+
