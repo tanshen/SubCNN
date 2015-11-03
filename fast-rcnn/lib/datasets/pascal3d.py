@@ -168,8 +168,11 @@ class pascal3d(datasets.imdb):
             y1 = float(get_data_from_tag(obj, 'ymin')) - 1
             x2 = float(get_data_from_tag(obj, 'xmax')) - 1
             y2 = float(get_data_from_tag(obj, 'ymax')) - 1
-            cls = self._class_to_ind[
-                    str(get_data_from_tag(obj, "name")).lower().strip()]
+            name =  str(get_data_from_tag(obj, "name")).lower().strip()
+            if name in self._classes:
+                cls = self._class_to_ind[name]
+            else:
+                cls = 0
             boxes[ix, :] = [x1, y1, x2, y2]
             gt_classes[ix] = cls
             overlaps[ix, cls] = 1.0
