@@ -487,7 +487,7 @@ layer {
     num_output: 338  # 337 + 1
     weight_filler {
       type: "gaussian"
-      std: 0.01
+      std: 0.001
     }
     bias_filler {
       type: "constant"
@@ -501,7 +501,7 @@ layer {
   bottom: "subcls_score"
   bottom: "sublabels"
   top: "loss_subcls"
-  loss_weight: 1.2
+  loss_weight: 0.5
 }
 layer {
   name: "cls_score"
