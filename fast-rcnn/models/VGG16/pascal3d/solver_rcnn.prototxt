@@ -1,4 +1,4 @@
-train_net: "models/VGG16/pascal2007/train_rcnn.prototxt"
+train_net: "models/VGG16/pascal3d/train_rcnn.prototxt"
 base_lr: 0.001
 lr_policy: "step"
 gamma: 0.1
