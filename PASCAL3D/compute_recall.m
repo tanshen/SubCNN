@@ -10,7 +10,7 @@ classes = {'aeroplane', 'bicycle', 'boat', ...
 num_cls = numel(classes);
 
 % load test set
-[gtids, t] = textread(sprintf(VOCopts.imgsetpath, 'test'), '%s %d');
+[gtids, t] = textread(sprintf(VOCopts.imgsetpath, 'val'), '%s %d');
 M = numel(gtids);
 
 % read ground truth
