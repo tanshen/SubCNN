@@ -647,6 +647,8 @@ class kitti(datasets.imdb):
                         continue
                     for k in xrange(dets.shape[0]):
                         subcls = int(dets[k, 5])
+                        cls_name = self.classes[self.subclass_mapping[subcls]]
+                        assert (cls_name == cls), 'subclass not in class'
                         alpha = mapping[subcls]
                         f.write('{:s} -1 -1 {:f} {:f} {:f} {:f} {:f} -1 -1 -1 -1 -1 -1 -1 {:.32f}\n'.format(\
                                  cls, alpha, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4]))
