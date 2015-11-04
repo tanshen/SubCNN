@@ -456,7 +456,7 @@ def test_net(net, imdb):
                 inds = np.where((scores[:, j] > thresh[j]) & (roidb[i]['gt_classes'] == 0))[0]
 
             cls_scores = scores[inds, j]
-            subcls_scores = scores_subcls[inds, 1:]
+            subcls_scores = scores_subcls[inds, :]
             cls_boxes = boxes[inds, j*4:(j+1)*4]
 
             top_inds = np.argsort(-cls_scores)[:max_per_image]
@@ -475,7 +475,10 @@ def test_net(net, imdb):
                         heapq.heappop(top_scores[j])
                     thresh[j] = top_scores[j][0]
 
-            sub_classes = np.reshape(subcls_scores.argmax(axis=1), -1)
+            # select the maximum score subclass in this class
+            index = np.where(imdb.subclass_mapping == j)[0]
+            max_indexes = subcls_scores[:,index].argmax(axis = 1)
+            sub_classes = index[max_indexes]
 
             all_boxes[j][i] = \
                     np.hstack((cls_boxes, cls_scores[:, np.newaxis], sub_classes[:, np.newaxis])) \
