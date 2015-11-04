@@ -619,8 +619,8 @@ class pascal3d(datasets.imdb):
                         cls_name = self.classes[self.subclass_mapping[subcls]]
                         assert (cls_name == cls), 'subclass not in class'
                         azimuth = mapping[subcls]
-                        f.write('{:s} {:.3f} {:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
-                                format(index, dets[k, 4], cls_name, azimuth,
+                        f.write('{:s} {:.3f} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
+                                format(index, dets[k, 4], azimuth,
                                        dets[k, 0] + 1, dets[k, 1] + 1,
                                        dets[k, 2] + 1, dets[k, 3] + 1))
 
