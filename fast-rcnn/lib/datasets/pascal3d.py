@@ -615,11 +615,11 @@ class pascal3d(datasets.imdb):
                         continue
                     # the VOCdevkit expects 1-based indices
                     for k in xrange(dets.shape[0]):
-                        subcls = int(dets[k, 5])
+                        subcls = int(dets[k, 5]) + 1
+                        cls_name = self.classes[self.subclass_mapping[subcls]]
                         azimuth = mapping[subcls]
-
-                        f.write('{:s} {:.3f} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
-                                format(index, dets[k, 4], azimuth,
+                        f.write('{:s} {:.3f} {:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
+                                format(index, dets[k, 4], cls_name, azimuth,
                                        dets[k, 0] + 1, dets[k, 1] + 1,
                                        dets[k, 2] + 1, dets[k, 3] + 1))
 
