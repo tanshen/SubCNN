@@ -3,6 +3,7 @@ IS_RPN: False
 IS_MULTISCALE: False
 IS_EXTRAPOLATING: False
 REGION_PROPOSAL: 'RPN_6k8k'
+SUBCLS_NAME: 'pose_exemplars'
 TRAIN:
   SCALES_BASE: !!python/tuple [1.0, 2.0]
   NUM_PER_OCTAVE: 4

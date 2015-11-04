@@ -39,6 +39,7 @@ __C.IS_EXTRAPOLATING = True;
 __C.REGION_PROPOSAL = 'RPN'
 
 __C.NET_NAME = 'CaffeNet'
+__C.SUBCLS_NAME = 'voxel_exemplars'
 
 #
 # Training options
