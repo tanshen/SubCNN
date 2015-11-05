@@ -653,6 +653,28 @@ class kitti(datasets.imdb):
                         f.write('{:s} -1 -1 {:f} {:f} {:f} {:f} {:f} -1 -1 -1 -1 -1 -1 -1 {:.32f}\n'.format(\
                                  cls, alpha, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4]))
 
+    # write detection results into one file
+    def evaluate_detections_one_file(self, all_boxes, output_dir):
+        # open results file
+        filename = os.path.join(output_dir, 'detections.txt')
+        print 'Writing all KITTI results to file ' + filename
+        with open(filename, 'wt') as f:
+            # for each image
+            for im_ind, index in enumerate(self.image_index):
+                # for each class
+                for cls_ind, cls in enumerate(self.classes):
+                    if cls == '__background__':
+                        continue
+                    dets = all_boxes[cls_ind][im_ind]
+                    if dets == []:
+                        continue
+                    for k in xrange(dets.shape[0]):
+                        subcls = int(dets[k, 5])
+                        cls_name = self.classes[self.subclass_mapping[subcls]]
+                        assert (cls_name == cls), 'subclass not in class'
+                        f.write('{:s} {:s} {:f} {:f} {:f} {:f} {:d} {:f}\n'.format(\
+                                 index, cls, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], subcls, dets[k, 4]))
+
     def evaluate_proposals(self, all_boxes, output_dir):
         # for each image
         for im_ind, index in enumerate(self.image_index):

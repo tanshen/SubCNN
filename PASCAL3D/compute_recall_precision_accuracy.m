@@ -74,7 +74,10 @@ for i = 1:M
     % for each predicted bounding box
     for j = 1:num(i)
         num_pr = num_pr + 1;
-        energy(num_pr) = dets(j, 6);        
+        if num_pr == 5065
+            disp(num_pr);
+        end
+        energy(num_pr) = dets(j, 6);
         bbox_pr = dets(j, 1:4);
         view_pr = find_interval(dets(j, 5), azimuth_interval);
         

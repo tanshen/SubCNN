@@ -400,6 +400,7 @@ def test_net(net, imdb):
             nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
             print 'Evaluating detections'
             imdb.evaluate_detections(nms_dets, output_dir)
+            imdb.evaluate_detections_one_file(nms_dets, output_dir)
         return
 
     """Test a Fast R-CNN network on an image database."""
@@ -513,6 +514,7 @@ def test_net(net, imdb):
         nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
         print 'Evaluating detections'
         imdb.evaluate_detections(nms_dets, output_dir)
+        imdb.evaluate_detections_one_file(nms_dets, output_dir)
 
 
 def test_rpn_msr_net(net, imdb):
