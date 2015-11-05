@@ -482,8 +482,7 @@ def test_net(net, imdb):
                 sub_classes = index[max_indexes]
             else:
                 sub_classes = subcls_scores.argmax(axis = 1)
-                
-
+               
             all_boxes[j][i] = \
                     np.hstack((cls_boxes, cls_scores[:, np.newaxis], sub_classes[:, np.newaxis])) \
                     .astype(np.float32, copy=False)
