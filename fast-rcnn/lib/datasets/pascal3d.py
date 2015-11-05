@@ -47,7 +47,12 @@ class pascal3d(datasets.imdb):
             self._roidb_handler = self.region_proposal_roidb
 
         # num of subclasses
-        self._num_subclasses = 337 + 1
+        if cfg.SUBCLS_NAME == 'voxel_exemplars':
+            self._num_subclasses = 337 + 1
+        elif cfg.SUBCLS_NAME == 'pose_exemplars':
+            self._num_subclasses = 260 + 1
+        else:
+            assert (1), 'cfg.SUBCLS_NAME not supported!'
 
         # load the mapping for subcalss to class
         filename = os.path.join(self._pascal3d_path, cfg.SUBCLS_NAME, 'mapping.txt')

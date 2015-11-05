@@ -1,7 +1,6 @@
-function compute_ap_avp
+function compute_ap_avp(vnum_train)
 
-vnum_train = 24;
-vnum_test = 24;
+vnum_test = vnum_train;
 
 classes = {'aeroplane', 'bicycle', 'boat', ...
            'bottle', 'bus', 'car', 'chair', ...
