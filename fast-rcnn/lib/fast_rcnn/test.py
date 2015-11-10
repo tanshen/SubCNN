@@ -477,13 +477,13 @@ def test_net(net, imdb):
                     thresh[j] = top_scores[j][0]
 
             # select the maximum score subclass in this class
-            if cfg.TEST.SUBCLS:
+            if cfg.TEST.SUBCLS and cfg.IS_RPN == False:
                 index = np.where(imdb.subclass_mapping == j)[0]
                 max_indexes = subcls_scores[:,index].argmax(axis = 1)
                 sub_classes = index[max_indexes]
             else:
-                sub_classes = subcls_scores.argmax(axis = 1)
-               
+                sub_classes = subcls_scores.argmax(axis = 1).ravel()
+
             all_boxes[j][i] = \
                     np.hstack((cls_boxes, cls_scores[:, np.newaxis], sub_classes[:, np.newaxis])) \
                     .astype(np.float32, copy=False)

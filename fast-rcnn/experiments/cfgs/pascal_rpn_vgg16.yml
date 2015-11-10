@@ -1,6 +1,7 @@
 EXP_DIR: pascal2007
 IS_RPN: True
 NET_NAME: 'VGG16'
+SUBCLS_NAME: 'subcategory_exemplars'
 TRAIN:
   SCALES_BASE: !!python/tuple [0.25, 0.5, 1.0, 2.0]
   NUM_PER_OCTAVE: 5
