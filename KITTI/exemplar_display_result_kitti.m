@@ -1,7 +1,7 @@
 function exemplar_display_result_kitti
 
 threshold = 0.5;
-is_save = 1;
+is_save = 0;
 result_dir = 'test_results_5';
 
 % read detection results
