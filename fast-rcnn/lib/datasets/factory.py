@@ -61,6 +61,12 @@ for split in ['train', 'val']:
     __sets[name] = (lambda split=split:
             datasets.pascal3d(split))
 
+# NISSAN dataset
+for split in ['2015-10-21-16-25-12']:
+    name = 'nissan_{}'.format(split)
+    print name
+    __sets[name] = (lambda split=split:
+            datasets.nissan(split))
 
 def get_imdb(name):
     """Get an imdb (image database) by name."""
