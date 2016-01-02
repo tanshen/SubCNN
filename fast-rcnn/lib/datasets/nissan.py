@@ -122,7 +122,7 @@ class nissan(datasets.imdb):
             return roidb
 
         print 'Loading region proposal network boxes...'
-        model = cfg.REGION_PROPOSAL + '_227/'
+        model = cfg.REGION_PROPOSAL
         roidb = self._load_rpn_roidb(None, model)
         print 'Region proposal network boxes loaded'
         print '{} region proposals per image'.format(self._num_boxes_proposal / len(self.image_index))
@@ -135,7 +135,7 @@ class nissan(datasets.imdb):
 
     def _load_rpn_roidb(self, gt_roidb, model):
         # set the prefix
-        prefix = model + 'testing'
+        prefix = model
 
         box_list = []
         for index in self.image_index:
