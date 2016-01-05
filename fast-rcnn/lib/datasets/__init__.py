@@ -10,6 +10,7 @@ from .pascal_voc import pascal_voc
 from .pascal3d import pascal3d
 from .kitti import kitti
 from .nissan import nissan
+from .nthu import nthu
 from . import factory
 
 import os.path as osp

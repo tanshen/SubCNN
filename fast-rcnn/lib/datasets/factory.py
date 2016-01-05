@@ -68,6 +68,13 @@ for split in ['2015-10-21-16-25-12']:
     __sets[name] = (lambda split=split:
             datasets.nissan(split))
 
+# NTHU dataset
+for split in ['71', '370']:
+    name = 'nthu_{}'.format(split)
+    print name
+    __sets[name] = (lambda split=split:
+            datasets.nthu(split))
+
 def get_imdb(name):
     """Get an imdb (image database) by name."""
     if not __sets.has_key(name):
