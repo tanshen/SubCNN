@@ -93,7 +93,7 @@ class nthu(datasets.imdb):
         """
         Return the default path where nthu is expected to be installed.
         """
-        return os.path.join(datasets.ROOT_DIR, 'data', 'nthu')
+        return os.path.join(datasets.ROOT_DIR, 'data', 'NTHU')
 
 
     def gt_roidb(self):
@@ -139,7 +139,7 @@ class nthu(datasets.imdb):
 
         box_list = []
         for index in self.image_index:
-            filename = os.path.join(self._nthu_path, 'region_proposals',  prefix, index + '.txt')
+            filename = os.path.join(self._nthu_path, 'region_proposals',  prefix, self._image_set, index + '.txt')
             assert os.path.exists(filename), \
                 'RPN data not found at: {}'.format(filename)
             raw_data = np.loadtxt(filename, dtype=float)
