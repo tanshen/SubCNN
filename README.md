@@ -45,7 +45,6 @@
 
 ### Running with the NTHU dataset
 1. The NTHU dataset should have a directory named 'data', under which it has the following structure:
-
 	```Shell
   	$data/                           # the directory contains all the data
   	$data/71                         # a directory for video 71: 000001.jpg, ..., 002956.jpg
