@@ -35,7 +35,7 @@
     make -j8 && make pycaffe
     ```
     
-5. Download pre-computed 3DVP R-CNN detectors on KITTI
+5. Download pre-computed 3DVP R-CNN detectors trained on KITTI
     ```Shell
     cd $ROOT/fast-rcnn
     ./data/scripts/fetch_3dvp_rcnn_models.sh
