@@ -45,22 +45,21 @@
 
 ### Running with the NTHU dataset
 1. The NTHU dataset should have a directory named 'data', under which it has the following structure:
-	```Shell
+    ```Shell
   	$data/                           # the directory contains all the data
   	$data/71                         # a directory for video 71: 000001.jpg, ..., 002956.jpg
   	$data/71.txt                     # a txt file contains the frame names: 000001 \n 000002 \n ... 002956
   	# ... and several other directories and txt files ...
+    ```
 
 2. Create symlinks for the NTHU dataset
-
-	```Shell
+    ```Shell
     cd $ROOT/3DVP_RCNN/fast-rcnn/data/NTHU
     ln -s $data data
     ```
 
 3. Run the region proposal network to generate region proposals
-
-	```Shell
+    ```Shell
     cd $ROOT/3DVP_RCNN/fast-rcnn
     ./experiments/scripts/nthu_caffenet_rpn_6k8k.sh $GPU_ID
     ```
