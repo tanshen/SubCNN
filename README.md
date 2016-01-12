@@ -58,8 +58,19 @@
     ln -s $data data
     ```
 
-3. Run the region proposal network to generate region proposals
+3. Run the region proposal network to generate region proposals, modify the script to run with different videos
     ```Shell
     cd $ROOT/3DVP_RCNN/fast-rcnn
     ./experiments/scripts/nthu_caffenet_rpn_6k8k.sh $GPU_ID
+    ```
+
+4. Copy the region proposals to $ROOT/3DVP_RCNN/fast-rcnn/data/NTHU/region_proposals/RPN_6k8k:
+    ```Shell
+    $ROOT/3DVP_RCNN/fast-rcnn/data/NTHU/region_proposals/RPN_6k8k/71    # a directory contains region proposals for video 71: 000001.txt, ..., 002956.txt
+    ```
+
+5. Run the detection network, modify the script to run with different videos
+    ```Shell
+    cd $ROOT/3DVP_RCNN/fast-rcnn
+    ./experiments/scripts/nthu_caffenet_rcnn_multiscale_6k8k.sh $GPU_ID
     ```
