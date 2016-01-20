@@ -41,7 +41,7 @@ class kitti(datasets.imdb):
             prefix = 'test'
 
         # load the mapping for subcalss to class
-        filename = os.path.join(self._kitti_path, 'voxel_exemplars', prefix, 'mapping.txt')
+        filename = os.path.join(self._kitti_path, cfg.SUBCLS_NAME, prefix, 'mapping.txt')
         assert os.path.exists(filename), 'Path does not exist: {}'.format(filename)
         
         mapping = np.zeros(self._num_subclasses, dtype=np.int)
@@ -111,7 +111,7 @@ class kitti(datasets.imdb):
         This function loads/saves from/to a cache file to speed up future calls.
         """
 
-        cache_file = os.path.join(self.cache_path, self.name + '_gt_roidb.pkl')
+        cache_file = os.path.join(self.cache_path, self.name + '_' + cfg.SUBCLS_NAME + '_gt_roidb.pkl')
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
                 roidb = cPickle.load(fid)
@@ -279,7 +279,7 @@ class kitti(datasets.imdb):
         else:
             return self._load_kitti_annotation(index)
 
-        filename = os.path.join(self._kitti_path, 'voxel_exemplars', prefix, index + '.txt')
+        filename = os.path.join(self._kitti_path, cfg.SUBCLS_NAME, prefix, index + '.txt')
         assert os.path.exists(filename), \
                 'Path does not exist: {}'.format(filename)
 
@@ -432,7 +432,7 @@ class kitti(datasets.imdb):
         This function loads/saves from/to a cache file to speed up future calls.
         """
         cache_file = os.path.join(self.cache_path,
-                                  self.name + '_' + cfg.REGION_PROPOSAL + '_region_proposal_roidb.pkl')
+                                  self.name + '_' + cfg.SUBCLS_NAME + '_' + cfg.REGION_PROPOSAL + '_region_proposal_roidb.pkl')
 
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
@@ -622,7 +622,7 @@ class kitti(datasets.imdb):
         else:
             prefix = ''
 
-        filename = os.path.join(self._kitti_path, 'voxel_exemplars', prefix, 'mapping.txt')
+        filename = os.path.join(self._kitti_path, cfg.SUBCLS_NAME, prefix, 'mapping.txt')
         assert os.path.exists(filename), \
                 'Path does not exist: {}'.format(filename)
 
