@@ -5,7 +5,7 @@ set -e
 
 export PYTHONUNBUFFERED="True"
 
-LOG="experiments/logs/kitti_val_caffenet_rpn.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
+LOG="experiments/logs/kitti_val_caffenet_rpn_2d.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 

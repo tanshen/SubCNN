@@ -25,7 +25,7 @@ def prepare_roidb(imdb):
     recorded.
     """
 
-    cache_file = os.path.join(imdb.cache_path, imdb.name + '_gt_roidb_prepared.pkl')
+    cache_file = os.path.join(imdb.cache_path, imdb.name + '_' + cfg.SUBCLS_NAME + '_gt_roidb_prepared.pkl')
     if os.path.exists(cache_file):
         with open(cache_file, 'rb') as fid:
             imdb._roidb = cPickle.load(fid)
