@@ -62,7 +62,7 @@ for split in ['train', 'val']:
             datasets.pascal3d(split))
 
 # NISSAN dataset
-for split in ['2015-10-21-16-25-12']:
+for split in ['2015-10-21-16-25-12', '2016-01-15-15-05-24']:
     name = 'nissan_{}'.format(split)
     print name
     __sets[name] = (lambda split=split:
