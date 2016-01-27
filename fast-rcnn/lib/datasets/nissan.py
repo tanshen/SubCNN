@@ -139,7 +139,7 @@ class nissan(datasets.imdb):
 
         box_list = []
         for index in self.image_index:
-            filename = os.path.join(self._nissan_path, 'region_proposals',  prefix, index + '.txt')
+            filename = os.path.join(self._nissan_path, 'region_proposals',  prefix, self._image_set, index + '.txt')
             assert os.path.exists(filename), \
                 'RPN data not found at: {}'.format(filename)
             raw_data = np.loadtxt(filename, dtype=float)
