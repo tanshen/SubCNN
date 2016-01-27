@@ -4,10 +4,18 @@ threshold = 0.1;
 is_save = 1;
 result_dir = 'test_results';
 root_dir = '/home/yuxiang/Projects/NISSAN_Dataset/Images';
-image_set = '2015-10-21-16-25-12';
+% image_set = '2015-10-21-16-25-12';
+image_set = '2016-01-15-15-05-24';
+
+if is_save
+    result_image_dir = sprintf('result_images/%s', image_set);
+    if exist(result_image_dir, 'dir') == 0
+        mkdir(result_image_dir);
+    end
+end     
 
 % read detection results
-filename = sprintf('%s/detections.txt', result_dir);
+filename = sprintf('%s/%s-detections.txt', result_dir, image_set);
 [ids_det, cls_det, x1_det, y1_det, x2_det, y2_det, cid_det, score_det] = ...
     textread(filename, '%s %s %f %f %f %f %d %f');
 fprintf('load detection done\n');
@@ -171,7 +179,7 @@ for i = 1:N
     hold off;
     
     if is_save
-        filename = fullfile('result_images', sprintf('%s.png', img_idx));
+        filename = fullfile(result_image_dir, sprintf('%s.png', img_idx));
         % saveas(hf, filename);
         hgexport(hf, filename, hgexport('factorystyle'), 'Format', 'png');
     else

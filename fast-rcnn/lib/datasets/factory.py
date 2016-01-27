@@ -11,6 +11,7 @@ __sets = {}
 
 import datasets.pascal_voc
 import datasets.kitti
+import datasets.kitti_tracking
 import numpy as np
 
 def _selective_search_IJCV_top_k(split, year, top_k):
@@ -74,6 +75,24 @@ for split in ['71', '370']:
     print name
     __sets[name] = (lambda split=split:
             datasets.nthu(split))
+
+# KITTI Tracking dataset
+for split in ['0000', '0001', '0002', '0003', '0004', '0005', \
+    '0006', '0007', '0008', '0009', '0010', '0011', '0012', '0013', '0014', \
+    '0015', '0016', '0017', '0018', '0019', '0020']:
+    name = 'kitti_tracking_{}_{}'.format('training', split)
+    print name
+    __sets[name] = (lambda split=split:
+            datasets.kitti_tracking('training', split))
+
+for split in ['0000', '0001', '0002', '0003', '0004', '0005', \
+    '0006', '0007', '0008', '0009', '0010', '0011', '0012', '0013', '0014', \
+    '0015', '0016', '0017', '0018', '0019', '0020', '0021', '0022', \
+    '0023', '0024', '0025', '0026', '0027', '0028']:
+    name = 'kitti_tracking_{}_{}'.format('testing', split)
+    print name
+    __sets[name] = (lambda split=split:
+            datasets.kitti_tracking('testing', split))
 
 def get_imdb(name):
     """Get an imdb (image database) by name."""
