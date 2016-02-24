@@ -5,13 +5,13 @@ set -e
 
 export PYTHONUNBUFFERED="True"
 
-LOG="experiments/logs/kitti_tracking.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
+LOG="experiments/logs/kitti_tracking_testing.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
-image_set="training"
+image_set="testing"
 
-for i in {0..20}
+for i in {0..28}
 do
 
 seq_num=$(printf '%04d' "$i")

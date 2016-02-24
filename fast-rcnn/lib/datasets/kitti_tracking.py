@@ -17,7 +17,7 @@ from rpn_msr.generate_anchors import generate_anchors
 
 class kitti_tracking(datasets.imdb):
     def __init__(self, image_set, seq_num, kitti_tracking_path=None):
-        datasets.imdb.__init__(self, 'kitti_tracking_' + image_set, + '_' + seq_num)
+        datasets.imdb.__init__(self, 'kitti_tracking_' + image_set + '_' + seq_num)
         self._image_set = image_set
         self._seq_num = seq_num
         self._kitti_tracking_path = self._get_default_path() if kitti_tracking_path is None \
@@ -94,7 +94,7 @@ class kitti_tracking(datasets.imdb):
         if self._image_set == 'training':
             num = kitti_train_nums[seq_num]
         else:
-            num = kitti_test_num[seq_num]
+            num = kitti_test_nums[seq_num]
 
         image_index = []
         for i in xrange(num):

@@ -9,7 +9,7 @@ LOG="experiments/logs/nissan_caffenet_combined.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
-image_set="2016-01-15-15-05-24"
+image_set="2016-02-17-16-59-25"
 
 time ./tools/test_net.py --gpu $1 \
   --def models/CaffeNet/kitti_test/test_rpn.prototxt \
