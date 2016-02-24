@@ -49,6 +49,9 @@ N = numel(ids);
 parfor i = 1:N
     filename = sprintf('%s/%s.JPEG', image_dir, ids{i});
     I = imread(filename);
+    if numel(size(I)) == 2
+        I = repmat(I,[1 1 3]);
+    end
     boxes = edgeBoxes(I,model,opts);
     fprintf('%d \\ %d, %d boxes\n', i, N, size(boxes, 1));
     
