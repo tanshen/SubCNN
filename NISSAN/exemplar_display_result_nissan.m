@@ -1,11 +1,15 @@
 function exemplar_display_result_nissan
 
-threshold = 0.1;
+threshold_car = 0.1;
+threshold_others = 0.3;
 is_save = 1;
 result_dir = 'test_results';
-root_dir = '/home/yuxiang/Projects/NISSAN_Dataset/Images';
+root_dir = '/capri5/NISSAN_Dataset/Images';
 % image_set = '2015-10-21-16-25-12';
-image_set = '2016-01-15-15-05-24';
+% image_set = '2016-01-15-15-05-24';
+% image_set = '2016-02-17-16-51-05';
+% image_set = '2016-02-17-16-55-12';
+image_set = '2016-02-17-16-59-25';
 
 if is_save
     result_image_dir = sprintf('result_images/%s', image_set);
@@ -51,12 +55,10 @@ for i = 1:N
         fprintf('no detection for image %s\n', img_idx);
         continue;
     end
-    if max(det(:,6)) < threshold
-        fprintf('maximum score %.2f is smaller than threshold\n', max(det(:,6)));
-        continue;
-    end
+
     if isempty(det) == 0
-        I = det(:,6) >= threshold;
+        I = (strcmp(det_cls, 'Car') == 1 & det(:,6) >= threshold_car) | ...
+            (strcmp(det_cls, 'Car') == 0 & det(:,6) >= threshold_others);
         det = det(I,:);
         det_cls = det_cls(I);
         height = det(:,4) - det(:,2);
@@ -66,12 +68,17 @@ for i = 1:N
     end
     num = size(det, 1);
     
-    file_img = sprintf('%s/%s/%s.bmp', root_dir, image_set, img_idx);
+    if num == 0
+        fprintf('maximum score is smaller than threshold\n');
+        continue;
+    end    
+    
+    file_img = sprintf('%s/%s/%s.png', root_dir, image_set, img_idx);
     I = imread(file_img);
 
     % add pattern
     for k = 1:num
-        if det(k,6) > threshold
+        if strcmp(det_cls{k}, 'Car') == 1 && det(k,6) > threshold_car
             bbox_pr = det(k,1:4);
             bbox = zeros(1,4);
             bbox(1) = max(1, floor(bbox_pr(1)));
@@ -80,10 +87,6 @@ for i = 1:N
             bbox(4) = min(size(I,1), floor(bbox_pr(4)));
             w = bbox(3) - bbox(1) + 1;
             h = bbox(4) - bbox(2) + 1;
-            
-            if strcmp(det_cls{k}, 'Car') == 0
-                continue;
-            end
 
             % apply the 2D occlusion mask to the bounding box
             % check if truncated pattern
@@ -165,7 +168,7 @@ for i = 1:N
     imshow(I);
     hold on;
     for k = 1:num
-        if det(k,6) > threshold && strcmp(det_cls{k}, 'Car') == 0
+        if det(k,6) > threshold_others && strcmp(det_cls{k}, 'Car') == 0
             % get predicted bounding box
             bbox_pr = det(k,1:4);
             bbox_draw = [bbox_pr(1), bbox_pr(2), bbox_pr(3)-bbox_pr(1), bbox_pr(4)-bbox_pr(2)];
