@@ -128,7 +128,7 @@ class imagenet3d(datasets.imdb):
         Load image and bounding boxes info from txt file in the imagenet3d format.
         """
 
-        if self._image_set == 'test':
+        if self._image_set == 'test' or self._image_set == 'test_1' or self._image_set == 'test_2':
             lines = []
         else:
             filename = os.path.join(self._imagenet3d_path, 'Labels', index + '.txt')

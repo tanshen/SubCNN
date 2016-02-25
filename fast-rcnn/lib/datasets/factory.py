@@ -64,7 +64,7 @@ for split in ['train', 'val']:
             datasets.pascal3d(split))
 
 # ImageNet3D dataset
-for split in ['train', 'val', 'trainval', 'test']:
+for split in ['train', 'val', 'trainval', 'test', 'test_1', 'test_2']:
     name = 'imagenet3d_{}'.format(split)
     print name
     __sets[name] = (lambda split=split:
