@@ -1,0 +1,24 @@
+EXP_DIR: imagenet3d
+IS_RPN: True
+IS_MULTISCALE: False
+TRAIN:
+  SCALES_BASE: !!python/tuple [2.0]
+  IMS_PER_BATCH: 1
+  FG_THRESH: !!python/tuple [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7,
+0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7,
+0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7,
+0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7,
+0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7]
+  SNAPSHOT_INFIX: imagenet3d
+  BBOX_REG: False
+  SUBCLS: False
+  SNAPSHOT_ITERS: 10000
+  RPN_ASPECTS: !!python/tuple [0.125, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8]
+  RPN_SCALES: !!python/tuple [2, 2.82842712, 4, 5.65685425, 8, 11.3137085, 16, 22.627417, 32, 45.254834, 64]
+TEST:
+  SCALES_BASE: !!python/tuple [2.0]
+  NMS: 0.5
+  BBOX_REG: False
+  SUBCLS: False
+  RPN_PRE_NMS_TOP_N: 60000
+  RPN_POST_NMS_TOP_N: 2000

@@ -133,7 +133,7 @@ __C.TRAIN.RPN_POSITIVE_WEIGHT = -1.0
 
 __C.TRAIN.RPN_BASE_SIZE = 16
 __C.TRAIN.RPN_ASPECTS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3]  # 7 aspects
-__C.TRAIN.RPN_SCALSE = 2**np.arange(1, 6, 0.5)           # 10 scales
+__C.TRAIN.RPN_SCALES = [2, 2.82842712, 4, 5.65685425, 8, 11.3137085, 16, 22.627417, 32, 45.254834] # 2**np.arange(1, 6, 0.5), 10 scales
 
 #
 # Testing options
@@ -294,6 +294,7 @@ def _add_more_info(is_train):
     if is_train:
         __C.TRAIN.ASPECT_WIDTHS = widths
         __C.TRAIN.ASPECT_HEIGHTS = heights
+        __C.TRAIN.RPN_SCALES = np.array(__C.TRAIN.RPN_SCALES)
     else:
         __C.TEST.ASPECT_WIDTHS = widths
         __C.TEST.ASPECT_HEIGHTS = heights

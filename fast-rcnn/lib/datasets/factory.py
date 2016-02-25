@@ -10,6 +10,7 @@
 __sets = {}
 
 import datasets.pascal_voc
+import datasets.imagenet3d
 import datasets.kitti
 import datasets.kitti_tracking
 import numpy as np
@@ -61,6 +62,13 @@ for split in ['train', 'val']:
     print name
     __sets[name] = (lambda split=split:
             datasets.pascal3d(split))
+
+# ImageNet3D dataset
+for split in ['train', 'val', 'trainval', 'test']:
+    name = 'imagenet3d_{}'.format(split)
+    print name
+    __sets[name] = (lambda split=split:
+            datasets.imagenet3d(split))
 
 # NISSAN dataset
 for split in ['2015-10-21-16-25-12', '2016-01-15-15-05-24', '2016-02-17-16-51-05', '2016-02-17-16-55-12', '2016-02-17-16-59-25']:
