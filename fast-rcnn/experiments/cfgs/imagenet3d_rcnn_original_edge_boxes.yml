@@ -2,7 +2,7 @@ EXP_DIR: imagenet3d
 IS_RPN: False
 IS_MULTISCALE: False
 IS_EXTRAPOLATING: False
-REGION_PROPOSAL: 'selective_search'
+REGION_PROPOSAL: 'edge_boxes'
 TRAIN:
   SCALES_BASE: !!python/tuple [1.0, 2.0]
   NUM_PER_OCTAVE: 4
@@ -29,7 +29,7 @@ TRAIN:
 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
   ROI_THRESHOLD: 0.01
-  SNAPSHOT_INFIX: imagenet3d_selective_search
+  SNAPSHOT_INFIX: imagenet3d_edge_boxes
   SNAPSHOT_ITERS: 40000
   SUBCLS: False
 TEST:
