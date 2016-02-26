@@ -323,11 +323,17 @@ class imagenet3d(datasets.imdb):
                 y2 = raw_data[:, 3]
             else:
                 assert 1, 'region proposal not supported: {}'.format(model)
+
             inds = np.where((x2 > x1) & (y2 > y1))[0]
+            raw_data[:, 0] = x1
+            raw_data[:, 1] = y1
+            raw_data[:, 2] = x2
+            raw_data[:, 3] = y2
             raw_data = raw_data[inds,:4]
 
             self._num_boxes_proposal += raw_data.shape[0]
             box_list.append(raw_data)
+            print 'load {}: {}'.format(model, index)
 
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
