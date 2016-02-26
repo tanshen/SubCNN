@@ -278,46 +278,12 @@ class imagenet3d(datasets.imdb):
             rpn_roidb = self._load_rpn_roidb(gt_roidb, model)
             print 'Region proposal network boxes loaded'
             roidb = datasets.imdb.merge_roidbs(rpn_roidb, gt_roidb)
-
-            # print 'Loading voxel pattern boxes...'
-            # if self._image_set == 'trainval':
-            #    model = '3DVP_227'
-            # else:
-            #    model = '3DVP_125/'
-            # vp_roidb = self._load_voxel_pattern_roidb(gt_roidb, model)
-            # print 'Voxel pattern boxes loaded'
-            # roidb = datasets.imdb.merge_roidbs(vp_roidb, gt_roidb)
-
-            # print 'Loading selective search boxes...'
-            # ss_roidb = self._load_selective_search_roidb(gt_roidb)
-            # print 'Selective search boxes loaded'
-
-            # print 'Loading ACF boxes...'
-            # acf_roidb = self._load_acf_roidb(gt_roidb)
-            # print 'ACF boxes loaded'
-
-            # roidb = datasets.imdb.merge_roidbs(ss_roidb, gt_roidb)
-            # roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
         else:
             print 'Loading region proposal network boxes...'
             model = cfg.REGION_PROPOSAL
             roidb = self._load_rpn_roidb(None, model)
             print 'Region proposal network boxes loaded'
 
-            # print 'Loading voxel pattern boxes...'
-            # model = '3DVP_227/'
-            # roidb = self._load_voxel_pattern_roidb(None, model)
-            # print 'Voxel pattern boxes loaded'
-
-            # print 'Loading selective search boxes...'
-            # roidb = self._load_selective_search_roidb(None)
-            # print 'Selective search boxes loaded'
-
-            # print 'Loading ACF boxes...'
-            # acf_roidb = self._load_acf_roidb(None)
-            # print 'ACF boxes loaded'
-
-            # roidb = datasets.imdb.merge_roidbs(roidb, acf_roidb)
         print '{} region proposals per image'.format(self._num_boxes_proposal / len(self.image_index))
 
         with open(cache_file, 'wb') as fid:
@@ -330,9 +296,9 @@ class imagenet3d(datasets.imdb):
 
         box_list = []
         for index in self.image_index:
-            filename = os.path.join(self._imagenet3d_path, 'region_proposals',  index + '.txt')
+            filename = os.path.join(self._imagenet3d_path, 'region_proposals', model, index + '.txt')
             assert os.path.exists(filename), \
-                'RPN data not found at: {}'.format(filename)
+                '{} data not found at: {}'.format(model, filename)
             raw_data = np.loadtxt(filename, dtype=float)
             if len(raw_data.shape) == 1:
                 if raw_data.size == 0:
@@ -340,46 +306,28 @@ class imagenet3d(datasets.imdb):
                 else:
                     raw_data = raw_data.reshape((1, 5))
 
-            x1 = raw_data[:, 0]
-            y1 = raw_data[:, 1]
-            x2 = raw_data[:, 2]
-            y2 = raw_data[:, 3]
-            score = raw_data[:, 4]
-            inds = np.where((x2 > x1) & (y2 > y1))[0]
-            raw_data = raw_data[inds,:4]
+            if model == 'selective_search' or model == 'mcg':
+				        x1 = raw_data[:, 1]
+				        y1 = raw_data[:, 0]
+				        x2 = raw_data[:, 3]
+				        y2 = raw_data[:, 2]
+            elif model == 'edge_boxes':
+				        x1 = raw_data[:, 0]
+				        y1 = raw_data[:, 1]
+				        x2 = raw_data[:, 2] + raw_data[:, 0]
+				        y2 = raw_data[:, 3] + raw_data[:, 1]
+            elif model == 'rpn_caffenet' or model == 'rpn_vgg16':
+				        x1 = raw_data[:, 0]
+				        y1 = raw_data[:, 1]
+				        x2 = raw_data[:, 2]
+				        y2 = raw_data[:, 3]
+            else:
+								assert 1, 'region proposal not supported: {}'.format(model)
+  	        inds = np.where((x2 > x1) & (y2 > y1))[0]
+		        raw_data = raw_data[inds,:4]
+
             self._num_boxes_proposal += raw_data.shape[0]
             box_list.append(raw_data)
-
-        return self.create_roidb_from_box_list(box_list, gt_roidb)
-
-
-    def _load_selective_search_roidb(self, gt_roidb):
-        cache_file = os.path.join(self.cache_path,
-                                  self.name + '_selective_search_box_list.pkl')
-
-        if os.path.exists(cache_file):
-            with open(cache_file, 'rb') as fid:
-                box_list = cPickle.load(fid)
-            print '{} boxes loaded from {}'.format(self.name, cache_file)
-        else:
-            # set the prefix
-            model = 'selective_search/'
-            if self._image_set == 'test':
-                prefix = model + 'testing'
-            else:
-                prefix = model + 'training'
-
-            box_list = []
-            for index in self.image_index:
-                filename = os.path.join(self._imagenet3d_path, 'region_proposals', prefix, index + '.txt')
-                assert os.path.exists(filename), \
-                    'Selective search data not found at: {}'.format(filename)
-                raw_data = np.loadtxt(filename, dtype=float)
-                box_list.append(raw_data[:min(self.config['top_k'], raw_data.shape[0]), 1:])
-
-            with open(cache_file, 'wb') as fid:
-                cPickle.dump(box_list, fid, cPickle.HIGHEST_PROTOCOL)
-            print 'wrote selective search boxes to {}'.format(cache_file)
 
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
