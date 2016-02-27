@@ -387,6 +387,7 @@ def test_net(net, imdb):
         os.makedirs(output_dir)
 
     det_file = os.path.join(output_dir, 'detections.pkl')
+    print imdb.name
     if os.path.exists(det_file):
         with open(det_file, 'rb') as fid:
             all_boxes = cPickle.load(fid)
@@ -399,7 +400,8 @@ def test_net(net, imdb):
             print 'Applying NMS to all detections'
             nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
             print 'Evaluating detections'
-            imdb.evaluate_detections(nms_dets, output_dir)
+            if 'imagenet3d' in imdb.name == False:
+                imdb.evaluate_detections(nms_dets, output_dir)
             imdb.evaluate_detections_one_file(nms_dets, output_dir)
         return
 
@@ -482,7 +484,10 @@ def test_net(net, imdb):
                 max_indexes = subcls_scores[:,index].argmax(axis = 1)
                 sub_classes = index[max_indexes]
             else:
-                sub_classes = subcls_scores.argmax(axis = 1).ravel()
+                if subcls_scores.shape[0] == 0:
+                    sub_classes = cls_scores
+                else:
+                    sub_classes = subcls_scores.argmax(axis = 1).ravel()
 
             all_boxes[j][i] = \
                     np.hstack((cls_boxes, cls_scores[:, np.newaxis], sub_classes[:, np.newaxis])) \
@@ -513,7 +518,8 @@ def test_net(net, imdb):
         print 'Applying NMS to all detections'
         nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
         print 'Evaluating detections'
-        imdb.evaluate_detections(nms_dets, output_dir)
+        if 'imagenet3d' in imdb.name == False:
+            imdb.evaluate_detections(nms_dets, output_dir)
         imdb.evaluate_detections_one_file(nms_dets, output_dir)
 
 
