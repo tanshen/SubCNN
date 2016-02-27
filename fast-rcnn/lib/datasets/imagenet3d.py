@@ -358,22 +358,23 @@ class imagenet3d(datasets.imdb):
 
     # write detection results into one file
     def evaluate_detections_one_file(self, all_boxes, output_dir):
-        # open results file
-        filename = os.path.join(output_dir, 'detections.txt')
-        print 'Writing all imagenet3d results to file ' + filename
-        with open(filename, 'wt') as f:
-            # for each image
-            for im_ind, index in enumerate(self.image_index):
-                # for each class
-                for cls_ind, cls in enumerate(self.classes):
-                    if cls == '__background__':
-                        continue
+
+        # for each class
+        for cls_ind, cls in enumerate(self.classes):
+            if cls == '__background__':
+                continue
+            # open results file
+            filename = os.path.join(output_dir, 'detections_{}.txt'.format(cls))
+            print 'Writing imagenet3d results to file ' + filename
+            with open(filename, 'wt') as f:
+                # for each image
+                for im_ind, index in enumerate(self.image_index):
                     dets = all_boxes[cls_ind][im_ind]
                     if dets == []:
                         continue
                     for k in xrange(dets.shape[0]):
-                        f.write('{:s} {:s} {:f} {:f} {:f} {:f} {:f}\n'.format(\
-                                 index, cls, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4]))
+                        f.write('{:s} {:f} {:f} {:f} {:f} {:.32f}\n'.format(\
+                                 index, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4]))
 
     def evaluate_proposals(self, all_boxes, output_dir):
         # for each image
