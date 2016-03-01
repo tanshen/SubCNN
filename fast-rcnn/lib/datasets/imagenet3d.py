@@ -286,6 +286,12 @@ class imagenet3d(datasets.imdb):
 
         print '{} region proposals per image'.format(self._num_boxes_proposal / len(self.image_index))
 
+        # print out recall
+        for i in xrange(1, self.num_classes):
+            print '{}: Total number of boxes {:d}'.format(self.classes[i], self._num_boxes_all[i])
+            print '{}: Number of boxes covered {:d}'.format(self.classes[i], self._num_boxes_covered[i])
+            print '{}: Recall {:f}'.format(self.classes[i], float(self._num_boxes_covered[i]) / float(self._num_boxes_all[i]))
+
         with open(cache_file, 'wb') as fid:
             cPickle.dump(roidb, fid, cPickle.HIGHEST_PROTOCOL)
         print 'wrote roidb to {}'.format(cache_file)
@@ -295,7 +301,7 @@ class imagenet3d(datasets.imdb):
     def _load_rpn_roidb(self, gt_roidb, model):
 
         box_list = []
-        for index in self.image_index:
+        for ix, index in enumerate(self.image_index):
             filename = os.path.join(self._imagenet3d_path, 'region_proposals', model, index + '.txt')
             assert os.path.exists(filename), \
                 '{} data not found at: {}'.format(model, filename)
@@ -334,6 +340,22 @@ class imagenet3d(datasets.imdb):
             self._num_boxes_proposal += raw_data.shape[0]
             box_list.append(raw_data)
             print 'load {}: {}'.format(model, index)
+
+            # compute overlaps between region proposals and gt boxes
+            boxes = gt_roidb[ix]['boxes']
+            gt_classes = gt_roidb[ix]['gt_classes']
+            # compute overlap
+            overlaps = bbox_overlaps(boxes.astype(np.float), raw_data.astype(np.float))
+            # check how many gt boxes are covered by anchors
+            if raw_data.shape[0] != 0:
+                max_overlaps = overlaps.max(axis = 0)
+                fg_inds = []
+                for k in xrange(1, self.num_classes):
+                    fg_inds.extend(np.where((gt_classes == k) & (max_overlaps >= cfg.TRAIN.FG_THRESH[k-1]))[0])
+
+                for i in xrange(self.num_classes):
+                    self._num_boxes_all[i] += len(np.where(gt_classes == i)[0])
+                    self._num_boxes_covered[i] += len(np.where(gt_classes[fg_inds] == i)[0])
 
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
