@@ -14,6 +14,7 @@ import cPickle
 from fast_rcnn.config import cfg
 import math
 from rpn_msr.generate_anchors import generate_anchors
+import sys
 
 class imagenet3d(datasets.imdb):
     def __init__(self, image_set, imagenet3d_path=None):
@@ -313,20 +314,20 @@ class imagenet3d(datasets.imdb):
                     raw_data = raw_data.reshape((1, 5))
 
             if model == 'selective_search' or model == 'mcg':
-                x1 = raw_data[:, 1]
-                y1 = raw_data[:, 0]
-                x2 = raw_data[:, 3]
-                y2 = raw_data[:, 2]
+                x1 = raw_data[:, 1].copy()
+                y1 = raw_data[:, 0].copy()
+                x2 = raw_data[:, 3].copy()
+                y2 = raw_data[:, 2].copy()
             elif model == 'edge_boxes':
-                x1 = raw_data[:, 0]
-                y1 = raw_data[:, 1]
-                x2 = raw_data[:, 2] + raw_data[:, 0]
-                y2 = raw_data[:, 3] + raw_data[:, 1]
+                x1 = raw_data[:, 0].copy()
+                y1 = raw_data[:, 1].copy()
+                x2 = raw_data[:, 2].copy() + raw_data[:, 0].copy()
+                y2 = raw_data[:, 3].copy() + raw_data[:, 1].copy()
             elif model == 'rpn_caffenet' or model == 'rpn_vgg16':
-                x1 = raw_data[:, 0]
-                y1 = raw_data[:, 1]
-                x2 = raw_data[:, 2]
-                y2 = raw_data[:, 3]
+                x1 = raw_data[:, 0].copy()
+                y1 = raw_data[:, 1].copy()
+                x2 = raw_data[:, 2].copy()
+                y2 = raw_data[:, 3].copy()
             else:
                 assert 1, 'region proposal not supported: {}'.format(model)
 
