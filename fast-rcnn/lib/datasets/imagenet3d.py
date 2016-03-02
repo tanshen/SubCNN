@@ -288,10 +288,11 @@ class imagenet3d(datasets.imdb):
         print '{} region proposals per image'.format(self._num_boxes_proposal / len(self.image_index))
 
         # print out recall
-        for i in xrange(1, self.num_classes):
-            print '{}: Total number of boxes {:d}'.format(self.classes[i], self._num_boxes_all[i])
-            print '{}: Number of boxes covered {:d}'.format(self.classes[i], self._num_boxes_covered[i])
-            print '{}: Recall {:f}'.format(self.classes[i], float(self._num_boxes_covered[i]) / float(self._num_boxes_all[i]))
+        if self._image_set != 'test':
+            for i in xrange(1, self.num_classes):
+                print '{}: Total number of boxes {:d}'.format(self.classes[i], self._num_boxes_all[i])
+                print '{}: Number of boxes covered {:d}'.format(self.classes[i], self._num_boxes_covered[i])
+                print '{}: Recall {:f}'.format(self.classes[i], float(self._num_boxes_covered[i]) / float(self._num_boxes_all[i]))
 
         with open(cache_file, 'wb') as fid:
             cPickle.dump(roidb, fid, cPickle.HIGHEST_PROTOCOL)
@@ -342,21 +343,22 @@ class imagenet3d(datasets.imdb):
             box_list.append(raw_data)
             print 'load {}: {}'.format(model, index)
 
-            # compute overlaps between region proposals and gt boxes
-            boxes = gt_roidb[ix]['boxes'].copy()
-            gt_classes = gt_roidb[ix]['gt_classes'].copy()
-            # compute overlap
-            overlaps = bbox_overlaps(raw_data.astype(np.float), boxes.astype(np.float))
-            # check how many gt boxes are covered by anchors
-            if raw_data.shape[0] != 0:
-                max_overlaps = overlaps.max(axis = 0)
-                fg_inds = []
-                for k in xrange(1, self.num_classes):
-                    fg_inds.extend(np.where((gt_classes == k) & (max_overlaps >= cfg.TRAIN.FG_THRESH[k-1]))[0])
+            if gt_roidb is not None:
+                # compute overlaps between region proposals and gt boxes
+                boxes = gt_roidb[ix]['boxes'].copy()
+                gt_classes = gt_roidb[ix]['gt_classes'].copy()
+                # compute overlap
+                overlaps = bbox_overlaps(raw_data.astype(np.float), boxes.astype(np.float))
+                # check how many gt boxes are covered by anchors
+                if raw_data.shape[0] != 0:
+                    max_overlaps = overlaps.max(axis = 0)
+                    fg_inds = []
+                    for k in xrange(1, self.num_classes):
+                        fg_inds.extend(np.where((gt_classes == k) & (max_overlaps >= cfg.TRAIN.FG_THRESH[k-1]))[0])
 
-                for i in xrange(self.num_classes):
-                    self._num_boxes_all[i] += len(np.where(gt_classes == i)[0])
-                    self._num_boxes_covered[i] += len(np.where(gt_classes[fg_inds] == i)[0])
+                    for i in xrange(self.num_classes):
+                        self._num_boxes_all[i] += len(np.where(gt_classes == i)[0])
+                        self._num_boxes_covered[i] += len(np.where(gt_classes[fg_inds] == i)[0])
 
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
