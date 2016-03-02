@@ -342,10 +342,10 @@ class imagenet3d(datasets.imdb):
             print 'load {}: {}'.format(model, index)
 
             # compute overlaps between region proposals and gt boxes
-            boxes = gt_roidb[ix]['boxes']
-            gt_classes = gt_roidb[ix]['gt_classes']
+            boxes = gt_roidb[ix]['boxes'].copy()
+            gt_classes = gt_roidb[ix]['gt_classes'].copy()
             # compute overlap
-            overlaps = bbox_overlaps(boxes.astype(np.float), raw_data.astype(np.float))
+            overlaps = bbox_overlaps(raw_data.astype(np.float), boxes.astype(np.float))
             # check how many gt boxes are covered by anchors
             if raw_data.shape[0] != 0:
                 max_overlaps = overlaps.max(axis = 0)
