@@ -134,8 +134,12 @@ class imdb(object):
                          'gt_classes' : self.roidb[i]['gt_classes'],
                          'gt_viewpoints' : self.roidb[i]['gt_viewpoints_flipped'],
                          'gt_viewpoints_flipped' : self.roidb[i]['gt_viewpoints'],
-                         'gt_viewindexes' : self.roidb[i]['gt_viewindexes_flipped'],
-                         'gt_viewindexes_flipped' : self.roidb[i]['gt_viewindexes'],
+                         'gt_viewindexes_azimuth' : self.roidb[i]['gt_viewindexes_azimuth_flipped'],
+                         'gt_viewindexes_azimuth_flipped' : self.roidb[i]['gt_viewindexes_azimuth'],
+                         'gt_viewindexes_elevation' : self.roidb[i]['gt_viewindexes_elevation_flipped'],
+                         'gt_viewindexes_elevation_flipped' : self.roidb[i]['gt_viewindexes_elevation'],
+                         'gt_viewindexes_rotation' : self.roidb[i]['gt_viewindexes_rotation_flipped'],
+                         'gt_viewindexes_rotation_flipped' : self.roidb[i]['gt_viewindexes_rotation'],
                          'gt_subclasses' : self.roidb[i]['gt_subclasses_flipped'],
                          'gt_subclasses_flipped' : self.roidb[i]['gt_subclasses'],
                          'gt_subindexes' : self.roidb[i]['gt_subindexes_flipped'],
@@ -206,8 +210,12 @@ class imdb(object):
             subindexes = np.zeros((num_boxes, self.num_classes), dtype=np.int32)
             subindexes_flipped = np.zeros((num_boxes, self.num_classes), dtype=np.int32)
             if cfg.TRAIN.VIEWPOINT == True or cfg.TEST.VIEWPOINT == True:
-                viewindexes = np.zeros((num_boxes, self.num_classes, 3), dtype=np.float32)
-                viewindexes_flipped = np.zeros((num_boxes, self.num_classes, 3), dtype=np.float32)
+                viewindexes_azimuth = np.zeros((num_boxes, self.num_classes), dtype=np.float32)
+                viewindexes_azimuth_flipped = np.zeros((num_boxes, self.num_classes), dtype=np.float32)
+                viewindexes_elevation = np.zeros((num_boxes, self.num_classes), dtype=np.float32)
+                viewindexes_elevation_flipped = np.zeros((num_boxes, self.num_classes), dtype=np.float32)
+                viewindexes_rotation = np.zeros((num_boxes, self.num_classes), dtype=np.float32)
+                viewindexes_rotation_flipped = np.zeros((num_boxes, self.num_classes), dtype=np.float32)
 
             if gt_roidb is not None:
                 gt_boxes = gt_roidb[i]['boxes']
@@ -227,17 +235,34 @@ class imdb(object):
                     subindexes[I, gt_classes[argmaxes[I]]] = gt_subclasses[argmaxes[I]]
                     subindexes_flipped[I, gt_classes[argmaxes[I]]] = gt_subclasses_flipped[argmaxes[I]]
                     if cfg.TRAIN.VIEWPOINT == True or cfg.TEST.VIEWPOINT == True:
-                        viewindexes[I, gt_classes[argmaxes[I]], :] = gt_viewpoints[argmaxes[I]]
-                        viewindexes_flipped[I, gt_classes[argmaxes[I]], :] = gt_viewpoints_flipped[argmaxes[I]]
+                        viewindexes_azimuth[I, gt_classes[argmaxes[I]]] = gt_viewpoints[argmaxes[I], 0]
+                        viewindexes_azimuth_flipped[I, gt_classes[argmaxes[I]]] = gt_viewpoints_flipped[argmaxes[I], 0]
+                        viewindexes_elevation[I, gt_classes[argmaxes[I]]] = gt_viewpoints[argmaxes[I], 1]
+                        viewindexes_elevation_flipped[I, gt_classes[argmaxes[I]]] = gt_viewpoints_flipped[argmaxes[I], 1]
+                        viewindexes_rotation[I, gt_classes[argmaxes[I]]] = gt_viewpoints[argmaxes[I], 2]
+                        viewindexes_rotation_flipped[I, gt_classes[argmaxes[I]]] = gt_viewpoints_flipped[argmaxes[I], 2]
 
             overlaps = scipy.sparse.csr_matrix(overlaps)
+            subindexes = scipy.sparse.csr_matrix(subindexes)
+            subindexes_flipped = scipy.sparse.csr_matrix(subindexes_flipped)
+
             if cfg.TRAIN.VIEWPOINT == True or cfg.TEST.VIEWPOINT == True:
+                viewindexes_azimuth = scipy.sparse.csr_matrix(viewindexes_azimuth)
+                viewindexes_azimuth_flipped = scipy.sparse.csr_matrix(viewindexes_azimuth_flipped)
+                viewindexes_elevation = scipy.sparse.csr_matrix(viewindexes_elevation)
+                viewindexes_elevation_flipped = scipy.sparse.csr_matrix(viewindexes_elevation_flipped)
+                viewindexes_rotation = scipy.sparse.csr_matrix(viewindexes_rotation)
+                viewindexes_rotation_flipped = scipy.sparse.csr_matrix(viewindexes_rotation_flipped)
                 roidb.append({'boxes' : boxes,
                               'gt_classes' : np.zeros((num_boxes,), dtype=np.int32),
                               'gt_viewpoints': np.zeros((num_boxes, 3), dtype=np.float32),
                               'gt_viewpoints_flipped': np.zeros((num_boxes, 3), dtype=np.float32),
-                              'gt_viewindexes': viewindexes,
-                              'gt_viewindexes_flipped': viewindexes_flipped,
+                              'gt_viewindexes_azimuth': viewindexes_azimuth,
+                              'gt_viewindexes_azimuth_flipped': viewindexes_azimuth_flipped,
+                              'gt_viewindexes_elevation': viewindexes_elevation,
+                              'gt_viewindexes_elevation_flipped': viewindexes_elevation_flipped,
+                              'gt_viewindexes_rotation': viewindexes_rotation,
+                              'gt_viewindexes_rotation_flipped': viewindexes_rotation_flipped,
                               'gt_subclasses' : np.zeros((num_boxes,), dtype=np.int32),
                               'gt_subclasses_flipped' : np.zeros((num_boxes,), dtype=np.int32),
                               'gt_overlaps' : overlaps,
@@ -267,10 +292,18 @@ class imdb(object):
                                                 b[i]['gt_viewpoints']))
                 a[i]['gt_viewpoints_flipped'] = np.vstack((a[i]['gt_viewpoints_flipped'],
                                                 b[i]['gt_viewpoints_flipped']))
-                a[i]['gt_viewindexes'] = np.vstack((a[i]['gt_viewindexes'],
-                                                b[i]['gt_viewindexes']))
-                a[i]['gt_viewindexes_flipped'] = np.vstack((a[i]['gt_viewindexes_flipped'],
-                                                b[i]['gt_viewindexes_flipped']))
+                a[i]['gt_viewindexes_azimuth'] = scipy.sparse.vstack((a[i]['gt_viewindexes_azimuth'],
+                                                b[i]['gt_viewindexes_azimuth']))
+                a[i]['gt_viewindexes_azimuth_flipped'] = scipy.sparse.vstack((a[i]['gt_viewindexes_azimuth_flipped'],
+                                                b[i]['gt_viewindexes_azimuth_flipped']))
+                a[i]['gt_viewindexes_elevation'] = scipy.sparse.vstack((a[i]['gt_viewindexes_elevation'],
+                                                b[i]['gt_viewindexes_elevation']))
+                a[i]['gt_viewindexes_elevation_flipped'] = scipy.sparse.vstack((a[i]['gt_viewindexes_elevation_flipped'],
+                                                b[i]['gt_viewindexes_elevation_flipped']))
+                a[i]['gt_viewindexes_rotation'] = scipy.sparse.vstack((a[i]['gt_viewindexes_rotation'],
+                                                b[i]['gt_viewindexes_rotation']))
+                a[i]['gt_viewindexes_rotation_flipped'] = scipy.sparse.vstack((a[i]['gt_viewindexes_rotation_flipped'],
+                                                b[i]['gt_viewindexes_rotation_flipped']))
 
             a[i]['gt_subclasses'] = np.hstack((a[i]['gt_subclasses'],
                                             b[i]['gt_subclasses']))
@@ -278,9 +311,9 @@ class imdb(object):
                                             b[i]['gt_subclasses_flipped']))
             a[i]['gt_overlaps'] = scipy.sparse.vstack([a[i]['gt_overlaps'],
                                                        b[i]['gt_overlaps']])
-            a[i]['gt_subindexes'] = np.vstack((a[i]['gt_subindexes'],
+            a[i]['gt_subindexes'] = scipy.sparse.vstack((a[i]['gt_subindexes'],
                                             b[i]['gt_subindexes']))
-            a[i]['gt_subindexes_flipped'] = np.vstack((a[i]['gt_subindexes_flipped'],
+            a[i]['gt_subindexes_flipped'] = scipy.sparse.vstack((a[i]['gt_subindexes_flipped'],
                                             b[i]['gt_subindexes_flipped']))
         return a
 

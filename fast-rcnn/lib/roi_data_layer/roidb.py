@@ -23,7 +23,7 @@ def prepare_roidb(imdb):
         roidb[i]['image'] = imdb.image_path_at(i)
         # need gt_overlaps as a dense array for argmax
         gt_overlaps = roidb[i]['gt_overlaps'].toarray()
-        gt_subindexes = roidb[i]['gt_subindexes']
+        gt_subindexes = roidb[i]['gt_subindexes'].toarray()
         # max overlap with gt over classes (columns)
         max_overlaps = gt_overlaps.max(axis=1)
         # gt class that had the max overlap
@@ -37,10 +37,14 @@ def prepare_roidb(imdb):
         roidb[i]['max_overlaps'] = max_overlaps
 
         if cfg.TRAIN.VIEWPOINT or cfg.TEST.VIEWPOINT:
-            gt_viewindexes = roidb[i]['gt_viewindexes']
+            gt_viewindexes_azimuth = roidb[i]['gt_viewindexes_azimuth'].toarray()
+            gt_viewindexes_elevation = roidb[i]['gt_viewindexes_elevation'].toarray()
+            gt_viewindexes_rotation = roidb[i]['gt_viewindexes_rotation'].toarray()
             max_viewpoints = np.zeros((max_classes.shape[0],3), dtype=np.float32)
             for j in range(len(max_classes)):
-                max_viewpoints[j,:] = gt_viewindexes[j, max_classes[j], :]
+                max_viewpoints[j, 0] = gt_viewindexes_azimuth[j, max_classes[j]]
+                max_viewpoints[j, 1] = gt_viewindexes_elevation[j, max_classes[j]]
+                max_viewpoints[j, 2] = gt_viewindexes_rotation[j, max_classes[j]]
             roidb[i]['max_viewpoints'] = max_viewpoints
 
         # sanity checks

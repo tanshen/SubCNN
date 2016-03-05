@@ -163,13 +163,26 @@ class imagenet3d(datasets.imdb):
                 viewpoints[ix, :] = np.inf
                 viewpoints_flipped[ix, :] = np.inf
 
-        overlaps = scipy.sparse.csr_matrix(overlaps)
         gt_subclasses = np.zeros((num_objs), dtype=np.int32)
         gt_subclasses_flipped = np.zeros((num_objs), dtype=np.int32)
         subindexes = np.zeros((num_objs, self.num_classes), dtype=np.int32)
         subindexes_flipped = np.zeros((num_objs, self.num_classes), dtype=np.int32)
-        viewindexes = np.zeros((num_objs, self.num_classes, 3), dtype=np.float32)
-        viewindexes_flipped = np.zeros((num_objs, self.num_classes, 3), dtype=np.float32)
+        viewindexes_azimuth = np.zeros((num_objs, self.num_classes), dtype=np.float32)
+        viewindexes_azimuth_flipped = np.zeros((num_objs, self.num_classes), dtype=np.float32)
+        viewindexes_elevation = np.zeros((num_objs, self.num_classes), dtype=np.float32)
+        viewindexes_elevation_flipped = np.zeros((num_objs, self.num_classes), dtype=np.float32)
+        viewindexes_rotation = np.zeros((num_objs, self.num_classes), dtype=np.float32)
+        viewindexes_rotation_flipped = np.zeros((num_objs, self.num_classes), dtype=np.float32)
+
+        overlaps = scipy.sparse.csr_matrix(overlaps)
+        subindexes = scipy.sparse.csr_matrix(subindexes)
+        subindexes_flipped = scipy.sparse.csr_matrix(subindexes_flipped)
+        viewindexes_azimuth = scipy.sparse.csr_matrix(viewindexes_azimuth)
+        viewindexes_azimuth_flipped = scipy.sparse.csr_matrix(viewindexes_azimuth_flipped)
+        viewindexes_elevation = scipy.sparse.csr_matrix(viewindexes_elevation)
+        viewindexes_elevation_flipped = scipy.sparse.csr_matrix(viewindexes_elevation_flipped)
+        viewindexes_rotation = scipy.sparse.csr_matrix(viewindexes_rotation)
+        viewindexes_rotation_flipped = scipy.sparse.csr_matrix(viewindexes_rotation_flipped)
 
         if cfg.IS_RPN:
             if cfg.IS_MULTISCALE:
@@ -262,8 +275,12 @@ class imagenet3d(datasets.imdb):
                 'gt_classes': gt_classes,
                 'gt_viewpoints': viewpoints,
                 'gt_viewpoints_flipped': viewpoints_flipped,
-                'gt_viewindexes': viewindexes,
-                'gt_viewindexes_flipped': viewindexes_flipped,
+                'gt_viewindexes_azimuth': viewindexes_azimuth,
+                'gt_viewindexes_azimuth_flipped': viewindexes_azimuth_flipped,
+                'gt_viewindexes_elevation': viewindexes_elevation,
+                'gt_viewindexes_elevation_flipped': viewindexes_elevation_flipped,
+                'gt_viewindexes_rotation': viewindexes_rotation,
+                'gt_viewindexes_rotation_flipped': viewindexes_rotation_flipped,
                 'gt_subclasses': gt_subclasses,
                 'gt_subclasses_flipped': gt_subclasses_flipped,
                 'gt_overlaps' : overlaps,
