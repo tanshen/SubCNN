@@ -31,9 +31,18 @@ def prepare_roidb(imdb):
         max_subclasses = np.zeros(max_classes.shape, dtype=np.int32)
         for j in range(len(max_classes)):
             max_subclasses[j] = gt_subindexes[j, max_classes[j]]
+
         roidb[i]['max_classes'] = max_classes
         roidb[i]['max_subclasses'] = max_subclasses
         roidb[i]['max_overlaps'] = max_overlaps
+
+        if cfg.TRAIN.VIEWPOINT or cfg.TEST.VIEWPOINT:
+            gt_viewindexes = roidb[i]['gt_viewindexes']
+            max_viewpoints = np.zeros((max_classes.shape[0],3), dtype=np.float32)
+            for j in range(len(max_classes)):
+                max_viewpoints[j,:] = gt_viewindexes[j, max_classes[j], :]
+            roidb[i]['max_viewpoints'] = max_viewpoints
+
         # sanity checks
         # max overlap of 0 => class should be zero (background)
         zero_inds = np.where(max_overlaps == 0)[0]

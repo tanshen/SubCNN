@@ -141,6 +141,8 @@ class imagenet3d(datasets.imdb):
         num_objs = len(lines)
 
         boxes = np.zeros((num_objs, 4), dtype=np.float32)
+        viewpoints = np.zeros((num_objs, 3), dtype=np.float32)          # azimuth, elevation, in-plane rotation
+        viewpoints_flipped = np.zeros((num_objs, 3), dtype=np.float32)  # azimuth, elevation, in-plane rotation
         gt_classes = np.zeros((num_objs), dtype=np.int32)
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
 
@@ -151,12 +153,23 @@ class imagenet3d(datasets.imdb):
             boxes[ix, :] = [float(n) for n in words[1:5]]
             gt_classes[ix] = cls
             overlaps[ix, cls] = 1.0
+            if len(words) == 8:
+                viewpoints[ix, :] = [float(n) for n in words[5:8]]
+                # flip the viewpoint
+                viewpoints_flipped[ix, 0] = -viewpoints[ix, 0]  # azimuth
+                viewpoints_flipped[ix, 1] = viewpoints[ix, 1]   # elevation
+                viewpoints_flipped[ix, 2] = -viewpoints[ix, 2]  # in-plane rotation
+            else:
+                viewpoints[ix, :] = np.inf
+                viewpoints_flipped[ix, :] = np.inf
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
         gt_subclasses = np.zeros((num_objs), dtype=np.int32)
         gt_subclasses_flipped = np.zeros((num_objs), dtype=np.int32)
         subindexes = np.zeros((num_objs, self.num_classes), dtype=np.int32)
         subindexes_flipped = np.zeros((num_objs, self.num_classes), dtype=np.int32)
+        viewindexes = np.zeros((num_objs, self.num_classes, 3), dtype=np.float32)
+        viewindexes_flipped = np.zeros((num_objs, self.num_classes, 3), dtype=np.float32)
 
         if cfg.IS_RPN:
             if cfg.IS_MULTISCALE:
@@ -247,6 +260,10 @@ class imagenet3d(datasets.imdb):
 
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
+                'gt_viewpoints': viewpoints,
+                'gt_viewpoints_flipped': viewpoints_flipped,
+                'gt_viewindexes': viewindexes,
+                'gt_viewindexes_flipped': viewindexes_flipped,
                 'gt_subclasses': gt_subclasses,
                 'gt_subclasses_flipped': gt_subclasses_flipped,
                 'gt_overlaps' : overlaps,
@@ -292,7 +309,8 @@ class imagenet3d(datasets.imdb):
             for i in xrange(1, self.num_classes):
                 print '{}: Total number of boxes {:d}'.format(self.classes[i], self._num_boxes_all[i])
                 print '{}: Number of boxes covered {:d}'.format(self.classes[i], self._num_boxes_covered[i])
-                print '{}: Recall {:f}'.format(self.classes[i], float(self._num_boxes_covered[i]) / float(self._num_boxes_all[i]))
+                if self._num_boxes_all[i] > 0:
+                    print '{}: Recall {:f}'.format(self.classes[i], float(self._num_boxes_covered[i]) / float(self._num_boxes_all[i]))
 
         with open(cache_file, 'wb') as fid:
             cPickle.dump(roidb, fid, cPickle.HIGHEST_PROTOCOL)
@@ -377,9 +395,10 @@ class imagenet3d(datasets.imdb):
                     dets = all_boxes[cls_ind][im_ind]
                     if dets == []:
                         continue
+                    # detection and viewpoint
                     for k in xrange(dets.shape[0]):
-                        f.write('{:s} {:f} {:f} {:f} {:f} {:.32f}\n'.format(\
-                                 cls, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4]))
+                        f.write('{:s} {:f} {:f} {:f} {:f} {:.32f} {:f} {:f} {:f}\n'.format(\
+                                 cls, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4], dets[k, 6], dets[k, 7], dets[k, 8]))
 
     # write detection results into one file
     def evaluate_detections_one_file(self, all_boxes, output_dir):
@@ -397,9 +416,10 @@ class imagenet3d(datasets.imdb):
                     dets = all_boxes[cls_ind][im_ind]
                     if dets == []:
                         continue
+                    # detection and viewpoint
                     for k in xrange(dets.shape[0]):
-                        f.write('{:s} {:f} {:f} {:f} {:f} {:.32f}\n'.format(\
-                                 index, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4]))
+                        f.write('{:s} {:f} {:f} {:f} {:f} {:.32f} {:f} {:f} {:f}\n'.format(\
+                                 index, dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4], dets[k, 6], dets[k, 7], dets[k, 8]))
 
     def evaluate_proposals(self, all_boxes, output_dir):
         # for each image

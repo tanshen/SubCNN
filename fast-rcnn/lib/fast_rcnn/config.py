@@ -102,6 +102,9 @@ __C.TRAIN.USE_PREFETCH = False
 # Train using subclasses
 __C.TRAIN.SUBCLS = True
 
+# Train using viewpoint
+__C.TRAIN.VIEWPOINT = False
+
 # Threshold of ROIs in training RCNN
 __C.TRAIN.ROI_THRESHOLD = 0.1
 
@@ -168,6 +171,9 @@ __C.TEST.BBOX_REG = True
 
 # Test using subclass
 __C.TEST.SUBCLS = True
+
+# Train using viewpoint
+__C.TEST.VIEWPOINT = False
 
 # Threshold of ROIs in testing
 __C.TEST.ROI_THRESHOLD = 0.1

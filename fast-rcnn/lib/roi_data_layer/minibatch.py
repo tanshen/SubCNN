@@ -52,11 +52,18 @@ def get_minibatch(roidb, num_classes):
         sublabels_blob = np.zeros((0), dtype=np.float32)
         bbox_targets_blob = np.zeros((0, 4 * num_classes), dtype=np.float32)
         bbox_inside_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
+        if cfg.TRAIN.VIEWPOINT or cfg.TEST.VIEWPOINT:
+            view_targets_blob = np.zeros((0, 3 * num_classes), dtype=np.float32)
+            view_inside_blob = np.zeros(view_targets_blob.shape, dtype=np.float32)
+
         # all_overlaps = []
         for im_i in xrange(num_images):
-            labels, overlaps, im_rois, bbox_targets, bbox_inside_weights, sublabels \
-                = _sample_rois(roidb[im_i], fg_rois_per_image, rois_per_image,
-                           num_classes)
+            if cfg.TRAIN.VIEWPOINT or cfg.TEST.VIEWPOINT:
+                labels, overlaps, im_rois, bbox_targets, bbox_inside_weights, sublabels, view_targets, view_inside_weights \
+                    = _sample_rois(roidb[im_i], fg_rois_per_image, rois_per_image, num_classes)
+            else:
+                labels, overlaps, im_rois, bbox_targets, bbox_inside_weights, sublabels \
+                    = _sample_rois(roidb[im_i], fg_rois_per_image, rois_per_image, num_classes)
 
             # Add to RoIs blob
             if cfg.IS_MULTISCALE:
@@ -78,10 +85,14 @@ def get_minibatch(roidb, num_classes):
             sublabels_blob = np.hstack((sublabels_blob, sublabels))
             bbox_targets_blob = np.vstack((bbox_targets_blob, bbox_targets))
             bbox_inside_blob = np.vstack((bbox_inside_blob, bbox_inside_weights))
+            if cfg.TRAIN.VIEWPOINT or cfg.TEST.VIEWPOINT:
+                view_targets_blob = np.vstack((view_targets_blob, view_targets))
+                view_inside_blob = np.vstack((view_inside_blob, view_inside_weights))
+
             # all_overlaps = np.hstack((all_overlaps, overlaps))
 
         # For debug visualizations
-        # _vis_minibatch(im_blob, rois_blob, labels_blob, all_overlaps, sublabels_blob)
+        # _vis_minibatch(im_blob, rois_blob, labels_blob, all_overlaps, sublabels_blob, view_targets_blob, view_inside_blob)
 
         blobs['rois'] = rois_blob
         blobs['labels'] = labels_blob
@@ -94,6 +105,11 @@ def get_minibatch(roidb, num_classes):
         if cfg.TRAIN.SUBCLS:
             blobs['sublabels'] = sublabels_blob
 
+        if cfg.TRAIN.VIEWPOINT or cfg.TEST.VIEWPOINT:
+            blobs['view_targets'] = view_targets_blob
+            blobs['view_inside_weights'] = view_inside_blob
+            blobs['view_outside_weights'] = np.array(view_inside_blob > 0).astype(np.float32)
+
     return blobs
 
 def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
@@ -105,6 +121,8 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     overlaps = roidb['max_overlaps']
     rois = roidb['boxes']
     sublabels = roidb['max_subclasses']
+    if cfg.TRAIN.VIEWPOINT or cfg.TEST.VIEWPOINT:
+        viewpoints = roidb['max_viewpoints']
 
     # Select foreground RoIs as those with >= FG_THRESH overlap
     fg_inds = []
@@ -159,6 +177,12 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     bbox_targets, bbox_loss_weights = \
             _get_bbox_regression_labels(roidb['bbox_targets'][keep_inds, :],
                                         num_classes)
+
+    if cfg.TRAIN.VIEWPOINT or cfg.TEST.VIEWPOINT:
+        viewpoints = viewpoints[keep_inds]
+        view_targets, view_loss_weights = \
+                _get_viewpoint_estimation_labels(viewpoints, labels, num_classes)
+        return labels, overlaps, rois, bbox_targets, bbox_loss_weights, sublabels, view_targets, view_loss_weights
 
     return labels, overlaps, rois, bbox_targets, bbox_loss_weights, sublabels
 
@@ -275,10 +299,38 @@ def _get_bbox_regression_labels(bbox_target_data, num_classes):
         bbox_loss_weights[ind, start:end] = [1., 1., 1., 1.]
     return bbox_targets, bbox_loss_weights
 
-def _vis_minibatch(im_blob, rois_blob, labels_blob, overlaps, sublabels_blob):
+
+def _get_viewpoint_estimation_labels(viewpoint_data, clss, num_classes):
+    """Bounding-box regression targets are stored in a compact form in the
+    roidb.
+
+    This function expands those targets into the 4-of-4*K representation used
+    by the network (i.e. only one class has non-zero targets). The loss weights
+    are similarly expanded.
+
+    Returns:
+        view_target_data (ndarray): N x 3K blob of regression targets
+        view_loss_weights (ndarray): N x 3K blob of loss weights
+    """
+    view_targets = np.zeros((clss.size, 3 * num_classes), dtype=np.float32)
+    view_loss_weights = np.zeros(view_targets.shape, dtype=np.float32)
+    inds = np.where( (clss > 0) & np.isfinite(viewpoint_data[:,0]) & np.isfinite(viewpoint_data[:,1]) & np.isfinite(viewpoint_data[:,2]) )[0]
+    for ind in inds:
+        cls = clss[ind]
+        start = 3 * cls
+        end = start + 3
+        view_targets[ind, start:end] = viewpoint_data[ind, :]
+        view_loss_weights[ind, start:end] = [1., 1., 1.]
+
+    assert not np.isinf(view_targets).any(), 'viewpoint undefined'
+    return view_targets, view_loss_weights
+
+
+def _vis_minibatch(im_blob, rois_blob, labels_blob, overlaps, sublabels_blob, view_targets_blob, view_inside_blob):
     """Visualize a mini-batch for debugging."""
     import matplotlib.pyplot as plt
-    for i in xrange(rois_blob.shape[0]):
+    import math
+    for i in xrange(min(rois_blob.shape[0], 1)):
         rois = rois_blob[i, :]
         im_ind = rois[0]
         roi = rois[1:]
@@ -290,6 +342,12 @@ def _vis_minibatch(im_blob, rois_blob, labels_blob, overlaps, sublabels_blob):
         subcls = sublabels_blob[i]
         plt.imshow(im)
         print 'class: ', cls, ' subclass: ', subcls, ' overlap: ', overlaps[i]
+
+        start = 3 * cls
+        end = start + 3
+        print 'view: ', view_targets_blob[i, start:end] * 180 / math.pi
+        print 'view weights: ', view_inside_blob[i, start:end]
+
         plt.gca().add_patch(
             plt.Rectangle((roi[0], roi[1]), roi[2] - roi[0],
                           roi[3] - roi[1], fill=False,

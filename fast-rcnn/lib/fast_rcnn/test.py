@@ -184,8 +184,9 @@ def im_detect(net, im, boxes, num_classes, num_subclasses):
     if boxes.shape[0] == 0:
         scores = np.zeros((0, num_classes))
         pred_boxes = np.zeros((0, 4*num_classes))
+        pred_views = np.zeros((0, 3*num_classes))
         scores_subcls = np.zeros((0, num_subclasses))
-        return scores, pred_boxes, scores_subcls
+        return scores, pred_boxes, scores_subcls, pred_views
 
     blobs, unused_im_scale_factors = _get_blobs(im, boxes)
 
@@ -229,13 +230,21 @@ def im_detect(net, im, boxes, num_classes, num_subclasses):
         # Simply repeat the boxes, once for each class
         pred_boxes = np.tile(boxes, (1, scores.shape[1]))
 
+    if cfg.TEST.VIEWPOINT:
+        # Apply bounding-box regression deltas
+        pred_views = blobs_out['view_pred']
+    else:
+        # set to zeros
+        pred_views = np.zeros((boxes.shape[0], 3*num_classes))
+
     if cfg.DEDUP_BOXES > 0:
         # Map scores and predictions back to the original set of boxes
         scores = scores[inv_index, :]
         scores_subcls = scores_subcls[inv_index, :]
         pred_boxes = pred_boxes[inv_index, :]
+        pred_views = pred_views[inv_index, :]
 
-    return scores, pred_boxes, scores_subcls
+    return scores, pred_boxes, scores_subcls, pred_views
 
 
 def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses, subclass_mapping):
@@ -292,6 +301,13 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses, subclas
         pred_boxes = _rescale_boxes(pred_boxes, inds, cfg.TRAIN.SCALES)
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
 
+    if cfg.TEST.VIEWPOINT:
+        # Apply bounding-box regression deltas
+        pred_views = blobs_out['view_pred']
+    else:
+        # set to zeros
+        pred_views = np.zeros((boxes.shape[0], 3*num_classes))
+
     # only select one aspect with the highest score
     """
     num = boxes.shape[0]
@@ -312,6 +328,7 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses, subclas
     inds = order[:cfg.TEST.ROI_NUM]
     scores = scores[inds]
     pred_boxes = pred_boxes[inds]
+    pred_views = pred_views[inds]
     scores_subcls = scores_subcls[inds]
     labels = labels[inds]
     print scores.shape
@@ -329,7 +346,7 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses, subclas
                            edgecolor='g', linewidth=3))
         plt.show()
 
-    return scores, pred_boxes, scores_subcls, labels
+    return scores, pred_boxes, scores_subcls, labels, pred_views
 
 def vis_detections(im, class_name, dets, thresh=0.1):
     """Visual debugging of detections."""
@@ -444,9 +461,9 @@ def test_net(net, imdb):
         _t['im_detect'].tic()
         if cfg.IS_RPN:
             boxes_grid, _, _ = get_boxes_grid(im.shape[0], im.shape[1])
-            scores, boxes, scores_subcls, labels = im_detect_proposal(net, im, boxes_grid, imdb.num_classes, imdb.num_subclasses, imdb.subclass_mapping)
+            scores, boxes, scores_subcls, labels, views = im_detect_proposal(net, im, boxes_grid, imdb.num_classes, imdb.num_subclasses, imdb.subclass_mapping)
         else:
-            scores, boxes, scores_subcls = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes, imdb.num_subclasses)
+            scores, boxes, scores_subcls, views = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes, imdb.num_subclasses)
         _t['im_detect'].toc()
 
         _t['misc'].tic()
@@ -461,11 +478,13 @@ def test_net(net, imdb):
             cls_scores = scores[inds, j]
             subcls_scores = scores_subcls[inds, :]
             cls_boxes = boxes[inds, j*4:(j+1)*4]
+            cls_views = views[inds, j*3:(j+1)*3]
 
             top_inds = np.argsort(-cls_scores)[:max_per_image]
             cls_scores = cls_scores[top_inds]
             subcls_scores = subcls_scores[top_inds, :]
             cls_boxes = cls_boxes[top_inds, :]
+            cls_views = cls_views[top_inds, :]
 
             if cfg.IS_RPN == False:
                 # push new scores onto the minheap
@@ -490,7 +509,7 @@ def test_net(net, imdb):
                     sub_classes = subcls_scores.argmax(axis = 1).ravel()
 
             all_boxes[j][i] = \
-                    np.hstack((cls_boxes, cls_scores[:, np.newaxis], sub_classes[:, np.newaxis])) \
+                    np.hstack((cls_boxes, cls_scores[:, np.newaxis], sub_classes[:, np.newaxis], cls_views)) \
                     .astype(np.float32, copy=False)
             count = count + len(cls_scores)
 
