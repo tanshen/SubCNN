@@ -354,17 +354,18 @@ def vis_detections(im, class_name, dets, thresh=0.1):
     im = im[:, :, (2, 1, 0)]
     plt.cla()
     plt.imshow(im)
-    for i in xrange(np.minimum(10, dets.shape[0])):
+    for i in xrange(np.minimum(1, dets.shape[0])):
         bbox = dets[i, :4]
-        score = dets[i, -2]
+        score = dets[i, 4]
+        view = dets[i, 6:9]
         if score > thresh:
             plt.gca().add_patch(
                 plt.Rectangle((bbox[0], bbox[1]),
                               bbox[2] - bbox[0],
                               bbox[3] - bbox[1], fill=False,
-                              edgecolor='g', linewidth=3)
-                )
-            # plt.title('{}  {:.3f}'.format(class_name, score))
+                              edgecolor='g', linewidth=3))
+            plt.title('{}  {:.3f}, view {:.1f} {:.1f} {:.1f}'.format(class_name, score, \
+                      view[0] * 180 / math.pi, view[1] * 180 / math.pi, view[2] * 180 / math.pi))
     plt.show()
 
 def apply_nms(all_boxes, thresh):
