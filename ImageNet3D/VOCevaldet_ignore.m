@@ -34,7 +34,7 @@ fprintf('load ground truth done, %d objects\n', count);
 recalls = cell(num_cls, 1);
 precisions = cell(num_cls, 1);
 aps = zeros(num_cls, 1);
-for k = 1:num_cls
+parfor k = 1:num_cls
     cls = classes{k};
     
     % extract ground truth objects
