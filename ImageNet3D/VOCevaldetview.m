@@ -40,6 +40,7 @@ precisions_view = cell(num_cls, 1);
 aps_view = zeros(num_cls, 1);
 accuracies_view = cell(num_cls, 1);
 avps_view = zeros(num_cls, 1);
+errors_view = cell(num_cls, 1);
 parfor k = 1:num_cls
     cls = classes{k};
     
@@ -57,6 +58,9 @@ parfor k = 1:num_cls
         % viewpoint
         num = length(clsinds);
         gt(i).view = cell(num, 1);
+        gt(i).azimuth = zeros(num, 1);
+        gt(i).elevation = zeros(num, 1);
+        gt(i).rotation = zeros(num, 1);
         for j = 1:num
             viewpoint = recs{i}.objects(j).viewpoint;
             if isempty(viewpoint) == 1
@@ -79,6 +83,9 @@ parfor k = 1:num_cls
             e = e * pi / 180;
             theta = theta * pi / 180;
             gt(i).view{j} = rotation_matrix(a, e, theta);
+            gt(i).azimuth(j) = a;
+            gt(i).elevation(j) = e;
+            gt(i).rotation(j) = theta;
             npos_view = npos_view + 1;
         end
         
@@ -116,6 +123,7 @@ parfor k = 1:num_cls
     fp = zeros(nd, 1);
     vp = zeros(nd, 1);
     ignore = false(nd, 1);
+    vd = zeros(nd, 3);
     tic;
     for d = 1:nd
         % display progress
@@ -165,6 +173,14 @@ parfor k = 1:num_cls
                     X = logm(Rgt' * R);
                     angle = 1/sqrt(2) * norm(X, 'fro');
                     vp(d) = (1 + cos(angle)) / 2;
+                    
+                    % compute angle errors
+                    da = abs(angdiff(azimuth(d), gt(i).azimuth(jmax)));
+                    de = abs(angdiff(elevation(d), gt(i).elevation(jmax)));
+                    dr = abs(angdiff(rotation(d), gt(i).rotation(jmax)));
+                    vd(d, 1) = da / ( da + de + dr);
+                    vd(d, 2) = de / ( da + de + dr);
+                    vd(d, 3) = dr / ( da + de + dr);
                 end
             else
                 fp(d) = 1;            % false positive (multiple detection)
@@ -205,6 +221,10 @@ parfor k = 1:num_cls
     precisions_view{k} = prec_view;
     accuracies_view{k} = accu_view;
     fprintf('%s, ap view: %f, avp view %f\n', cls, ap_view, avp_view);
+    
+    % keep the view error distribution
+    vd = vd(tp == 1 & ignore == 0, :);
+    errors_view{k} = vd;
 end
 
 % write to file
@@ -218,6 +238,16 @@ fclose(fid);
 % save to matfile
 matfile = sprintf('views_%s_%d.mat', method, minoverlap*100);
 save(matfile, 'recalls_det', 'precisions_det', 'aps_det', ...
-    'recalls_view', 'precisions_view', 'aps_view', 'avps_view', '-v7.3');
+    'recalls_view', 'precisions_view', 'aps_view', 'avps_view', 'errors_view', '-v7.3');
 
 matlabpool close;
+
+function d = angdiff(a, b)
+
+d = a - b;
+if d > pi
+    d = d - 2*pi;
+end
+if d < -pi
+    d = d + 2*pi;
+end
