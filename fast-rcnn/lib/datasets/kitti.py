@@ -174,6 +174,8 @@ class kitti(datasets.imdb):
         gt_subclasses_flipped = np.zeros((num_objs), dtype=np.int32)
         subindexes = np.zeros((num_objs, self.num_classes), dtype=np.int32)
         subindexes_flipped = np.zeros((num_objs, self.num_classes), dtype=np.int32)
+        subindexes = scipy.sparse.csr_matrix(subindexes)
+        subindexes_flipped = scipy.sparse.csr_matrix(subindexes_flipped)
 
         if cfg.IS_RPN:
             if cfg.IS_MULTISCALE:
@@ -327,6 +329,8 @@ class kitti(datasets.imdb):
             subindexes_flipped[ix, cls] = gt_subclasses_flipped[ix]
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
+        subindexes = scipy.sparse.csr_matrix(subindexes)
+        subindexes_flipped = scipy.sparse.csr_matrix(subindexes_flipped)
 
         if cfg.IS_RPN:
             if cfg.IS_MULTISCALE:
@@ -527,6 +531,7 @@ class kitti(datasets.imdb):
             raw_data = raw_data[inds,:4]
             self._num_boxes_proposal += raw_data.shape[0]
             box_list.append(raw_data)
+            print 'load {}: {}'.format(model, index)
 
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
