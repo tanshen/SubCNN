@@ -1,12 +1,17 @@
 function exemplar_3d_detections_light
 
-% matlabpool open;
+matlabpool open;
 
-threshold = 0.5;
+% threshold = 0.5;
 cls = 'car';
+is_train = 1;
 
 % read detection results
-result_dir = 'test_results_5';
+if is_train
+    result_dir = 'results_kitti_train';
+else
+    result_dir = 'test_results_5';
+end
 filename = sprintf('%s/detections.txt', result_dir);
 [ids_det, cls_det, x1_det, y1_det, x2_det, y2_det, cid_det, score_det] = ...
     textread(filename, '%s %s %f %f %f %f %d %f');
@@ -20,21 +25,33 @@ cam = 2;
 calib_dir = fullfile(root_dir, [data_set '/calib']);
 
 % load data
-filename = fullfile(SLMroot, 'KITTI/data_kitti.mat');
+if is_train
+    filename = fullfile(SLMroot, 'KITTI/data.mat');
+else
+    filename = fullfile(SLMroot, 'KITTI/data_kitti.mat');
+end
 object = load(filename);
 data = object.data;
 centers = unique(data.idx_ap);
 centers(centers == -1) = [];
 fprintf('%d clusters for car\n', numel(centers));
 
-filename = fullfile(SLMroot, 'KITTI/data_kitti_pedestrian.mat');
+if is_train
+    filename = fullfile(SLMroot, 'KITTI/data_pedestrian.mat');
+else
+    filename = fullfile(SLMroot, 'KITTI/data_kitti_pedestrian.mat');
+end
 object = load(filename);
 data_pedestrian = object.data;
 centers_pedestrian = unique(data_pedestrian.idx_pose);
 centers_pedestrian(centers_pedestrian == -1) = [];
 fprintf('%d clusters for pedestrian\n', numel(centers_pedestrian));
 
-filename = fullfile(SLMroot, 'KITTI/data_kitti_cyclist.mat');
+if is_train
+    filename = fullfile(SLMroot, 'KITTI/data_cyclist.mat');
+else
+    filename = fullfile(SLMroot, 'KITTI/data_kitti_cyclist.mat');
+end
 object = load(filename);
 data_cyclist = object.data;
 centers_cyclist = unique(data_cyclist.idx_pose);
@@ -83,7 +100,7 @@ N = numel(ids);
 dets_3d = cell(1, N);
 
 % for each image
-for i = 1:N
+parfor i = 1:N
     img_idx = ids(i);
     tic;
     
@@ -95,19 +112,19 @@ for i = 1:N
         fprintf('no detection for image %d\n', img_idx);
         continue;
     end
-    if max(det(:,6)) < threshold
-        fprintf('maximum score %.2f is smaller than threshold\n', max(det(:,6)));
-        continue;
-    end
-    if isempty(det) == 0
-        I = det(:,6) >= threshold;
-        det = det(I,:);
-        det_cls = det_cls(I);
-        height = det(:,4) - det(:,2);
-        [~, I] = sort(height);
-        det = det(I,:);
-        det_cls = det_cls(I);
-    end
+%     if max(det(:,6)) < threshold
+%         fprintf('maximum score %.2f is smaller than threshold\n', max(det(:,6)));
+%         continue;
+%     end
+%     if isempty(det) == 0
+%         I = det(:,6) >= threshold;
+%         det = det(I,:);
+%         det_cls = det_cls(I);
+%         height = det(:,4) - det(:,2);
+%         [~, I] = sort(height);
+%         det = det(I,:);
+%         det_cls = det_cls(I);
+%     end
     num = size(det, 1);    
     
     T = zeros(3, num);
@@ -320,7 +337,7 @@ end
 filename = sprintf('%s/dets_3d.mat', result_dir);
 save(filename, 'dets_3d', '-v7.3');
 
-% matlabpool close;
+matlabpool close;
 
 
 % compute the projection error between 3D bbox and 2D bbox
