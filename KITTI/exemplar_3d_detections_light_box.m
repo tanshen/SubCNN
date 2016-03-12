@@ -1,4 +1,4 @@
-function exemplar_3d_detections_light
+function exemplar_3d_detections_light_box
 
 matlabpool open;
 
@@ -6,15 +6,36 @@ matlabpool open;
 cls = 'car';
 is_train = 1;
 
+% read ids of validation images
+object = load('kitti_ids_new.mat');
+if is_train
+    ids = object.ids_val;
+else
+    ids = object.ids_test;
+end
+N = numel(ids);
+
 % read detection results
 if is_train
-    result_dir = 'results_kitti_train';
+    result_dir = 'results_faster_rcnn';
 else
     result_dir = 'test_results_5';
 end
-filename = sprintf('%s/detections.txt', result_dir);
-[ids_det, cls_det, x1_det, y1_det, x2_det, y2_det, cid_det, score_det] = ...
-    textread(filename, '%s %s %f %f %f %f %d %f');
+detections = cell(1, N);
+classes = cell(1, N);
+parfor i = 1:N
+    filename = sprintf('%s/%06d.txt', result_dir, ids(i));
+    disp(filename);
+    fid = fopen(filename, 'r');
+    C = textscan(fid, '%s %f %d %f %f %f %f %f %f %f %f %f %f %f %f %f');   
+    fclose(fid);
+    
+    det = double([C{5} C{6} C{7} C{8} C{end}]);
+    index = strcmp('Car', C{1});
+    det = det(index, :);
+    detections{i} = det;
+    classes{i} = C{1}(index);
+end
 fprintf('load detection done\n');
 
 % KITTI path
@@ -92,15 +113,6 @@ filename = '../CAD/pedestrian.off';
 filename = '../CAD/cyclist.off';
 [vertices_cyclist, ~] = load_off_file(filename);
 
-% read ids of validation images
-object = load('kitti_ids_new.mat');
-if is_train
-    ids = object.ids_val;
-else
-    ids = object.ids_test;
-end
-N = numel(ids);
-
 dets_3d = cell(1, N);
 
 % for each image
@@ -109,34 +121,12 @@ parfor i = 1:N
     tic;
     
     % get predicted bounding box
-    index = strcmp(sprintf('%06d', img_idx), ids_det);
-    det_cls = cls_det(index);
-    det = [x1_det(index), y1_det(index), x2_det(index), y2_det(index), cid_det(index), score_det(index)];
-
-    % only select cars
-    if is_train
-        index = strcmp('Car', det_cls);
-        det = det(index, :);
-        det_cls = det_cls(index);
-    end
-    
+    det = detections{i};
+    det_cls = classes{i};
     if isempty(det) == 1
         fprintf('no detection for image %d\n', img_idx);
         continue;
     end
-%     if max(det(:,6)) < threshold
-%         fprintf('maximum score %.2f is smaller than threshold\n', max(det(:,6)));
-%         continue;
-%     end
-%     if isempty(det) == 0
-%         I = det(:,6) >= threshold;
-%         det = det(I,:);
-%         det_cls = det_cls(I);
-%         height = det(:,4) - det(:,2);
-%         [~, I] = sort(height);
-%         det = det(I,:);
-%         det_cls = det_cls(I);
-%     end
     num = size(det, 1);    
     
     T = zeros(3, num);
@@ -168,79 +158,30 @@ parfor i = 1:N
         w = bbox(3) - bbox(1) + 1;
         h = bbox(4) - bbox(2) + 1;
         
-        if strcmp(det_cls{k}, 'Car') == 1
-            cid = centers(det(k,5));
-        elseif strcmp(det_cls{k}, 'Pedestrian') == 1
-            cid = centers_pedestrian(det(k,5) - numel(centers));
-        elseif strcmp(det_cls{k}, 'Cyclist') == 1
-            cid = centers_cyclist(det(k,5) - numel(centers) - numel(centers_pedestrian));
-        end
-        
         objects(k).type = det_cls{k};
         objects(k).x1 = bbox(1);
         objects(k).y1 = bbox(2);
         objects(k).x2 = bbox(3);
-        objects(k).y2 = bbox(4);        
-        objects(k).cid = cid;
-        objects(k).score = det(k,6);
+        objects(k).y2 = bbox(4);
+        objects(k).score = det(k,5);
         % apply the 2D occlusion mask to the bounding box
         % check if truncated pattern
-        if strcmp(det_cls{k}, 'Car') == 1
-            pattern = data.pattern{cid};
-            index = find(pattern == 1);
-            if data.truncation(cid) > 0 && isempty(index) == 0
-                [y, x] = ind2sub(size(pattern), index);
-                cx = size(pattern, 2)/2;
-                cy = size(pattern, 1)/2;
-                width = size(pattern, 2);
-                height = size(pattern, 1);                 
-                pattern = pattern(min(y):max(y), min(x):max(x));
 
-                % find the object center
-                sx = w / size(pattern, 2);
-                sy = h / size(pattern, 1);
-                tx = bbox(1) - sx*min(x);
-                ty = bbox(2) - sy*min(y);
-                cx = sx * cx + tx;
-                cy = sy * cy + ty;
-                width = sx * width;
-                height = sy * height;
-                objects(k).truncation = data.truncation(cid);
-                objects(k).occlusion = 0;
-            else
-                cx = (bbox(1) + bbox(3)) / 2;
-                cy = (bbox(2) + bbox(4)) / 2;
-                width = w;
-                height = h;
-                objects(k).truncation = 0;
-                occ_per = data.occ_per(cid);
-                if occ_per > 0.5
-                    objects(k).occlusion = 2;
-                elseif occ_per > 0
-                    objects(k).occlusion = 1;
-                else
-                    objects(k).occlusion = 0;
-                end
-            end
-            objects(k).occ_per = data.occ_per(cid);
-            objects(k).pattern = imresize(pattern, [h w], 'nearest');
+        cx = (bbox(1) + bbox(3)) / 2;
+        cy = (bbox(2) + bbox(4)) / 2;
+        width = w;
+        height = h;
+        objects(k).truncation = 0;
+        occ_per = 0;
+        if occ_per > 0.5
+            objects(k).occlusion = 2;
+        elseif occ_per > 0
+            objects(k).occlusion = 1;
         else
-            cx = (bbox(1) + bbox(3)) / 2;
-            cy = (bbox(2) + bbox(4)) / 2;
-            width = w;
-            height = h;
-            if strcmp(det_cls{k}, 'Pedestrian') == 1
-                objects(k).truncation = data_pedestrian.truncation(cid);
-                objects(k).occlusion = data_pedestrian.occlusion(cid);
-                objects(k).occ_per = data_pedestrian.occ_per(cid);
-                objects(k).pattern = [];
-            else
-                objects(k).truncation = data_cyclist.truncation(cid);
-                objects(k).occlusion = data_cyclist.occlusion(cid);
-                objects(k).occ_per = data_cyclist.occ_per(cid);
-                objects(k).pattern = [];
-            end
+            objects(k).occlusion = 0;
         end
+        objects(k).occ_per = 0;
+        objects(k).pattern = [];
 
         % backprojection
         c = [cx; cy + height/2; 1];
@@ -260,13 +201,7 @@ parfor i = 1:N
 
         % optimization to search for 3D bounding box
         % compute 3D points without translation
-        if strcmp(det_cls{k}, 'Car') == 1
-            alpha = data.azimuth(cid) + 90;
-        elseif strcmp(det_cls{k}, 'Pedestrian') == 1
-            alpha = data_pedestrian.azimuth(cid) + 90;
-        elseif strcmp(det_cls{k}, 'Cyclist') == 1
-            alpha = data_cyclist.azimuth(cid) + 90;
-        end
+        alpha = 0;
         ry = alpha*pi/180 + theta;
         while ry > pi
             ry = ry - 2*pi;

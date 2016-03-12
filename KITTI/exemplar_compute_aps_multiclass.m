@@ -1,6 +1,8 @@
 function exemplar_compute_aps_multiclass
 
-command = './evaluate_object results_kitti_train';
+results_dir = 'results_faster_rcnn';
+
+command = sprintf('./evaluate_object %s', results_dir);
 system(command);
 
 classes = {'car', 'pedestrian', 'cyclist'};
@@ -9,7 +11,7 @@ for i = 1:numel(classes)
     cls = classes{i};
     
     % detection
-    filename = sprintf('results_kitti_train/plot/%s_detection.txt', cls);
+    filename = sprintf('%s/plot/%s_detection.txt', results_dir, cls);
     data = load(filename);
 
     recall = data(:,1);
@@ -43,7 +45,7 @@ for i = 1:numel(classes)
 
 
     % pose estimation
-    filename = sprintf('results_kitti_train/plot/%s_orientation.txt', cls);
+    filename = sprintf('%s/plot/%s_orientation.txt', results_dir, cls);
     data = load(filename);
 
     recall = data(:,1);
