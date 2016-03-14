@@ -1,4 +1,4 @@
-function [fppi_all, thresholds_all] = compute_recall_precision_aos_3d
+function compute_recall_precision_aos_3d_box_only
 
 cls = 'car';
 
@@ -35,19 +35,17 @@ end
 fprintf('load ground truth done\n');
 
 % read detection results
-result_dir = 'results_kitti_train';
+result_dir = 'results_faster_rcnn';
 filename = sprintf('%s/dets_3d.mat', result_dir);
 object = load(filename);
 detections = object.dets_3d;
 fprintf('load detection done\n');
 
 % read segmentation scores
-segmentations = cell(1, M);
 segmentations_box = cell(1, M);
 for i = 1:M
     filename = sprintf('%s/%06d_seg.mat', result_dir, i);
     object = load(filename);
-    segmentations{i} = object.Scores;
     segmentations_box{i} = object.Scores_box;
 end
 fprintf('load segmentation scores done\n');
@@ -56,7 +54,6 @@ recall_all = cell(1, 3);
 precision_all = cell(1, 3);
 fppi_all = cell(1, 3);
 aos_all = cell(1, 3);
-asa_all = cell(1, 3);
 asa_box_all = cell(1, 3);
 ala_5_all = cell(1, 3);
 ala_2_all = cell(1, 3);
@@ -201,11 +198,8 @@ for difficulty = 1:3
         
         num_det = size(det, 1);
         
-        seg = segmentations{i};
         seg_box = segmentations_box{i};
         if num && num_det
-            assert(size(seg,1) == num_det);
-            assert(size(seg,2) == num);
             assert(size(seg_box,1) == num_det);
             assert(size(seg_box,2) == num);    
         end
@@ -251,7 +245,6 @@ for difficulty = 1:3
                     delta = gt(j).alpha - alpha;
                     similarity(t) = similarity(t) + (1+cos(delta))/2.0;
                     % segmentation
-                    overlap_seg(t) = overlap_seg(t) + seg(det_idx, j);
                     overlap_box(t) = overlap_box(t) + seg_box(det_idx, j);
                     % 3D localization
                     t_det = det(det_idx, 7:9);
@@ -310,7 +303,6 @@ for difficulty = 1:3
         precision(t) = tp(t) / (tp(t) + fp(t));
         fppi(t) = fp(t) / M;
         aos(t) = similarity(t) / (tp(t) + fp(t));
-        asa(t) = overlap_seg(t) / (tp(t) + fp(t));
         asa_box(t) = overlap_box(t) / (tp(t) + fp(t));
         ala_5(t) = accuracy_5(t) / (tp(t) + fp(t));
         ala_2(t) = accuracy_2(t) / (tp(t) + fp(t));
@@ -321,7 +313,6 @@ for difficulty = 1:3
     for t = 1:nt
         precision(t) = max(precision(t:end));
         aos(t) = max(aos(t:end));
-        asa(t) = max(asa(t:end));
         asa_box(t) = max(asa_box(t:end));
         ala_5(t) = max(ala_5(t:end));
         ala_2(t) = max(ala_2(t:end));
@@ -332,7 +323,6 @@ for difficulty = 1:3
     precision_all{difficulty} = precision;
     fppi_all{difficulty} = fppi;
     aos_all{difficulty} = aos;
-    asa_all{difficulty} = asa;
     asa_box_all{difficulty} = asa_box;
     ala_5_all{difficulty} = ala_5;
     ala_2_all{difficulty} = ala_2;
@@ -366,20 +356,6 @@ ap_moderate = VOCap(recall_moderate, aos_moderate);
 fprintf('AOS_moderate = %.4f\n', ap_moderate);
 ap = VOCap(recall_hard, aos_hard);
 fprintf('AOS_hard = %.4f\n', ap);
-
-fprintf('\n');
-
-
-% average segmentation accuracy
-asa_easy = asa_all{1};
-asa_moderate = asa_all{2};
-asa_hard = asa_all{3};
-ap_easy = VOCap(recall_easy, asa_easy);
-fprintf('ASA_easy = %.4f\n', ap_easy);
-ap_moderate = VOCap(recall_moderate, asa_moderate);
-fprintf('ASA_moderate = %.4f\n', ap_moderate);
-ap = VOCap(recall_hard, asa_hard);
-fprintf('ASA_hard = %.4f\n', ap);
 
 fprintf('\n');
 

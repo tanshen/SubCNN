@@ -38,8 +38,10 @@ aps_det = zeros(num_cls, 1);
 recalls_view = cell(num_cls, 1);
 precisions_view = cell(num_cls, 1);
 aps_view = zeros(num_cls, 1);
+similarities_view = cell(num_cls, 1);
 accuracies_view = cell(num_cls, 1);
 avps_view = zeros(num_cls, 1);
+avss_view = zeros(num_cls, 1);
 errors_view = cell(num_cls, 1);
 parfor k = 1:num_cls
     cls = classes{k};
@@ -122,6 +124,7 @@ parfor k = 1:num_cls
     tp = zeros(nd, 1);
     fp = zeros(nd, 1);
     vp = zeros(nd, 1);
+    vs = zeros(nd, 1);
     ignore = false(nd, 1);
     vd = zeros(nd, 3);
     tic;
@@ -172,7 +175,12 @@ parfor k = 1:num_cls
                     R = rotation_matrix(azimuth(d), elevation(d), rotation(d));
                     X = logm(Rgt' * R);
                     angle = 1/sqrt(2) * norm(X, 'fro');
-                    vp(d) = (1 + cos(angle)) / 2;
+                    % viewpoint similarity
+                    vs(d) = (1 + cos(angle)) / 2;
+                    % viewpoint accraucy
+                    if abs(angle) < pi/6
+                        vp(d) = 1;
+                    end
                     
                     % compute angle errors
                     da = abs(angdiff(azimuth(d), gt(i).azimuth(jmax)));
@@ -209,18 +217,25 @@ parfor k = 1:num_cls
     fp_view = cumsum(fp(~ignore));
     tp_view = cumsum(tp(~ignore));
     vp_view = cumsum(vp(~ignore));
+    vs_view = cumsum(vs(~ignore));
     rec_view = tp_view / npos_view;
     prec_view = tp_view ./ (fp_view + tp_view);
-    accu_view = vp_view ./ (fp_view + tp_view);
     ap_view = VOCap(rec_view, prec_view);
+    
+    accu_view = vp_view ./ (fp_view + tp_view);
     avp_view = VOCap(rec_view, accu_view);
+    
+    sim_view = vs_view ./ (fp_view + tp_view);
+    avs_view = VOCap(rec_view, sim_view);    
     
     aps_view(k) = ap_view;
     avps_view(k) = avp_view;
+    avss_view(k) = avs_view;    
     recalls_view{k} = rec_view;
     precisions_view{k} = prec_view;
     accuracies_view{k} = accu_view;
-    fprintf('%s, ap view: %f, avp view %f\n', cls, ap_view, avp_view);
+    similarities_view{k} = sim_view;
+    fprintf('%s, ap view: %f, avp view %f, avs view %f\n', cls, ap_view, avp_view, avs_view);
     
     % keep the view error distribution
     vd = vd(tp == 1 & ignore == 0, :);
@@ -230,15 +245,15 @@ end
 % write to file
 fid = fopen(sprintf('views_%s_%d.txt', method, minoverlap*100), 'w');
 for i = 1:num_cls
-    fprintf(fid, '%s %f %f %f\n', classes{i}, aps_det(i), aps_view(i), avps_view(i));
+    fprintf(fid, '%s %f %f %f %f\n', classes{i}, aps_det(i), aps_view(i), avps_view(i), avss_view(i));
 end
-fprintf(fid, 'mAP %f %f %f\n', mean(aps_det), mean(aps_view), mean(avps_view));
+fprintf(fid, 'mAP %f %f %f %f\n', mean(aps_det), mean(aps_view), mean(avps_view), mean(avss_view));
 fclose(fid);
 
 % save to matfile
 matfile = sprintf('views_%s_%d.mat', method, minoverlap*100);
 save(matfile, 'recalls_det', 'precisions_det', 'aps_det', ...
-    'recalls_view', 'precisions_view', 'aps_view', 'avps_view', 'errors_view', '-v7.3');
+    'recalls_view', 'precisions_view', 'aps_view', 'avps_view', 'avss_view', 'errors_view', '-v7.3');
 
 matlabpool close;
 
