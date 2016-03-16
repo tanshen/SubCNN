@@ -1,0 +1,21 @@
+EXP_DIR: pascal3d
+IS_RPN: True
+NET_NAME: 'VGG16'
+TRAIN:
+  SCALES_BASE: !!python/tuple [2.0]
+  IMS_PER_BATCH: 1
+  BATCH_SIZE: 128
+  FG_THRESH: !!python/tuple [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7]
+  SNAPSHOT_INFIX: pascal3d
+  BBOX_REG: False
+  SUBCLS: False
+  SNAPSHOT_ITERS: 10000
+  RPN_ASPECTS: !!python/tuple [0.5, 1, 2]
+  RPN_SCALES: !!python/tuple [8, 16, 32]
+TEST:
+  SCALES_BASE: !!python/tuple [2.0]
+  NMS: 0.5
+  BBOX_REG: False
+  SUBCLS: False
+  RPN_PRE_NMS_TOP_N: 80000
+  RPN_POST_NMS_TOP_N: 2000
