@@ -187,6 +187,8 @@ class pascal3d(datasets.imdb):
         gt_subclasses_flipped = np.zeros((num_objs), dtype=np.int32)
         subindexes = np.zeros((num_objs, self.num_classes), dtype=np.int32)
         subindexes_flipped = np.zeros((num_objs, self.num_classes), dtype=np.int32)
+        subindexes = scipy.sparse.csr_matrix(subindexes)
+        subindexes_flipped = scipy.sparse.csr_matrix(subindexes_flipped)
 
         if cfg.IS_RPN:
             if cfg.IS_MULTISCALE:
@@ -339,6 +341,8 @@ class pascal3d(datasets.imdb):
             subindexes_flipped[ix, cls] = gt_subclasses_flipped[ix]
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
+        subindexes = scipy.sparse.csr_matrix(subindexes)
+        subindexes_flipped = scipy.sparse.csr_matrix(subindexes_flipped)
 
         if cfg.IS_RPN:
             if cfg.IS_MULTISCALE:
