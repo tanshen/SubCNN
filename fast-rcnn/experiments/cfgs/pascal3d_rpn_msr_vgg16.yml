@@ -1,5 +1,6 @@
 EXP_DIR: pascal3d
 IS_RPN: True
+IS_MULTISCALE: False
 NET_NAME: 'VGG16'
 TRAIN:
   SCALES_BASE: !!python/tuple [2.0]
