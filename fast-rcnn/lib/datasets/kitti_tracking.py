@@ -37,7 +37,7 @@ class kitti_tracking(datasets.imdb):
         if image_set == 'training' and seq_name != 'trainval':
             self._num_subclasses = 220 + 1
         else:
-            self._num_subclasses = 227 + 36 + 36 + 1
+            self._num_subclasses = 472 + 1
 
         # load the mapping for subcalss to class
         if image_set == 'training' and seq_name != 'trainval':
@@ -343,15 +343,15 @@ class kitti_tracking(datasets.imdb):
 
             print 'Loading region proposal network boxes...'
             if self._image_set == 'trainval':
-                model = cfg.REGION_PROPOSAL + '_227/'
+                model = cfg.REGION_PROPOSAL + '_trainval/'
             else:
-                model = cfg.REGION_PROPOSAL + '_125/'
+                model = cfg.REGION_PROPOSAL + '_train/'
             rpn_roidb = self._load_rpn_roidb(gt_roidb, model)
             print 'Region proposal network boxes loaded'
             roidb = datasets.imdb.merge_roidbs(rpn_roidb, gt_roidb)
         else:
             print 'Loading region proposal network boxes...'
-            model = cfg.REGION_PROPOSAL + '_227/'
+            model = cfg.REGION_PROPOSAL + '_trainval/'
             roidb = self._load_rpn_roidb(None, model)
             print 'Region proposal network boxes loaded'
 
