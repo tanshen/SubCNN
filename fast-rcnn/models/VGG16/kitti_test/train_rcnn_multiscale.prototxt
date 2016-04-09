@@ -390,9 +390,9 @@ layer {
   bottom: 'conv5_3'
   top: 'conv5_feature'
   feature_extrapolating_param {
-    scale_string: "1.0 2.0 3.0 4.0"
-    num_scale_base: 4
-    num_per_octave: 4 
+    scale_string: "2.0"
+    num_scale_base: 1
+    num_per_octave: 1 
   }
 }
 layer {
