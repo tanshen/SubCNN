@@ -254,6 +254,7 @@ layer {
 #  type: 'Python'
 #  bottom: 'rois_sub'
 #  bottom: 'data'
+#  bottom: 'sublabels'
 #  python_param {
 #    module: 'roi_visualizing_layer.layer'
 #    layer: 'RoIVisualizingLayer'
