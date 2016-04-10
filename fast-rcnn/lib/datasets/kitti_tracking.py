@@ -463,7 +463,7 @@ class kitti_tracking(datasets.imdb):
     def evaluate_proposals(self, all_boxes, output_dir):
         # for each image
         for im_ind, index in enumerate(self.image_index):
-            filename = os.path.join(output_dir, index + '.txt')
+            filename = os.path.join(output_dir, index[5:] + '.txt')
             print 'Writing kitti_tracking results to file ' + filename
             with open(filename, 'wt') as f:
                 # for each class

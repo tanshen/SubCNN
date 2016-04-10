@@ -14,4 +14,4 @@ time ./tools/train_net.py --gpu $1 \
   --weights data/imagenet_models/CaffeNet.v2.caffemodel \
   --imdb kitti_tracking_training_trainval \
   --cfg experiments/cfgs/kitti_rpn.yml \
-  --iters 80000
+  --iters 40000
