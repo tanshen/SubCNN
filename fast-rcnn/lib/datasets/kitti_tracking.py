@@ -370,9 +370,10 @@ class kitti_tracking(datasets.imdb):
 
         box_list = []
         for index in self.image_index:
-            filename = os.path.join(self._kitti_tracking_path, 'region_proposals',  prefix, self._image_set, self._seq_name, index + '.txt')
+            filename = os.path.join(self._kitti_tracking_path, 'region_proposals',  prefix, self._image_set, index + '.txt')
             assert os.path.exists(filename), \
                 'RPN data not found at: {}'.format(filename)
+            print filename
             raw_data = np.loadtxt(filename, dtype=float)
             if len(raw_data.shape) == 1:
                 if raw_data.size == 0:
@@ -394,9 +395,11 @@ class kitti_tracking(datasets.imdb):
 
     def evaluate_detections(self, all_boxes, output_dir):
         # load the mapping for subcalss the alpha (viewpoint)
-        filename = os.path.join(self._kitti_tracking_path, 'mapping.txt')
-        assert os.path.exists(filename), \
-                'Path does not exist: {}'.format(filename)
+        if self._image_set == 'training' and self._seq_name != 'trainval':
+            filename = os.path.join(self._kitti_tracking_path, 'voxel_exemplars', 'train', 'mapping.txt')
+        else:
+            filename = os.path.join(self._kitti_tracking_path, 'voxel_exemplars', 'trainval', 'mapping.txt')
+        assert os.path.exists(filename), 'Path does not exist: {}'.format(filename)
 
         mapping = np.zeros(self._num_subclasses, dtype=np.float)
         with open(filename) as f:
@@ -428,9 +431,11 @@ class kitti_tracking(datasets.imdb):
     # write detection results into one file
     def evaluate_detections_one_file(self, all_boxes, output_dir):
         # load the mapping for subcalss the alpha (viewpoint)
-        filename = os.path.join(self._kitti_tracking_path, 'mapping.txt')
-        assert os.path.exists(filename), \
-                'Path does not exist: {}'.format(filename)
+        if image_set == 'training' and seq_name != 'trainval':
+            filename = os.path.join(self._kitti_tracking_path, 'voxel_exemplars', 'train', 'mapping.txt')
+        else:
+            filename = os.path.join(self._kitti_tracking_path, 'voxel_exemplars', 'trainval', 'mapping.txt')
+        assert os.path.exists(filename), 'Path does not exist: {}'.format(filename)
 
         mapping = np.zeros(self._num_subclasses, dtype=np.float)
         with open(filename) as f:
