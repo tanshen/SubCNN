@@ -419,7 +419,7 @@ def test_net(net, imdb):
             nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
             print 'Evaluating detections'
             print imdb.name
-            if 'imagenet3d' in imdb.name == False:
+            if not 'imagenet3d' in imdb.name:
                 imdb.evaluate_detections(nms_dets, output_dir)
             imdb.evaluate_detections_one_file(nms_dets, output_dir)
         return
@@ -539,7 +539,7 @@ def test_net(net, imdb):
         print 'Applying NMS to all detections'
         nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
         print 'Evaluating detections'
-        if 'imagenet3d' in imdb.name == False:
+        if not 'imagenet3d' in imdb.name:
             imdb.evaluate_detections(nms_dets, output_dir)
         imdb.evaluate_detections_one_file(nms_dets, output_dir)
 
