@@ -2,7 +2,7 @@ function exemplar_display_result_kitti
 
 threshold = 0.5;
 is_save = 0;
-result_dir = 'test_results_5';
+result_dir = 'test_results_vgg';
 
 % read detection results
 filename = sprintf('%s/detections.txt', result_dir);

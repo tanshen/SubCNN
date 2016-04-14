@@ -11,5 +11,5 @@ weight_decay: 0.0005
 # function
 snapshot: 0
 # We still use the snapshot prefix, though
-snapshot_prefix: "caffenet_fast_rcnn_rpn"
+snapshot_prefix: "caffenet_fast_rcnn_rpn_trainval"
 #debug_info: true
