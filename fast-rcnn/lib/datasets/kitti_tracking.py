@@ -410,7 +410,7 @@ class kitti_tracking(datasets.imdb):
 
         # for each image
         for im_ind, index in enumerate(self.image_index):
-            filename = os.path.join(output_dir, index + '.txt')
+            filename = os.path.join(output_dir, index[5:] + '.txt')
             print 'Writing kitti_tracking results to file ' + filename
             with open(filename, 'wt') as f:
                 # for each class
@@ -431,7 +431,7 @@ class kitti_tracking(datasets.imdb):
     # write detection results into one file
     def evaluate_detections_one_file(self, all_boxes, output_dir):
         # load the mapping for subcalss the alpha (viewpoint)
-        if image_set == 'training' and seq_name != 'trainval':
+        if self._image_set == 'training' and self._seq_name != 'trainval':
             filename = os.path.join(self._kitti_tracking_path, 'voxel_exemplars', 'train', 'mapping.txt')
         else:
             filename = os.path.join(self._kitti_tracking_path, 'voxel_exemplars', 'trainval', 'mapping.txt')
