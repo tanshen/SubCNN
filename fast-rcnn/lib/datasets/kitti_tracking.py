@@ -175,22 +175,25 @@ class kitti_tracking(datasets.imdb):
             lines_flipped = []
         else:
             filename = os.path.join(self._kitti_tracking_path, cfg.SUBCLS_NAME, prefix, index + '.txt')
-            assert os.path.exists(filename), 'Path does not exist: {}'.format(filename)
-            print filename
+            if os.path.exists(filename):
+                print filename
 
-            # the annotation file contains flipped objects    
-            lines = []
-            lines_flipped = []
-            with open(filename) as f:
-                for line in f:
-                    words = line.split()
-                    subcls = int(words[1])
-                    is_flip = int(words[2])
-                    if subcls != -1:
-                        if is_flip == 0:
-                            lines.append(line)
-                        else:
-                            lines_flipped.append(line)
+                # the annotation file contains flipped objects    
+                lines = []
+                lines_flipped = []
+                with open(filename) as f:
+                    for line in f:
+                        words = line.split()
+                        subcls = int(words[1])
+                        is_flip = int(words[2])
+                        if subcls != -1:
+                            if is_flip == 0:
+                                lines.append(line)
+                            else:
+                                lines_flipped.append(line)
+            else:
+                lines = []
+                lines_flipped = []
         
         num_objs = len(lines)
 
