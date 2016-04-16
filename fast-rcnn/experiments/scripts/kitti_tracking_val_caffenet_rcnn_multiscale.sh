@@ -9,11 +9,11 @@ LOG="experiments/logs/kitti_tracking_val_caffenet_rcnn_multiscale.txt.`date +'%Y
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
-#time ./tools/train_net.py --gpu $1 \
-#  --solver models/CaffeNet/kitti_tracking_val/solver_rcnn_multiscale.prototxt \
-#  --weights data/imagenet_models/CaffeNet.v2.caffemodel \
-#  --imdb kitti_tracking_training_train \
-#  --cfg experiments/cfgs/kitti_tracking_multiscale_train.yml
+time ./tools/train_net.py --gpu $1 \
+  --solver models/CaffeNet/kitti_tracking_val/solver_rcnn_multiscale.prototxt \
+  --weights data/imagenet_models/CaffeNet.v2.caffemodel \
+  --imdb kitti_tracking_training_train \
+  --cfg experiments/cfgs/kitti_tracking_multiscale_train.yml
 
 image_set="training"
 
