@@ -1,8 +1,10 @@
 function exemplar_display_result_kitti
 
-threshold = 0.5;
+threshold = 0.2;
 is_save = 0;
-result_dir = 'test_results_vgg';
+is_train = 1;
+% result_dir = 'test_results_vgg';
+result_dir = 'results_kitti_train_tf';
 
 % read detection results
 filename = sprintf('%s/detections.txt', result_dir);
@@ -12,18 +14,30 @@ fprintf('load detection done\n');
 
 % read ids
 object = load('kitti_ids_new.mat');
-ids = object.ids_test;
+if is_train
+    ids = object.ids_val;
+else
+    ids = object.ids_test;
+end
 N = numel(ids);
 
 % KITTI path
 exemplar_globals;
 root_dir = KITTIroot;
-data_set = 'testing';
+if is_train
+    data_set = 'training';
+else
+    data_set = 'testing';
+end
 cam = 2;
 image_dir = fullfile(root_dir, [data_set '/image_' num2str(cam)]);
 
 % load data
-filename = fullfile(SLMroot, 'KITTI/data_kitti.mat');
+if is_train
+    filename = fullfile(SLMroot, 'KITTI/data.mat');
+else
+    filename = fullfile(SLMroot, 'KITTI/data_kitti.mat');
+end
 object = load(filename);
 data = object.data;
 centers = unique(data.idx_ap);
@@ -80,7 +94,11 @@ for i = 1:N
 
             % apply the 2D occlusion mask to the bounding box
             % check if truncated pattern
-            cid = centers(det(k,5));
+            if det(k,5) == -1
+                cid = centers(randi(numel(centers),1));
+            else
+                cid = centers(det(k,5));
+            end
             pattern = data.pattern{cid};                
             index = find(pattern == 1);
             if data.truncation(cid) > 0 && isempty(index) == 0

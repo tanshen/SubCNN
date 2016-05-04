@@ -635,7 +635,7 @@ bool eval(string result_sha)
   initGlobals();
 
   // ground truth and result directories
-  string gt_dir         = "/home/yuxiang/Projects/KITTI_Dataset/data_object_image_2/training/label_2";
+  string gt_dir         = "/capri5/Projects/KITTI_Dataset/data_object_image_2/training/label_2";
   string result_dir     = "./" + result_sha;
   string plot_dir       = result_dir + "/plot";
 
