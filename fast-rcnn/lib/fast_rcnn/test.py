@@ -346,7 +346,7 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses, subclas
                            edgecolor='g', linewidth=3))
         plt.show()
 
-    conv5 = blobs_out['conv5']
+    conv5 = net.blobs['conv5'].data
 
     return scores, pred_boxes, scores_subcls, labels, pred_views, conv5
 
@@ -468,10 +468,10 @@ def test_net(net, imdb):
             scores, boxes, scores_subcls, labels, views, conv5 = im_detect_proposal(net, im, boxes_grid, imdb.num_classes, imdb.num_subclasses, imdb.subclass_mapping)
 
             # save conv5 features
-            index = imdb._image_index[i]
-            filename = os.path.join(output_dir, index[5:] + '_conv5.pkl')
-            with open(filename, 'wb') as f:
-                cPickle.dump(conv5, f, cPickle.HIGHEST_PROTOCOL)
+            # index = imdb._image_index[i]
+            # filename = os.path.join(output_dir, index[5:] + '_conv5.pkl')
+            # with open(filename, 'wb') as f:
+            #    cPickle.dump(conv5, f, cPickle.HIGHEST_PROTOCOL)
         else:
             scores, boxes, scores_subcls, views = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes, imdb.num_subclasses)
         _t['im_detect'].toc()

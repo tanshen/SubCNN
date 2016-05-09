@@ -17,6 +17,16 @@ do
 seq_num=$(printf '%04d' "$i")
 echo $seq_num
 
+if [ -f $PWD/output/kitti_tracking/kitti_tracking_$image_set\_$seq_num/caffenet_fast_rcnn_rpn_kitti_iter_40000/detections.pkl ]
+then
+  rm $PWD/output/kitti_tracking/kitti_tracking_$image_set\_$seq_num/caffenet_fast_rcnn_rpn_kitti_iter_40000/detections.pkl
+fi
+
+if [ -h data/KITTI_Tracking/region_proposals/RPN_train/$image_set/$seq_num ]
+then
+  rm data/KITTI_Tracking/region_proposals/RPN_train/$image_set/$seq_num
+fi
+
 time ./tools/test_net.py --gpu $1 \
   --def models/CaffeNet/kitti_tracking_val/test_rpn.prototxt \
   --net output/kitti/kitti_tracking_training_train/caffenet_fast_rcnn_rpn_kitti_iter_40000.caffemodel \
