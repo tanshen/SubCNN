@@ -13,6 +13,7 @@ import datasets.pascal_voc
 import datasets.imagenet3d
 import datasets.kitti
 import datasets.kitti_tracking
+import datasets.mot_tracking
 import numpy as np
 
 def _selective_search_IJCV_top_k(split, year, top_k):
@@ -101,6 +102,23 @@ for split in ['0000', '0001', '0002', '0003', '0004', '0005', \
     print name
     __sets[name] = (lambda split=split:
             datasets.kitti_tracking('testing', split))
+
+# MOT Tracking dataset
+for split in ['TUD-Stadtmitte', 'TUD-Campus', 'PETS09-S2L1', \
+    'ETH-Bahnhof', 'ETH-Sunnyday', 'ETH-Pedcross2', 'ADL-Rundle-6', \
+    'ADL-Rundle-8', 'KITTI-13', 'KITTI-17', 'Venice-2', 'train']:
+    name = 'mot_tracking_{}_{}'.format('train', split)
+    print name
+    __sets[name] = (lambda split=split:
+            datasets.mot_tracking('train', split))
+
+for split in ['TUD-Crossing', 'PETS09-S2L2', 'ETH-Jelmoli', \
+    'ETH-Linthescher', 'ETH-Crossing', 'AVG-TownCentre', 'ADL-Rundle-1', \
+    'ADL-Rundle-3', 'KITTI-16', 'KITTI-19', 'Venice-1']:
+    name = 'mot_tracking_{}_{}'.format('test', split)
+    print name
+    __sets[name] = (lambda split=split:
+            datasets.mot_tracking('test', split))
 
 def get_imdb(name):
     """Get an imdb (image database) by name."""
