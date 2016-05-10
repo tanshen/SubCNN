@@ -11,9 +11,9 @@ echo Logging output to "$LOG"
 
 image_set="train"
 
-mot_train_seqs=("TUD-Stadtmitte", "TUD-Campus", "PETS09-S2L1", \
-            "ETH-Bahnhof", "ETH-Sunnyday", "ETH-Pedcross2", "ADL-Rundle-6", \
-            "ADL-Rundle-8", "KITTI-13", "KITTI-17", "Venice-2")
+mot_train_seqs=("TUD-Stadtmitte" "TUD-Campus" "PETS09-S2L1" \
+            "ETH-Bahnhof" "ETH-Sunnyday" "ETH-Pedcross2" "ADL-Rundle-6" \
+            "ADL-Rundle-8" "KITTI-13" "KITTI-17" "Venice-2")
 
 
 for i in "${mot_train_seqs[@]}"
@@ -35,9 +35,9 @@ done
 
 image_set="test"
 
-mot_test_seqs=("TUD-Crossing", "PETS09-S2L2", "ETH-Jelmoli", \
-            "ETH-Linthescher", "ETH-Crossing", "AVG-TownCentre", "ADL-Rundle-1", \
-            "ADL-Rundle-3", "KITTI-16", "KITTI-19", "Venice-1")
+mot_test_seqs=("TUD-Crossing" "PETS09-S2L2" "ETH-Jelmoli" \
+            "ETH-Linthescher" "ETH-Crossing" "AVG-TownCentre" "ADL-Rundle-1" \
+            "ADL-Rundle-3" "KITTI-16" "KITTI-19" "Venice-1")
 
 for i in "${mot_test_seqs[@]}"
 do
