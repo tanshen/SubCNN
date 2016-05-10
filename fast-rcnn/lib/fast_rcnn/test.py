@@ -543,6 +543,8 @@ def test_net(net, imdb):
     if cfg.IS_RPN:
         print 'Evaluating detections'
         imdb.evaluate_proposals(all_boxes, output_dir)
+        if 'mot' in imdb.name:
+            imdb.evaluate_proposals_one_file(all_boxes, output_dir)
     else:
         print 'Applying NMS to all detections'
         nms_dets = apply_nms(all_boxes, cfg.TEST.NMS)
