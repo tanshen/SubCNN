@@ -11,9 +11,9 @@ echo Logging output to "$LOG"
 
 image_set="train"
 
-mot_train_seqs=("TUD-Stadtmitte" "TUD-Campus" "PETS09-S2L1" \
-            "ETH-Bahnhof" "ETH-Sunnyday" "ETH-Pedcross2" "ADL-Rundle-6" \
-            "ADL-Rundle-8" "KITTI-13" "KITTI-17" "Venice-2")
+#mot_train_seqs=("TUD-Stadtmitte" "TUD-Campus" "PETS09-S2L1" \
+#            "ETH-Bahnhof" "ETH-Sunnyday" "ETH-Pedcross2" "ADL-Rundle-6" \
+#            "ADL-Rundle-8" "KITTI-13" "KITTI-17" "Venice-2")
 mot_train_seqs=("ADL-Rundle-8" "KITTI-13" "KITTI-17" "Venice-2")
 
 

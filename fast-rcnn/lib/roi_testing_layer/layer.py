@@ -66,7 +66,7 @@ class RoITestingLayer(caffe.Layer):
             fg_inds = np.where(max_scores > cfg.TEST.ROI_THRESHOLD)[0]
             batch_ind = i * np.ones((fg_inds.shape[0], 1))
             rois_sub_blob = np.vstack((rois_sub_blob, np.hstack((batch_ind, boxes[fg_inds,:]))))
-            scores = np.vstack((scores, max_scores[fg_inds]))
+            scores = np.hstack((scores, max_scores[fg_inds]))
 
             # scale index of this batch is i
             scale_ind = i
