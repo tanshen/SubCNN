@@ -14,6 +14,7 @@ image_set="train"
 mot_train_seqs=("TUD-Stadtmitte" "TUD-Campus" "PETS09-S2L1" \
             "ETH-Bahnhof" "ETH-Sunnyday" "ETH-Pedcross2" "ADL-Rundle-6" \
             "ADL-Rundle-8" "KITTI-13" "KITTI-17" "Venice-2")
+mot_train_seqs=("ADL-Rundle-8" "KITTI-13" "KITTI-17" "Venice-2")
 
 
 for i in "${mot_train_seqs[@]}"
@@ -47,10 +48,10 @@ echo $i
 time ./tools/test_net.py --gpu $1 \
   --def models/CaffeNet/mot_tracking_train/test_rpn.prototxt \
   --net output/mot/mot_tracking_train_train/caffenet_fast_rcnn_rpn_mot_iter_40000.caffemodel \
-  --imdb mot_tracking_$image_set\_$seq_num \
+  --imdb mot_tracking_$image_set\_$i \
   --cfg experiments/cfgs/mot_rpn.yml
 
 # create an symbol link for the region proposal results
-ln -s $PWD/output/mot/mot_tracking_$image_set\_$seq_num/caffenet_fast_rcnn_rpn_mot_iter_40000 data/MOT_Tracking/region_proposals/$image_set/$i
+ln -s $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_40000 data/MOT_Tracking/region_proposals/$image_set/$i
 
 done
