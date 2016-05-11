@@ -53,6 +53,7 @@ class RoITestingLayer(caffe.Layer):
         roi_max = np.zeros((1, 5), dtype=np.float32)
         roi_max_map = np.zeros((1, 5), dtype=np.float32)
         roi_score = 0
+        scores = np.zeros((0, ), dtype=np.float32)
 
         # for each scale of the image
         for i in xrange(heatmap.shape[0]):
@@ -65,6 +66,7 @@ class RoITestingLayer(caffe.Layer):
             fg_inds = np.where(max_scores > cfg.TEST.ROI_THRESHOLD)[0]
             batch_ind = i * np.ones((fg_inds.shape[0], 1))
             rois_sub_blob = np.vstack((rois_sub_blob, np.hstack((batch_ind, boxes[fg_inds,:]))))
+            scores = np.vstack((scores, max_scores[fg_inds]))
 
             # scale index of this batch is i
             scale_ind = i
@@ -106,6 +108,13 @@ class RoITestingLayer(caffe.Layer):
         if rois_sub_blob.shape[0] == 0:
             rois_sub_blob = roi_max
             rois_blob = roi_max_map
+
+        # prevent a large number of rois
+        if rois_sub_blob.shape[0] > cfg.TEST.ROI_THRESHOLD_NUM:
+            index = np.argsort(scores)[::-1]
+            index = index[:cfg.TEST.ROI_THRESHOLD_NUM]
+            rois_sub_blob = rois_sub_blob[index, :]
+            rois_blob = rois_blob[index, :]
 
         # copy blobs into this layer's top blob vector
         blobs = {'rois': rois_blob,

@@ -9,7 +9,7 @@ function opt = globals()
 opt.root = pwd;
 
 % path for MOT benchmark
-mot_paths = {'/home/yuxiang/Projects/Multitarget_Tracking/MOTbenchmark', ...
+mot_paths = {'/capri5/Projects/Multitarget_Tracking/MOTbenchmark', ...
     '/scail/scratch/u/yuxiang/MOTbenchmark'};
 for i = 1:numel(mot_paths)
     if exist(mot_paths{i}, 'dir')

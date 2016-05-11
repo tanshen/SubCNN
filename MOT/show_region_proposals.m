@@ -1,8 +1,8 @@
 function show_region_proposals
 
 opt = globals();
-is_train = 1;
-K = 20;
+is_train = 0;
+K = 2000;
 
 if is_train
     seq_set = 'train';
@@ -13,10 +13,10 @@ else
 end
 
 % output dir
-out_dir = 'region_proposals/selective_search';
+out_dir = 'region_proposals/SubCNN';
 
 % main loop
-for seq_idx = 1:N
+for seq_idx = 11:N
     
     if is_train
         seq_name = opt.mot2d_train_seqs{seq_idx};
@@ -44,7 +44,9 @@ for seq_idx = 1:N
         boxes = [C{3}(index) C{4}(index) C{5}(index) C{6}(index)];
         for k = 1:min(K, size(boxes, 1))
             box = boxes(k, :);
-            rectangle('Position', box, 'EdgeColor', 'g', 'LineWidth', 2);
+            if box(3) > 0 && box(4) > 0
+                rectangle('Position', box, 'EdgeColor', 'g', 'LineWidth', 2);
+            end
         end
         
         pause;
