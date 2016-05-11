@@ -11,16 +11,24 @@ echo Logging output to "$LOG"
 
 image_set="train"
 
-#mot_train_seqs=("TUD-Stadtmitte" "TUD-Campus" "PETS09-S2L1" \
-#            "ETH-Bahnhof" "ETH-Sunnyday" "ETH-Pedcross2" "ADL-Rundle-6" \
-#            "ADL-Rundle-8" "KITTI-13" "KITTI-17" "Venice-2")
-mot_train_seqs=("ADL-Rundle-8" "KITTI-13" "KITTI-17" "Venice-2")
-
+mot_train_seqs=("TUD-Stadtmitte" "TUD-Campus" "PETS09-S2L1" \
+            "ETH-Bahnhof" "ETH-Sunnyday" "ETH-Pedcross2" "ADL-Rundle-6" \
+            "ADL-Rundle-8" "KITTI-13" "KITTI-17" "Venice-2")
 
 for i in "${mot_train_seqs[@]}"
 do
 
 echo $i
+
+if [ -f $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_40000/detections.pkl ]
+then
+  rm $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_40000/detections.pkl
+fi
+
+if [ -h data/MOT_Tracking/region_proposals/$image_set/$i ]
+then
+  rm data/MOT_Tracking/region_proposals/$image_set/$i
+fi
 
 time ./tools/test_net.py --gpu $1 \
   --def models/CaffeNet/mot_tracking_train/test_rpn.prototxt \
@@ -44,6 +52,16 @@ for i in "${mot_test_seqs[@]}"
 do
 
 echo $i
+
+if [ -f $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_40000/detections.pkl ]
+then
+  rm $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_40000/detections.pkl
+fi
+
+if [ -h data/MOT_Tracking/region_proposals/$image_set/$i ]
+then
+  rm data/MOT_Tracking/region_proposals/$image_set/$i
+fi
 
 time ./tools/test_net.py --gpu $1 \
   --def models/CaffeNet/mot_tracking_train/test_rpn.prototxt \

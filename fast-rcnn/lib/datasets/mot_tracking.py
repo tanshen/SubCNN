@@ -455,7 +455,8 @@ class mot_tracking(datasets.imdb):
                     if dets == []:
                         continue
                     for k in xrange(dets.shape[0]):
-                        f.write('{:f} {:f} {:f} {:f} {:.32f}\n'.format(\
+                        if dets[k, 2] - dets[k, 0] > 0 and dets[k, 3] - dets[k, 1] > 0:
+                            f.write('{:f} {:f} {:f} {:f} {:.32f}\n'.format(\
                                  dets[k, 0], dets[k, 1], dets[k, 2], dets[k, 3], dets[k, 4]))
 
     # write proposals into one file
@@ -475,7 +476,8 @@ class mot_tracking(datasets.imdb):
                     if dets == []:
                         continue
                     for k in xrange(dets.shape[0]):
-                        f.write('{:d} -1 {:f} {:f} {:f} {:f} {:f} -1 -1 -1\n'.format(\
+                        if dets[k, 2] - dets[k, 0] > 0 and dets[k, 3] - dets[k, 1] > 0:
+                            f.write('{:d} -1 {:f} {:f} {:f} {:f} {:f} -1 -1 -1\n'.format(\
                                  im_ind+1, dets[k, 0], dets[k, 1], dets[k, 2]-dets[k, 0], dets[k, 3]-dets[k, 1], dets[k, 4]))
 
 
