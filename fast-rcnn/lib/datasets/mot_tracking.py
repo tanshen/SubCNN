@@ -91,11 +91,14 @@ class mot_tracking(datasets.imdb):
             'ADL-Rundle-3', 'KITTI-16', 'KITTI-19', 'Venice-1']
         mot_test_nums = [201, 436, 440, 1194, 219, 450, 500, 625, 209, 1059, 450];
 
-        if self._seq_name == 'train':
+        if self._seq_name == 'train' or self._seq_name == 'trainval':
 
             assert self._image_set == 'train', 'Use train set in testing'
 
-            seq_index = range(0, 11)
+            if self._seq_name == 'train':
+                seq_index = [0, 2, 3, 6, 8]
+            else:
+                seq_index = range(0, 11)
 
             # for each sequence
             image_index = []
@@ -349,13 +352,13 @@ class mot_tracking(datasets.imdb):
             gt_roidb = self.gt_roidb()
 
             print 'Loading region proposal network boxes...'
-            model = cfg.REGION_PROPOSAL + '_train/'
+            model = 'train/'
             rpn_roidb = self._load_rpn_roidb(gt_roidb, model)
             print 'Region proposal network boxes loaded'
             roidb = datasets.imdb.merge_roidbs(rpn_roidb, gt_roidb)
         else:
             print 'Loading region proposal network boxes...'
-            model = cfg.REGION_PROPOSAL + '_train/'
+            model = 'test/'
             roidb = self._load_rpn_roidb(None, model)
             print 'Region proposal network boxes loaded'
 
@@ -374,7 +377,7 @@ class mot_tracking(datasets.imdb):
 
         box_list = []
         for index in self.image_index:
-            filename = os.path.join(self._mot_tracking_path, 'region_proposals',  prefix, self._image_set, index + '.txt')
+            filename = os.path.join(self._mot_tracking_path, 'region_proposals',  prefix, index + '.txt')
             assert os.path.exists(filename), \
                 'RPN data not found at: {}'.format(filename)
             print filename
