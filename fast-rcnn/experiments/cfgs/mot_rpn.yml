@@ -1,21 +1,21 @@
 EXP_DIR: mot
 IS_RPN: True
 TRAIN:
-  SCALES_BASE: !!python/tuple [0.25, 0.5, 1.0, 2.0]
+  SCALES_BASE: !!python/tuple [0.125, 0.25, 0.5, 1.0, 2.0]
   NUM_PER_OCTAVE: 4
   ASPECTS: !!python/tuple [4.0, 3.5, 3.0, 2.5, 2.0, 1.5, 1.0]
   IMS_PER_BATCH: 1
   BATCH_SIZE: 128
   FG_FRACTION: 0.5
-  FG_THRESH: !!python/tuple [0.7, 0.7, 0.7]
-  BG_THRESH_HI: !!python/tuple [0.7, 0.7, 0.7]
-  BG_THRESH_LO: !!python/tuple [0.0, 0.0, 0.0]
-  BBOX_THRESH: !!python/tuple [0.7, 0.7, 0.7]
+  FG_THRESH: !!python/tuple [0.7]
+  BG_THRESH_HI: !!python/tuple [0.7]
+  BG_THRESH_LO: !!python/tuple [0.0]
+  BBOX_THRESH: !!python/tuple [0.7]
   SNAPSHOT_INFIX: mot
   BBOX_REG: True
   SNAPSHOT_ITERS: 10000
 TEST:
-  SCALES_BASE: !!python/tuple [0.25, 0.5, 1.0, 2.0]
+  SCALES_BASE: !!python/tuple [0.125, 0.25, 0.5, 1.0, 2.0]
   NUM_PER_OCTAVE: 4
   ASPECTS: !!python/tuple [4.0, 3.5, 3.0, 2.5, 2.0, 1.5, 1.0]
   NMS: 0.5
