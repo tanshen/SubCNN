@@ -1,8 +1,8 @@
 function show_region_proposals
 
 opt = globals();
-is_train = 0;
-K = 2000;
+is_train = 1;
+K = 200;
 
 if is_train
     seq_set = 'train';
@@ -16,7 +16,7 @@ end
 out_dir = 'region_proposals/SubCNN';
 
 % main loop
-for seq_idx = 11:N
+for seq_idx = 4:N
     
     if is_train
         seq_name = opt.mot2d_train_seqs{seq_idx};
@@ -33,7 +33,7 @@ for seq_idx = 11:N
     C = textscan(fid, '%d %d %f %f %f %f %f %f %f %f', 'delimiter', ',');
     fclose(fid);  
     
-    for i = 1:seq_num
+    for i = 740:seq_num
         filename = fullfile(opt.mot, opt.mot2d, seq_set, seq_name, 'img1', sprintf('%06d.jpg', i));
         disp(filename);
         I = imread(filename);

@@ -7,10 +7,10 @@ TRAIN:
   IMS_PER_BATCH: 1
   BATCH_SIZE: 128
   FG_FRACTION: 0.5
-  FG_THRESH: !!python/tuple [0.7, 0.7, 0.7]
-  BG_THRESH_HI: !!python/tuple [0.7, 0.7, 0.7]
-  BG_THRESH_LO: !!python/tuple [0.0, 0.0, 0.0]
-  BBOX_THRESH: !!python/tuple [0.7, 0.7, 0.7]
+  FG_THRESH: !!python/tuple [0.7]
+  BG_THRESH_HI: !!python/tuple [0.7]
+  BG_THRESH_LO: !!python/tuple [0.0]
+  BBOX_THRESH: !!python/tuple [0.7]
   SNAPSHOT_INFIX: mot
   BBOX_REG: True
   SNAPSHOT_ITERS: 10000

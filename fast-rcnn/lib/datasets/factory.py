@@ -106,7 +106,7 @@ for split in ['0000', '0001', '0002', '0003', '0004', '0005', \
 # MOT Tracking dataset
 for split in ['TUD-Stadtmitte', 'TUD-Campus', 'PETS09-S2L1', \
     'ETH-Bahnhof', 'ETH-Sunnyday', 'ETH-Pedcross2', 'ADL-Rundle-6', \
-    'ADL-Rundle-8', 'KITTI-13', 'KITTI-17', 'Venice-2', 'train']:
+    'ADL-Rundle-8', 'KITTI-13', 'KITTI-17', 'Venice-2', 'train', 'trainval']:
     name = 'mot_tracking_{}_{}'.format('train', split)
     print name
     __sets[name] = (lambda split=split:
