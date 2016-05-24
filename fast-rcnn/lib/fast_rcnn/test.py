@@ -112,6 +112,39 @@ def _get_blobs(im, rois):
 
     return blobs, im_scale_factors
 
+
+def _get_patch_blobs(im, rois):
+    """Convert an image and RoIs within that image into network inputs."""
+
+    # process image
+    im = im.astype(np.float32, copy=True)
+    im -= cfg.PIXEL_MEANS
+    height = im.shape[0]
+    width = im.shape[1]
+
+    num_rois = rois.shape[0]
+    blob = np.zeros((num_rois, 224, 224, 3), dtype=np.float32)
+
+    for i in xrange(num_rois):
+        x1 = max(np.floor(rois[i, 0]), 1)
+        y1 = max(np.floor(rois[i, 1]), 1)
+        x2 = min(np.ceil(rois[i, 2]), width)
+        y2 = min(np.ceil(rois[i, 3]), height)
+
+        # crop image
+        im_crop = im[y1:y2, x1:x2, :]
+
+        # resize the cropped image
+        blob[i, :, :, :] = cv2.resize(im_crop, (224, 224), interpolation=cv2.INTER_LINEAR)
+
+    # Move channels (axis 3) to axis 1
+    # Axis order will become: (batch elem, channel, height, width)
+    channel_swap = (0, 3, 1, 2)
+    blob = blob.transpose(channel_swap)
+
+    return blob
+
+
 def _bbox_pred(boxes, box_deltas):
     """Transform the set of class-agnostic boxes into class-specific boxes
     by applying the predicted offsets (box_deltas)
@@ -207,6 +240,7 @@ def im_detect(net, im, boxes, num_classes, num_subclasses):
     net.blobs['rois'].reshape(*(blobs['rois'].shape))
     blobs_out = net.forward(data=blobs['data'].astype(np.float32, copy=False),
                             rois=blobs['rois'].astype(np.float32, copy=False))
+
     if cfg.TEST.SVM:
         # use the raw scores before softmax under the assumption they
         # were trained as linear SVMs
@@ -237,7 +271,7 @@ def im_detect(net, im, boxes, num_classes, num_subclasses):
         # set to zeros
         pred_views = np.zeros((boxes.shape[0], 3*num_classes))
 
-    if cfg.DEDUP_BOXES > 0:
+    if cfg.DEDUP_BOXES > 0 and not cfg.TEST.IS_PATCH:
         # Map scores and predictions back to the original set of boxes
         scores = scores[inv_index, :]
         scores_subcls = scores_subcls[inv_index, :]
@@ -245,6 +279,84 @@ def im_detect(net, im, boxes, num_classes, num_subclasses):
         pred_views = pred_views[inv_index, :]
 
     return scores, pred_boxes, scores_subcls, pred_views
+
+
+def im_detect_patch(net, im, boxes, num_classes, num_subclasses):
+    """Detect object classes in an image given object proposals.
+    Arguments:
+        net (caffe.Net): Fast R-CNN network to use
+        im (ndarray): color image to test (in BGR order)
+        boxes (ndarray): R x 4 array of object proposals
+    Returns:
+        scores (ndarray): R x K array of object class scores (K includes
+            background as object category 0)
+        boxes (ndarray): R x (4*K) array of predicted bounding boxes
+    """
+
+    if boxes.shape[0] == 0:
+        scores = np.zeros((0, num_classes))
+        pred_boxes = np.zeros((0, 4*num_classes))
+        pred_views = np.zeros((0, 3*num_classes))
+        scores_subcls = np.zeros((0, num_subclasses))
+        return scores, pred_boxes, scores_subcls, pred_views
+
+    blob = _get_patch_blobs(im, boxes)
+
+    # counting
+    num = blob.shape[0]
+    batchsize = 128
+    num_batches = int(math.ceil(float(num) / float(batchsize)))
+
+    # storage
+    scores = np.zeros((num, num_classes))
+    pred_boxes = np.zeros((num, 4*num_classes))
+    pred_views = np.zeros((num, 3*num_classes))
+    scores_subcls = np.zeros((num, num_subclasses))
+
+    for batch_id in range(num_batches):
+        start = batch_id * batchsize
+        end = (batch_id+1) * batchsize
+        if end > num:
+            end = num
+
+        blobs = {'data' : None}
+        blobs['data'] = blob[start:end, :, :, :]
+
+        # reshape network inputs
+        net.blobs['data'].reshape(*(blobs['data'].shape))
+        blobs_out = net.forward(data=blobs['data'].astype(np.float32, copy=False))
+
+        if cfg.TEST.SVM:
+            # use the raw scores before softmax under the assumption they
+            # were trained as linear SVMs
+            scores[start:end, :] = net.blobs['cls_score'].data
+        else:
+            # use softmax estimated probabilities
+            scores[start:end, :] = blobs_out['cls_prob']
+
+        if cfg.TEST.SUBCLS:
+            scores_subcls[start:end, :] = blobs_out['subcls_prob']
+        else:
+            # just use class scores
+            scores_subcls[start:end, :] = scores[start:end, :]
+
+        if cfg.TEST.BBOX_REG:
+            # Apply bounding-box regression deltas
+            box_deltas = blobs_out['bbox_pred']
+            pred_boxes[start:end, :] = _bbox_pred(boxes[start:end, :], box_deltas)
+        else:
+            # Simply repeat the boxes, once for each class
+            pred_boxes[start:end, :] = np.tile(boxes[start:end, :], (1, scores.shape[1]))
+
+        if cfg.TEST.VIEWPOINT:
+            # Apply bounding-box regression deltas
+            pred_views[start:end, :] = blobs_out['view_pred']
+
+    if cfg.TEST.BBOX_REG:
+        pred_boxes = _clip_boxes(pred_boxes, im.shape)
+
+    return scores, pred_boxes, scores_subcls, pred_views
+
 
 
 def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses, subclass_mapping):
@@ -473,7 +585,10 @@ def test_net(net, imdb):
             # with open(filename, 'wb') as f:
             #    cPickle.dump(conv5, f, cPickle.HIGHEST_PROTOCOL)
         else:
-            scores, boxes, scores_subcls, views = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes, imdb.num_subclasses)
+            if cfg.TEST.IS_PATCH:
+                scores, boxes, scores_subcls, views = im_detect_patch(net, im, roidb[i]['boxes'], imdb.num_classes, imdb.num_subclasses)
+            else:
+                scores, boxes, scores_subcls, views = im_detect(net, im, roidb[i]['boxes'], imdb.num_classes, imdb.num_subclasses)
         _t['im_detect'].toc()
 
         _t['misc'].tic()

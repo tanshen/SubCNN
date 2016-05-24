@@ -144,6 +144,8 @@ __C.TRAIN.RPN_SCALES = [2, 2.82842712, 4, 5.65685425, 8, 11.3137085, 16, 22.6274
 
 __C.TEST = edict()
 
+__C.TEST.IS_PATCH = False;
+
 # Scales to compute real features
 __C.TEST.SCALES_BASE = (0.25, 0.5, 1.0, 2.0, 3.0)
 
