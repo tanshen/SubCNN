@@ -518,6 +518,17 @@ def test_net(net, imdb):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    if 'nissan' in imdb.name:
+        output_dir_center = os.path.join(output_dir, 'imagesCenter')
+        if not os.path.exists(output_dir_center):
+            os.makedirs(output_dir_center)
+        output_dir_left = os.path.join(output_dir, 'imagesLeft')
+        if not os.path.exists(output_dir_left):
+            os.makedirs(output_dir_left)
+        output_dir_right = os.path.join(output_dir, 'imagesRight')
+        if not os.path.exists(output_dir_right):
+            os.makedirs(output_dir_right)
+
     det_file = os.path.join(output_dir, 'detections.pkl')
     print imdb.name
     if os.path.exists(det_file):

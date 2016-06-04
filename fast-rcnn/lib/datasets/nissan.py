@@ -21,7 +21,7 @@ class nissan(datasets.imdb):
         self._image_set = image_set
         self._nissan_path = self._get_default_path() if nissan_path is None \
                             else nissan_path
-        self._data_path = os.path.join(self._nissan_path, 'Images')
+        self._data_path = os.path.join(self._nissan_path, 'NISSAN_Dataset')
         self._classes = ('__background__', 'Car', 'Pedestrian', 'Cyclist')
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
         self._image_ext = '.png'

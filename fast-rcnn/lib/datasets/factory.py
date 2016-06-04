@@ -72,7 +72,7 @@ for split in ['train', 'val', 'trainval', 'test', 'test_1', 'test_2', 'debug']:
             datasets.imagenet3d(split))
 
 # NISSAN dataset
-for split in ['2015-10-21-16-25-12', '2016-01-15-15-05-24', '2016-02-17-16-51-05', '2016-02-17-16-55-12', '2016-02-17-16-59-25']:
+for split in ['autonomy_log_2016-04-11-12-15-46']:
     name = 'nissan_{}'.format(split)
     print name
     __sets[name] = (lambda split=split:

@@ -3,9 +3,9 @@ IS_RPN: False
 IS_MULTISCALE: True
 REGION_PROPOSAL: 'RPN_6k8k'
 TRAIN:
-  SCALES_BASE: !!python/tuple [1.0, 2.0, 3.0, 4.0]
-  NUM_PER_OCTAVE: 4
-  IMS_PER_BATCH: 2
+  SCALES_BASE: !!python/tuple [3.0]
+  NUM_PER_OCTAVE: 1
+  IMS_PER_BATCH: 1
   FG_FRACTION: 0.25
   FG_THRESH: !!python/tuple [0.7, 0.5, 0.5]
   BG_THRESH_HI: !!python/tuple [0.7, 0.5, 0.5]
@@ -14,6 +14,6 @@ TRAIN:
   ROI_THRESHOLD: 0.01
   SNAPSHOT_INFIX: kitti
 TEST:
-  SCALES_BASE: !!python/tuple [1.0, 2.0, 3.0, 4.0]
-  NUM_PER_OCTAVE: 4
+  SCALES_BASE: !!python/tuple [3.0]
+  NUM_PER_OCTAVE: 1
   NMS: 0.5
