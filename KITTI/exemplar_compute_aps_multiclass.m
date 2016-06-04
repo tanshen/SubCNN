@@ -1,6 +1,6 @@
 function exemplar_compute_aps_multiclass
 
-results_dir = 'results_kitti_train_tf';
+results_dir = 'results_kitti_train_googlenet';
 
 command = sprintf('./evaluate_object %s', results_dir);
 system(command);

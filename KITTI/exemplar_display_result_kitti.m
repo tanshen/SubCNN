@@ -1,10 +1,10 @@
 function exemplar_display_result_kitti
 
-threshold = 0.2;
+threshold = 0.5;
 is_save = 0;
-is_train = 1;
-% result_dir = 'test_results_vgg';
-result_dir = 'results_kitti_train_tf';
+is_train = 0;
+result_dir = 'test_results_googlenet';
+% result_dir = 'results_kitti_train_tf';
 
 % read detection results
 filename = sprintf('%s/detections.txt', result_dir);
