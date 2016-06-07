@@ -460,9 +460,9 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses, subclas
                            edgecolor='g', linewidth=3))
         plt.show()
 
-    conv5 = net.blobs['conv5'].data
+    # conv5 = net.blobs['conv5'].data
 
-    return scores, pred_boxes, scores_subcls, labels, pred_views, conv5
+    return scores, pred_boxes, scores_subcls, labels, pred_views
 
 def vis_detections(im, class_name, dets, thresh=0.1):
     """Visual debugging of detections."""
@@ -590,7 +590,7 @@ def test_net(net, imdb):
         _t['im_detect'].tic()
         if cfg.IS_RPN:
             boxes_grid, _, _ = get_boxes_grid(im.shape[0], im.shape[1])
-            scores, boxes, scores_subcls, labels, views, conv5 = im_detect_proposal(net, im, boxes_grid, imdb.num_classes, imdb.num_subclasses, imdb.subclass_mapping)
+            scores, boxes, scores_subcls, labels, views = im_detect_proposal(net, im, boxes_grid, imdb.num_classes, imdb.num_subclasses, imdb.subclass_mapping)
 
             # save conv5 features
             # index = imdb._image_index[i]
