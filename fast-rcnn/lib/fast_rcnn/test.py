@@ -386,17 +386,19 @@ def im_detect_proposal(net, im, boxes_grid, num_classes, num_subclasses, subclas
 
     # build max_scores
     tmp = np.reshape(scores_subcls, (scores_subcls.shape[0], scores_subcls.shape[1]))
-    max_scores = np.zeros((scores_subcls.shape[0], num_classes))
-    max_scores[:,0] = tmp[:,0]
-    assert (num_classes == 2 or num_classes == 4 or num_classes == 13 or num_classes == 21), 'The number of classes is not supported!'
-    if num_classes == 2:
-        max_scores[:,1] = tmp[:,1:].max(axis = 1)
+    if cfg.TEST.SUBCLS:
+        max_scores = np.zeros((scores_subcls.shape[0], num_classes))
+        max_scores[:,0] = tmp[:,0]
+        assert (num_classes == 2 or num_classes == 4 or num_classes == 13 or num_classes == 21), 'The number of classes is not supported!'
+        if num_classes == 2:
+            max_scores[:,1] = tmp[:,1:].max(axis = 1)
+        else:
+            for i in xrange(1, num_classes):
+                index = np.where(subclass_mapping == i)[0]
+                max_scores[:,i] = tmp[:,index].max(axis = 1)
+        scores = max_scores
     else:
-        for i in xrange(1, num_classes):
-            index = np.where(subclass_mapping == i)[0]
-            max_scores[:,i] = tmp[:,index].max(axis = 1)
-
-    scores = max_scores
+        scores = tmp
 
     rois = net.blobs['rois_sub'].data
     inds = rois[:,0]
