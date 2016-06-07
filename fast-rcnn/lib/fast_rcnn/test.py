@@ -649,7 +649,7 @@ def test_net(net, imdb):
                     .astype(np.float32, copy=False)
             count = count + len(cls_scores)
 
-            if 0:
+            if 1:
                 keep = nms(all_boxes[j][i], cfg.TEST.NMS)
                 vis_detections(im, imdb.classes[j], all_boxes[j][i][keep, :])
         _t['misc'].toc()

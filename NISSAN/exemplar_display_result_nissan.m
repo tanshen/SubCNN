@@ -1,15 +1,11 @@
 function exemplar_display_result_nissan
 
 threshold_car = 0.1;
-threshold_others = 0.3;
+threshold_others = 0.5;
 is_save = 1;
-result_dir = 'test_results';
-root_dir = '/capri5/NISSAN_Dataset/Images';
-% image_set = '2015-10-21-16-25-12';
-% image_set = '2016-01-15-15-05-24';
-% image_set = '2016-02-17-16-51-05';
-% image_set = '2016-02-17-16-55-12';
-image_set = '2016-02-17-16-59-25';
+result_dir = '/capri5/Projects/3DVP_RCNN/fast-rcnn/output/nissan';
+root_dir = '/capri5/NISSAN_Dataset';
+image_set = 'autonomy_log_2016-04-11-12-15-46';
 
 if is_save
     result_image_dir = sprintf('result_images/%s', image_set);
@@ -19,7 +15,7 @@ if is_save
 end     
 
 % read detection results
-filename = sprintf('%s/%s-detections.txt', result_dir, image_set);
+filename = sprintf('%s/nissan_%s/vgg16_fast_rcnn_multiscale_6k8k_kitti_iter_80000/detections.txt', result_dir, image_set);
 [ids_det, cls_det, x1_det, y1_det, x2_det, y2_det, cid_det, score_det] = ...
     textread(filename, '%s %s %f %f %f %f %d %f');
 fprintf('load detection done\n');
@@ -165,6 +161,13 @@ for i = 1:N
         end
     end
     
+    if mod(i, 3) == 1
+        subplot(1, 3, 2);
+    elseif mod(i, 3) == 2
+        subplot(1, 3, 1);
+    else
+        subplot(1, 3, 3);
+    end
     imshow(I);
     hold on;
     for k = 1:num
@@ -181,12 +184,14 @@ for i = 1:N
     end
     hold off;
     
-    if is_save
-        filename = fullfile(result_image_dir, sprintf('%s.png', img_idx));
-        % saveas(hf, filename);
-        hgexport(hf, filename, hgexport('factorystyle'), 'Format', 'png');
-    else
-        pause;
+    if mod(i, 3) == 0
+        if is_save
+            filename = fullfile(result_image_dir, sprintf('image%05d.png', i/3-1));
+            % saveas(hf, filename);
+            hgexport(hf, filename, hgexport('factorystyle'), 'Format', 'png');
+        else
+            pause;
+        end
     end
 end
 
