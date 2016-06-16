@@ -412,7 +412,7 @@ layer {
     pad: 2
     weight_filler {
       type: "gaussian"
-      std: 0.0001
+      std: 0.001
     }
     bias_filler {
       type: "constant"
@@ -447,7 +447,7 @@ layer {
   top: 'labels'
   roi_generating_param {
     flag_proposal_only: 0
-    batch_size: 128
+    batch_size: 64
     num_classes: 21
     fg_fraction: 0.5
     spatial_scale: 0.0625 # 1/16
@@ -496,7 +496,7 @@ layer {
     kernel_size: 5
     weight_filler {
       type: "gaussian"
-      std: 0.0001
+      std: 0.001
     }
     bias_filler {
       type: "constant"
