@@ -18,7 +18,7 @@ echo Logging output to "$LOG"
 
 time ./tools/test_net.py --gpu $1 \
   --def models/VGG16/pascal2007/test_rpn_cls.prototxt \
-  --net output/pascal2007/voc_2007_trainval/vgg16_fast_rcnn_rpn_cls_pascal2007_iter_10000.caffemodel \
+  --net output/pascal2007/voc_2007_trainval/vgg16_fast_rcnn_rpn_cls_pascal2007_iter_5000.caffemodel \
   --imdb voc_2007_test \
   --cfg experiments/cfgs/pascal_rpn_cls_vgg16.yml
 
