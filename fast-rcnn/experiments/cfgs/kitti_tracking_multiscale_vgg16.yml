@@ -5,7 +5,7 @@ REGION_PROPOSAL: 'RPN'
 TRAIN:
   SCALES_BASE: !!python/tuple [3.0]
   NUM_PER_OCTAVE: 1
-  IMS_PER_BATCH: 2
+  IMS_PER_BATCH: 1 
   FG_FRACTION: 0.25
   FG_THRESH: !!python/tuple [0.7, 0.5, 0.5]
   BG_THRESH_HI: !!python/tuple [0.7, 0.5, 0.5]
