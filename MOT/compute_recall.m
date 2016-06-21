@@ -2,7 +2,7 @@ function compute_recall
 
 opt = globals;
 seq_set = 'train';
-out_dir = 'region_proposals/SubCNN';
+out_dir = 'region_proposals/SubCNN_trainval';
 N = numel(opt.mot2d_train_seqs);
 
 for seq_idx = 1:N

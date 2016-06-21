@@ -1,0 +1,19 @@
+EXP_DIR: mot
+IS_RPN: False
+IS_MULTISCALE: True
+REGION_PROPOSAL: 'RPN'
+TRAIN:
+  SCALES_BASE: !!python/tuple [2.0]
+  NUM_PER_OCTAVE: 1
+  IMS_PER_BATCH: 1
+  FG_FRACTION: 0.25
+  FG_THRESH: !!python/tuple [0.5]
+  BG_THRESH_HI: !!python/tuple [0.5]
+  BG_THRESH_LO: !!python/tuple [0.1]
+  BBOX_THRESH: !!python/tuple [0.5]
+  ROI_THRESHOLD: 0.01
+  SNAPSHOT_INFIX: mot
+TEST:
+  SCALES_BASE: !!python/tuple [2.0]
+  NUM_PER_OCTAVE: 1
+  NMS: 0.5
