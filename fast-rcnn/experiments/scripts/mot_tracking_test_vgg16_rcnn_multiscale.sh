@@ -4,12 +4,13 @@ set -x
 set -e
 
 export PYTHONUNBUFFERED="True"
+export CUDA_VISIBLE_DEVICES=$1
 
 LOG="experiments/logs/mot_tracking_test_caffenet_rcnn_multiscale.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
-time ./tools/train_net.py --gpu $1 \
+time ./tools/train_net.py --gpu 0 \
   --solver models/VGG16/mot_tracking_test/solver_rcnn_multiscale.prototxt \
   --weights data/imagenet_models/VGG16.v2.caffemodel \
   --imdb mot_tracking_train_trainval \
@@ -32,7 +33,7 @@ then
   rm $PWD/output/mot/mot_tracking_$image_set\_$i/vgg16_fast_rcnn_multiscale_mot_iter_80000/detections.pkl
 fi
 
-time ./tools/test_net.py --gpu $1 \
+time ./tools/test_net.py --gpu 0 \
   --def models/VGG16/mot_tracking_test/test_rcnn_multiscale.prototxt \
   --net output/mot/mot_tracking_train_trainval/vgg16_fast_rcnn_multiscale_mot_iter_80000.caffemodel \
   --imdb mot_tracking_$image_set\_$i \
@@ -60,7 +61,7 @@ then
   rm $PWD/output/mot/mot_tracking_$image_set\_$i/vgg16_fast_rcnn_multiscale_mot_iter_80000/detections.pkl
 fi
 
-time ./tools/test_net.py --gpu $1 \
+time ./tools/test_net.py --gpu 0 \
   --def models/VGG16/mot_tracking_test/test_rcnn_multiscale.prototxt \
   --net output/mot/mot_tracking_train_trainval/vgg16_fast_rcnn_multiscale_mot_iter_80000.caffemodel \
   --imdb mot_tracking_$image_set\_$i \
