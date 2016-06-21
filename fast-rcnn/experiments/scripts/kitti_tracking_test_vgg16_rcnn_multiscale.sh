@@ -4,6 +4,7 @@ set -x
 set -e
 
 export PYTHONUNBUFFERED="True"
+export CUDA_VISIBLE_DEVICES=$1
 
 LOG="experiments/logs/kitti_tracking_test_vgg16_rcnn_multiscale.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
 exec &> >(tee -a "$LOG")
@@ -18,13 +19,13 @@ echo Logging output to "$LOG"
 
 image_set="testing"
 
-for i in {0..28}
+for i in {4..28}
 do
 
 seq_num=$(printf '%04d' "$i")
 echo $seq_num
 
-time ./tools/test_net.py --gpu $1 \
+time ./tools/test_net.py --gpu 0 \
   --def models/VGG16/kitti_tracking_test/test_rcnn_multiscale.prototxt \
   --net output/kitti_tracking/kitti_tracking_training_trainval/vgg16_fast_rcnn_multiscale_trainval_kitti_iter_80000.caffemodel \
   --imdb kitti_tracking_$image_set\_$seq_num \
@@ -43,7 +44,7 @@ do
 seq_num=$(printf '%04d' "$i")
 echo $seq_num
 
-time ./tools/test_net.py --gpu $1 \
+time ./tools/test_net.py --gpu 0 \
   --def models/VGG16/kitti_tracking_test/test_rcnn_multiscale.prototxt \
   --net output/kitti_tracking/kitti_tracking_training_trainval/vgg16_fast_rcnn_multiscale_trainval_kitti_iter_80000.caffemodel \
   --imdb kitti_tracking_$image_set\_$seq_num \
