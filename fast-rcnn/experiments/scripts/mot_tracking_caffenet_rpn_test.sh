@@ -20,24 +20,24 @@ do
 
 echo $i
 
-if [ -f $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_40000/detections.pkl ]
+if [ -f $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_80000/detections.pkl ]
 then
-  rm $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_40000/detections.pkl
+  rm $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_80000/detections.pkl
 fi
 
-if [ -h data/MOT_Tracking/region_proposals/$image_set/$i ]
+if [ -h data/MOT_Tracking/region_proposals_trainval/$image_set/$i ]
 then
-  rm data/MOT_Tracking/region_proposals/$image_set/$i
+  rm data/MOT_Tracking/region_proposals_trainval/$image_set/$i
 fi
 
 time ./tools/test_net.py --gpu $1 \
   --def models/CaffeNet/mot_tracking_train/test_rpn.prototxt \
-  --net output/mot/mot_tracking_train_train/caffenet_fast_rcnn_rpn_mot_iter_40000.caffemodel \
+  --net output/mot/mot_tracking_train_trainval/caffenet_fast_rcnn_rpn_mot_iter_80000.caffemodel \
   --imdb mot_tracking_$image_set\_$i \
   --cfg experiments/cfgs/mot_rpn.yml
 
 # create an symbol link for the region proposal results
-ln -s $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_40000 data/MOT_Tracking/region_proposals/$image_set/$i
+ln -s $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_80000 data/MOT_Tracking/region_proposals_trainval/$image_set/$i
 
 done
 
@@ -53,23 +53,23 @@ do
 
 echo $i
 
-if [ -f $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_40000/detections.pkl ]
+if [ -f $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_80000/detections.pkl ]
 then
-  rm $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_40000/detections.pkl
+  rm $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_80000/detections.pkl
 fi
 
-if [ -h data/MOT_Tracking/region_proposals/$image_set/$i ]
+if [ -h data/MOT_Tracking/region_proposals_trainval/$image_set/$i ]
 then
-  rm data/MOT_Tracking/region_proposals/$image_set/$i
+  rm data/MOT_Tracking/region_proposals_trainval/$image_set/$i
 fi
 
 time ./tools/test_net.py --gpu $1 \
   --def models/CaffeNet/mot_tracking_train/test_rpn.prototxt \
-  --net output/mot/mot_tracking_train_train/caffenet_fast_rcnn_rpn_mot_iter_40000.caffemodel \
+  --net output/mot/mot_tracking_train_trainval/caffenet_fast_rcnn_rpn_mot_iter_80000.caffemodel \
   --imdb mot_tracking_$image_set\_$i \
   --cfg experiments/cfgs/mot_rpn.yml
 
 # create an symbol link for the region proposal results
-ln -s $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_40000 data/MOT_Tracking/region_proposals/$image_set/$i
+ln -s $PWD/output/mot/mot_tracking_$image_set\_$i/caffenet_fast_rcnn_rpn_mot_iter_80000 data/MOT_Tracking/region_proposals_trainval/$image_set/$i
 
 done
