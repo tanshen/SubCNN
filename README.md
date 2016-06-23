@@ -18,7 +18,7 @@ This package supports
 
 SubCNN is released under the MIT License (refer to the LICENSE file for details).
 
-### Citing Fast R-CNN
+### Citing SubCNN
 
 If you find SubCNN useful in your research, please consider citing:
 
@@ -81,7 +81,7 @@ If you find SubCNN useful in your research, please consider citing:
     ln -s $data_object_image_2 data_object_image_2
     ```
 
-3. Unzip the voxel_exemplars.zip in $ROOT/fast-rcnn/data/KITTI. These are subcategories from 3D voxel patterns (Xiang et al. CVPR'15).
+3. Unzip the voxel_exemplars.zip in $ROOT/fast-rcnn/data/KITTI. These are subcategories from [3D voxel patterns](http://cvgl.stanford.edu/projects/3DVP/) (Xiang et al. CVPR'15).
 
 4. Run the region proposal network to generate region proposals
     ```Shell
@@ -144,7 +144,7 @@ If you find SubCNN useful in your research, please consider citing:
     ln -s $PASCAL3D+_release1.1/PASCAL/VOCdevkit VOCdevkit2012
     ```
 
-3. Unzip the voxel_exemplars.zip in $ROOT/fast-rcnn/data/PASCAL3D. These are subcategories from 3D voxel patterns (Xiang et al. CVPR'15).
+3. Unzip the voxel_exemplars.zip in $ROOT/fast-rcnn/data/PASCAL3D. These are subcategories from [3D voxel patterns](http://cvgl.stanford.edu/projects/3DVP/) (Xiang et al. CVPR'15).
 
 4. Run the region proposal network to generate region proposals
     ```Shell
