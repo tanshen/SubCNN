@@ -101,6 +101,34 @@ If you find SubCNN useful in your research, please consider citing:
 
     ```
 
+5. Copy the region proposals to $ROOT/fast-rcnn/data/KITTI/region_proposals/RPN_*:
+    ```Shell
+    # validation (125 subcategories for car)
+    $ROOT/fast-rcnn/data/KITTI/region_proposals/RPN_125/training   # a directory contains region proposals for training images: 000000.txt, ..., 007480.txt
+
+    # testing (227 subcategories for car)
+    $ROOT/fast-rcnn/data/KITTI/region_proposals/RPN_227/training   # a directory contains region proposals for training images: 000000.txt, ..., 007480.txt
+    $ROOT/fast-rcnn/data/KITTI/region_proposals/RPN_227/testing    # a directory contains region proposals for testing  images: 000000.txt, ..., 007517.txt
+    ```
+
+5. Run the detection network
+    ```Shell
+    cd $ROOT/fast-rcnn
+
+    # subcategory-aware detection network for validation
+    ./experiments/scripts/kitti_val_caffenet_rcnn_multiscale.sh $GPU_ID
+
+    # subcategory-aware detection network for testing
+    ./experiments/scripts/kitti_test_caffenet_rcnn_multiscale_6k8k.sh $GPU_ID
+
+    # Faster RCNN detection network for validation
+    ./experiments/scripts/kitti_val_caffenet_rcnn_msr.sh $GPU_ID
+
+    # Faster RCNN detection network for testing
+    ./experiments/scripts/kitti_test_caffenet_rcnn_original_msr.sh $GPU_ID
+
+    ```
+
 ### Running with the NTHU dataset
 1. The NTHU dataset should have a directory named 'data', under which it has the following structure:
     ```Shell
