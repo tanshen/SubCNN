@@ -1,7 +1,8 @@
 # SubCNN: Subcategory-aware Convolutional Neural Networks for Object Proposals and Detection
 
-Created by Yu Xiang at CVGL, Stanford University,
-based on the [Fast R-CNN](https://github.com/rbgirshick/fast-rcnn) created by Ross Girshick at Microsoft Research, Redmond.
+Created by Yu Xiang at CVGL at Stanford University.
+
+Part of this code is based on the [Fast R-CNN](https://github.com/rbgirshick/fast-rcnn) created by Ross Girshick at Microsoft Research, Redmond.
 
 ### Introduction
 
