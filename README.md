@@ -121,6 +121,12 @@ If you find SubCNN useful in your research, please consider citing:
     # subcategory-aware detection network for testing
     ./experiments/scripts/kitti_test_caffenet_rcnn_multiscale_6k8k.sh $GPU_ID
 
+    # subcategory-aware detection network for testing with VGG16
+    ./experiments/scripts/kitti_test_vgg16_rcnn_multiscale_6k8k.sh $GPU_ID
+
+    # subcategory-aware detection network for testing with GoogleNet
+    ./experiments/scripts/kitti_test_googlenet_rcnn.sh $GPU_ID
+
     # Faster RCNN detection network for validation
     ./experiments/scripts/kitti_val_caffenet_rcnn_msr.sh $GPU_ID
 
