@@ -64,13 +64,13 @@ If you find SubCNN useful in your research, please consider citing:
     make -j8 && make pycaffe
     ```
     
-5. Download pre-computed 3DVP R-CNN detectors trained on KITTI
+5. Download pre-trained ImageNet models
     ```Shell
     cd $ROOT/fast-rcnn
-    ./data/scripts/fetch_3dvp_rcnn_models.sh
+    ./data/scripts/fetch_imagenet_models.sh
     ```
 
-    This will populate the `$ROOT/fast-rcnn/data` folder with `3DVP_RCNN_models`.
+    This will populate the `$ROOT/fast-rcnn/data` folder with `imagenet_models`.
 
 ### Running with the KITTI detection dataset
 1. Download the KITTI detection dataset from [here](http://www.cvlibs.net/datasets/kitti/eval_object.php).
@@ -172,7 +172,7 @@ If you find SubCNN useful in your research, please consider citing:
 
     ```
 
-### Running with other dataset
+### Running with other datasets
 The package also supports running experiments on the PASCAL VOC detection dataset, the [KITTI Tracking dataset](http://www.cvlibs.net/datasets/kitti/eval_tracking.php) and the [MOT Tracking dataset](https://motchallenge.net/data/2D_MOT_2015/). Please see the scripts in $ROOT/fast-rcnn/experiments/scripts.
 
 
