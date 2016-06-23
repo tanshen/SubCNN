@@ -176,7 +176,7 @@ If you find SubCNN useful in your research, please consider citing:
 The package also supports running experiments on the PASCAL VOC detection dataset, the [KITTI Tracking dataset](http://www.cvlibs.net/datasets/kitti/eval_tracking.php) and the [MOT Tracking dataset](https://motchallenge.net/data/2D_MOT_2015/). Please see the scripts in $ROOT/fast-rcnn/experiments/scripts.
 
 
-### Running with the NTHU dataset
+### Running with the NTHU dataset (internal usage)
 1. The NTHU dataset should have a directory named 'data', under which it has the following structure:
     ```Shell
   	$data/                           # the directory contains all the data
