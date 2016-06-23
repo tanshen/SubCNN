@@ -1,18 +1,47 @@
-# 3DVP_RCNN
+# SubCNN: Subcategory-aware Convolutional Neural Networks for Object Proposals and Detection
+
+Created by Yu Xiang at CVGL, Stanford University,
+based on the Fast R-CNN created by Ross Girshick at Microsoft Research, Redmond.
+
+### Introduction
+
+We introduce a new region proposal network that uses subcategory information to guide the proposal generating process, and a new detection network for joint detection and subcategory classification. By using subcategories related to object pose, we achieve state-of-the-art performance on both detection and pose estimation on commonly used benchmarks, such as KITTI and PASCAL3D+.
+
+This package supports
+ - Subcategory-aware region proposal network
+ - Subcategory-aware detection network
+ - Region proposal network in Faster R-CNN (Ren et al. NIPS 2015)
+ - Detection network in Faster R-CNN (Ren et al. NIPS 2015)
+ - Experiments on the following datasets: KITTI Detection, PASCAL VOC, PASCAL3D+, KITTI Tracking sequences, MOT sequences
+
+### License
+
+SubCNN is released under the MIT License (refer to the LICENSE file for details).
+
+### Citing Fast R-CNN
+
+If you find SubCNN useful in your research, please consider citing:
+
+@incollection{xiang2016subcategory,
+  author    = {Xiang, Yu and Choi, Wongun and Lin, Yuanqing and Savarese, Silvio},
+  title     = {Subcategory-aware Convolutional Neural Networks for Object Proposals and Detection},
+  booktitle = {arXiv:1604.04693},
+  year      = {2016}
+}
 
 ### Installation
 
-1. Clone the 3DVP_RCNN repository
+1. Clone the SubCNN repository
   ```Shell
   # Make sure to clone with --recursive
-  git clone --recursive https://github.com/yuxng/3DVP_RCNN.git
+  git clone --recursive https://github.com/yuxng/SubCNN.git
   ```
   
-2. We'll call the directory that you cloned 3DVP_RCNN into `ROOT`
+2. We'll call the directory that you cloned SubCNN into `ROOT`
 
    *Ignore notes 1 and 2 if you followed step 1 above.*
    
-   **Note 1:** If you didn't clone 3DVP_RCNN with the `--recursive` flag, then you'll need to manually clone the `caffe-fast-rcnn` submodule:
+   **Note 1:** If you didn't clone SubCNN with the `--recursive` flag, then you'll need to manually clone the `caffe-fast-rcnn` submodule:
     ```Shell
     git submodule update --init --recursive
     ```
@@ -42,6 +71,8 @@
     ```
 
     This will populate the `$ROOT/fast-rcnn/data` folder with `3DVP_RCNN_models`.
+
+### Running with the KITTI detection dataset
 
 ### Running with the NTHU dataset
 1. The NTHU dataset should have a directory named 'data', under which it has the following structure:
