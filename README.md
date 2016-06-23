@@ -135,6 +135,43 @@ If you find SubCNN useful in your research, please consider citing:
 
     ```
 
+### Running with the PASCAL3D+ dataset
+1. Download the PASCAL3D+ dataset from [here](http://cvgl.stanford.edu/projects/pascal3d.html).
+
+2. Create symlinks for the PASCAL VOC 2012 dataset
+    ```Shell
+    cd $ROOT/fast-rcnn/data/PASCAL3D
+    ln -s $PASCAL3D+_release1.1/PASCAL/VOCdevkit VOCdevkit2012
+    ```
+
+3. Unzip the voxel_exemplars.zip in $ROOT/fast-rcnn/data/PASCAL3D. These are subcategories from 3D voxel patterns (Xiang et al. CVPR'15).
+
+4. Run the region proposal network to generate region proposals
+    ```Shell
+    cd $ROOT/fast-rcnn
+
+    # subcategory-aware RPN
+    ./experiments/scripts/pascal3d_vgg16_rpn_6k8k.sh $GPU_ID
+
+    ```
+
+5. Copy the region proposals to $ROOT/fast-rcnn/data/PASCAL3D/region_proposals/RPN_6k8k:
+    ```Shell
+    # training set and validation set
+    $ROOT/fast-rcnn/data/PASCAL3D/region_proposals/RPN_6k8k/training     # a directory contains region proposals for training images
+    $ROOT/fast-rcnn/data/PASCAL3D/region_proposals/RPN_6k8k/validation   # a directory contains region proposals for validation images
+
+    ```
+
+5. Run the detection network
+    ```Shell
+    cd $ROOT/fast-rcnn
+
+    # subcategory-aware detection network
+    ./experiments/scripts/pascal3d_vgg16_rcnn_multiscale.sh $GPU_ID
+
+    ```
+
 ### Running with the NTHU dataset
 1. The NTHU dataset should have a directory named 'data', under which it has the following structure:
     ```Shell
