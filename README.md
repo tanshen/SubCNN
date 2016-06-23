@@ -81,7 +81,7 @@ If you find SubCNN useful in your research, please consider citing:
     ln -s $data_object_image_2 data_object_image_2
     ```
 
-3. Unzip the voxel_exemplars.zip in $ROOT/fast-rcnn/data/KITTI
+3. Unzip the voxel_exemplars.zip in $ROOT/fast-rcnn/data/KITTI. These are subcategories from 3D voxel patterns (Xiang et al. CVPR'15).
 
 4. Run the region proposal network to generate region proposals
     ```Shell
