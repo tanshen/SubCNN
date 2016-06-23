@@ -22,12 +22,12 @@ SubCNN is released under the MIT License (refer to the LICENSE file for details)
 
 If you find SubCNN useful in your research, please consider citing:
 
-@incollection{xiang2016subcategory,
-  author    = {Xiang, Yu and Choi, Wongun and Lin, Yuanqing and Savarese, Silvio},
-  title     = {Subcategory-aware Convolutional Neural Networks for Object Proposals and Detection},
-  booktitle = {arXiv:1604.04693},
-  year      = {2016}
-}
+    @incollection{xiang2016subcategory,
+        author = {Xiang, Yu and Choi, Wongun and Lin, Yuanqing and Savarese, Silvio},
+        title = {Subcategory-aware Convolutional Neural Networks for Object Proposals and Detection},
+        booktitle = {arXiv:1604.04693},
+        year = {2016}
+    }
 
 ### Installation
 
@@ -73,6 +73,33 @@ If you find SubCNN useful in your research, please consider citing:
     This will populate the `$ROOT/fast-rcnn/data` folder with `3DVP_RCNN_models`.
 
 ### Running with the KITTI detection dataset
+1. Download the KITTI detection dataset from [here](http://www.cvlibs.net/datasets/kitti/eval_object.php).
+
+2. Create symlinks for the KITTI detection dataset
+    ```Shell
+    cd $ROOT/fast-rcnn/data/KITTI
+    ln -s $data_object_image_2 data_object_image_2
+    ```
+
+3. Unzip the voxel_exemplars.zip in $ROOT/fast-rcnn/data/KITTI
+
+4. Run the region proposal network to generate region proposals
+    ```Shell
+    cd $ROOT/fast-rcnn
+
+    # subcategory-aware RPN for validation
+    ./experiments/scripts/kitti_val_caffenet_rpn.sh $GPU_ID
+
+    # subcategory-aware RPN for testing
+    ./experiments/scripts/kitti_test_caffenet_rpn_6k8k.sh $GPU_ID
+
+    # Faster RCNN RPN for validation
+    ./experiments/scripts/kitti_val_caffenet_rpn_msr.sh $GPU_ID
+
+    # Faster RCNN RPN for testing
+    ./experiments/scripts/kitti_test_caffenet_rpn_msr_6k8k.sh $GPU_ID
+
+    ```
 
 ### Running with the NTHU dataset
 1. The NTHU dataset should have a directory named 'data', under which it has the following structure:
