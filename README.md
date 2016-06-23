@@ -53,7 +53,7 @@ If you find SubCNN useful in your research, please consider citing:
     make
     ```
     
-4. Build Caffe and pycaffe
+4. Build our modified Caffe and pycaffe
     ```Shell
     cd $ROOT/caffe-fast-rcnn
     # Now follow the Caffe installation instructions here:
